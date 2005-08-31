@@ -1,0 +1,81 @@
+#! /usr/bin/ruby -w
+
+# :main: README
+
+require 'rake'
+require 'ostruct'
+require 'optparse'
+
+require 'autobuild/config'
+require 'autobuild/logging'
+
+def parse_options(args)
+    options = OpenStruct.new
+    options.noupdate = false
+    options.srcdir = nil
+    options.prefix = nil
+    options.builddir = "build"
+    options.logdir = nil
+    $VERBOSE = false
+
+    parser = OptionParser.new do |opts|
+        opts.banner = "Usage: autobuild [options] config.yml"
+        opts.separator ""
+
+        opts.on("--srcdir PATH", "Find or imports sources in PATH") do |p|
+            options.srcdir = p
+        end
+
+        opts.on("--prefix PATH", "Packages are installed in PATH") do |p|
+            options.prefix = p
+            options.logdir = "#{p}/autobuild"
+        end
+
+        opts.on("--logdir", "Where logs are saved (default: <prefix>/autobuild)") do |p|
+            options.logdir = p
+        end
+
+        opts.on("--noupdate", "Do not update already checked-out sources") do
+            options.noupdate = true
+        end
+
+        opts.on("--verbose", "Display output of commands on stdout") do
+            $VERBOSE = true
+        end
+
+        opts.on_tail("-h", "--help", "Show this message") do
+            puts opts
+            exit
+        end
+    end
+
+    parser.parse!(args)
+    if !args[0]
+        puts parser
+        exit
+    end
+
+    [ options, args[0], args[1..-1] ]
+end
+
+# Load the command line options
+options, conffile, targets = parse_options(ARGV)
+Config.load(conffile, options)
+
+$DEBUG = true
+if $DEBUG
+    $trace = true
+end
+
+begin
+    if targets.empty?
+        Task[:default].invoke
+    else
+        targets.each { |t| Task[t.to_sym].invoke }
+    end
+    success
+rescue BuildException => error
+    error(error, "Error during build of #{error.target}")
+    exit(1)
+end
+
