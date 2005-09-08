@@ -12,13 +12,13 @@ class GenomModule < Autotools
     def get_requires
         File.open("#{srcdir}/#{target}.gen") do |f|
             f.each_line { |line|
-                if line =~ /^require\s*:\s*([\w\-]+(?:\s*,\s*[\w\-]+)*);/
+                if line =~ /^\s*requires\s*:\s*([\w\-]+(?:\s*,\s*[\w\-]+)*);/
                     $1.split(/, /).each { |name| 
                         depends_on name
                         file genomstamp => Package.name2target(name)
                     }
-                elsif line =~ /^require/
-                    puts "failed to math #{line}"
+                elsif line =~ /^\s*requires/
+                    puts "failed to match #{line}"
                 end
             }
         end
@@ -38,12 +38,13 @@ class GenomModule < Autotools
         
 
     def regen_targets
+        cmdline = [ 'genom', target ] | @options[:genomflags].to_a
+
         file buildstamp => genomstamp
         file genomstamp => [ :genom, "#{srcdir}/#{target}.gen" ] do
             Dir.chdir(srcdir) {
-                cmdline = "genom " + @options[:genomflags].to_a.join(" ") + " #{target}"
                 begin
-                    subcommand(target, 'genom', cmdline)
+                    subcommand(target, 'genom', *cmdline)
                 rescue SubcommandFailed => e
                     raise BuildException.new(e), "failed to generate module #{target}"
                 end
@@ -57,7 +58,7 @@ class GenomModule < Autotools
                 # since the generation takes care of rebuilding configure
                 # if .gen has changed
                 begin
-                    subcommand(target, 'genom', cmdline)
+                    subcommand(target, 'genom', *cmdline)
                 rescue SubcommandFailed => e
                     raise BuildException.new(e), "failed to generate module #{target}"
                 end

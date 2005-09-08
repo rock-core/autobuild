@@ -1,8 +1,8 @@
 require 'autobuild/logging'
 
-def subcommand(target, type, command)
+def subcommand(target, type, *command)
     logname = "#{$LOGDIR}/#{target}-#{type}.log"
-    puts "#{target}: running #{command}\n    (output goes to #{logname})"
+    puts "#{target}: running #{command.join(" ")}\n    (output goes to #{logname})"
 
     status = File.open(logname, "a") { |logfile|
         pid = fork { 
@@ -14,7 +14,7 @@ def subcommand(target, type, command)
                 $stdout.reopen(logfile.dup)
             end
            
-            if !exec(*command.split(" "))
+            if !exec(*command)
                 raise "Error running command"
             end
         }
@@ -23,7 +23,7 @@ def subcommand(target, type, command)
     }
 
     if status.exitstatus > 0
-        raise SubcommandFailed.new(target, command, logname, status.exitstatus)
+        raise SubcommandFailed.new(target, command.join(" "), logname, status.exitstatus)
         return false
     else
         return true

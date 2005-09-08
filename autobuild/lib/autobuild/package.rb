@@ -42,7 +42,6 @@ class Package
 
     def depends_on(p)
         p = Package.name2target(p)
-        raise :bla if !(Symbol === p)
         task target => p
         puts "#{target} depends on #{p}"
 

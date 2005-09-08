@@ -26,7 +26,7 @@ def tree_timestamp(path, *exclude)
     return latest
 end
 
-class SourceTreeTask < Task
+class SourceTreeTask < Rake::Task
     attr_accessor :exclude
     def timestamp
         tree_timestamp(name, "*CVS", *@exclude)
