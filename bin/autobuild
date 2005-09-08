@@ -8,6 +8,9 @@ require 'optparse'
 
 require 'autobuild/config'
 require 'autobuild/logging'
+require 'daemons'
+
+DEFAULT_HTTP_PORT = 2000
 
 def parse_options(args)
     options = OpenStruct.new
@@ -16,6 +19,8 @@ def parse_options(args)
     options.prefix = nil
     options.builddir = "build"
     options.logdir = nil
+    options.daemonize = false
+    options.use_http = false
     $VERBOSE = false
 
     parser = OptionParser.new do |opts|
@@ -43,6 +48,17 @@ def parse_options(args)
             $VERBOSE = true
         end
 
+        opts.on("--daemon", "Go into daemon mode") do
+            options.daemonize = true
+        end
+        opts.on("--http [PORT]", Integer, 
+                "Display a HTTP information page on PORT (PORT default: #{DEFAULT_HTTP_PORT})") do |port| 
+            options.http = (port || DEFAULT_HTTP_PORT)
+        end
+        opts.on("--debug", "Verbose information (for debugging purposes)") do 
+            options.debug = true
+        end
+
         opts.on_tail("-h", "--help", "Show this message") do
             puts opts
             exit
@@ -62,16 +78,16 @@ end
 options, conffile, targets = parse_options(ARGV)
 Config.load(conffile, options)
 
-$DEBUG = true
-if $DEBUG
-    $trace = true
-end
+Daemons.daemonize if options.daemonize
+
+$DEBUG = options.debug
+$trace = $DEBUG
 
 begin
     if targets.empty?
-        Task[:default].invoke
+        Rake::Task[:default].invoke
     else
-        targets.each { |t| Task[t.to_sym].invoke }
+        targets.each { |t| Rake::Task[t.to_sym].invoke }
     end
     success
 rescue BuildException => error

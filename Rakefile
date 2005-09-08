@@ -3,7 +3,7 @@ require 'rake/gempackagetask'
 
 spec = Gem::Specification.new do |s|
     s.name = 'autobuild'
-    s.version = '0.1'
+    s.version = '0.2'
     s.author = 'Sylvain Joyeux'
     s.email = 'sylvain.joyeux@m4x.org'
     s.summary = 'Rake-based utility to build and install multiple packages with dependencies'
@@ -22,6 +22,7 @@ EOF
     s.require_paths << "lib"
     s.add_dependency('rake')
     s.add_dependency('rmail')
+    s.add_dependency('daemons')
     s.files = FileList['lib/**/*.rb', 'bin/*', 'README']
     s.executables = 'autobuild'
 end
