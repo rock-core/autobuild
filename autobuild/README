@@ -277,6 +277,8 @@ The only program used during the build phase is +make+. The make command can too
                         configureflags: [ [ --with-bar-source=, *srcdir, '/', *bar_srcdir ] ]
                         depends: bar
 
+= Running autobuild in daemon mode
+ 
 = Copyright and license
 Author::    Sylvain Joyeux <sylvain.joyeux@m4x.org>
 Copyright:: Copyright (c) 2005 Sylvain Joyeux
