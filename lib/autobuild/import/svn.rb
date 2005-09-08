@@ -6,8 +6,8 @@ class SVNImporter < Importer
         @source = source.to_a.join("/")
 
         @program = ($PROGRAMS[:svn] || 'svn')
-        @up = options[:svnup]
-        @co = options[:svnco]
+        @up = options[:svnup] || ""
+        @co = options[:svnco] || ""
     end
 
     private
@@ -15,18 +15,18 @@ class SVNImporter < Importer
     def update(package)
         Dir.chdir(package.srcdir) {
             begin
-                subcommand(package.target, 'svn', "#{program} up #{@up}")
+                subcommand(package.target, 'svn', @program, 'up', @up)
             rescue SubcommandFailed => e
-                raise ImportException.new(e), "failed to update #{modulename}"
+                raise ImportException.new(e), "failed to update #{package.target}"
             end
         }
     end
 
     def checkout(package)
         begin
-            subcommand(package.target, 'svn', "#{program} co #{@co} #{@source} #{package.srcdir}")
+            subcommand(package.target, 'svn', @program, 'co', @co, @source, package.srcdir)
         rescue SubcommandFailed => e
-            raise ImportException.new(e), "failed to check out #{modulename}"
+            raise ImportException.new(e), "failed to check out #{package.target}"
         end
     end
 end

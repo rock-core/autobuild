@@ -16,7 +16,7 @@ class CVSImporter < Importer
     def update(package)
         Dir.chdir(package.srcdir) {
             begin
-                subcommand(package.target, 'cvs', "#{@program} up #{@up}")
+                subcommand(package.target, 'cvs', @program, 'up' , @up)
             rescue SubcommandFailed => e
                 raise ImportException.new(e), "failed to update #{modulename}"
             end
@@ -31,7 +31,7 @@ class CVSImporter < Importer
         FileUtils.mkdir_p(head) if !File.directory?(head)
         Dir.chdir(head) {
             begin
-                subcommand(package.target, 'cvs', "#{@program} -d #{cvsroot} co #{@co} -d #{tail} #{modulename}")
+                subcommand(package.target, 'cvs', @program, '-d', cvsroot, 'co', @co, '-d', tail, modulename)
             rescue SubcommandFailed => e
                 raise ImportException.new(e), "failed to check out #{modulename}"
             end
