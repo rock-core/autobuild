@@ -1,6 +1,9 @@
 require 'autobuild/logging'
 
 def subcommand(target, type, *command)
+    # Filter nil and empty? in command
+    command = command.reject { |o| o.nil? || (o.respond_to?(:empty?) && o.empty?) }
+
     logname = "#{$LOGDIR}/#{target}-#{type}.log"
     puts "#{target}: running #{command.join(" ")}\n    (output goes to #{logname})"
 
