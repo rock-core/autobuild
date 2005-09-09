@@ -104,8 +104,8 @@ Autobuild uses three sections:
 
 == Autobuild configuration (<tt>autobuild-config</tt>)
 === Misc options
-*noupdate*::  if true, do not update the packages that are already imported (default: false). You
-              can also add the <tt>--noupdate</tt> on the command line
+*update*::    if false, do not update the packages that are already imported (default: true). You
+              can also use the <tt>--no-update</tt> on the command line
 
 === Directories (<tt>autobuild-config/srcdir</tt>, <tt>autobuild-config/prefix</tt> and <tt>autobuild-config/logdir</tt>)
 *srcdir*::    the path where programs are to be imported. See <b>Packages configuration</b> for 
@@ -234,7 +234,7 @@ to set up the importer and +srcdir+. +prefix+ is ignored.
             type: import
             import: cvs
             source: [ *my_repository, "bar" ]
-            srcdir: &bar_srcdir bar
+            srcdir: bar
 
 === Autotools (<tt>type: autotools</tt>)
 Use this to build GNU autotools-based packages. This handles autoconf-only packages as 
@@ -249,9 +249,10 @@ instance, to be sure that automake 1.9 is used, you set
         automake: automake-1.9
 
 Autobuild tries to detect what tools it should run
-* +aclocal+ and +autoheader+ are always used
-* +autoconf+ is used if there is <tt>configure.ac</tt> or <tt>configure.in</tt> in the import dir
-* +automake+ is used if there is a <tt>Makefile.am</tt> file in the import dir
+* +autoheader+ is never used by default
+* +autoconf+ is used if there is <tt>configure.ac</tt> or <tt>configure.in</tt> in the imported dir
+* +aclocal+ is used if +autoconf+ is enabled (either explicitely or by autodetection)
+* +automake+ is used if there is a <tt>Makefile.am</tt> file in the imported dir
 * you can force to enable or disable any of these four tools in each package config by setting the tool
   flag to true or false. For instance, if you don't want package +foo+ to use automake, you say
 
@@ -269,12 +270,8 @@ The only program used during the build phase is +make+. The make command can too
 ==== Other options
 *builddir*::    the directory where the build takes place. For now, it has to be a relative path, 
                 which is added to the import dir. The default value is "build"
-*configureflags*::  array of options to add to the +configure+ command line. To ease the reuse of 
-                    Yaml references (the <tt>*label</tt> form), you can use an array of arrays, in which
-                    case the second array levels are joined using ''. For example if our +foo+ package 
-                    needs the source of the +bar+ package we added as an import package earlier,
-
-                        configureflags: [ [ --with-bar-source=, *srcdir, '/', *bar_srcdir ] ]
+*configureflags*::  array of options to add to the +configure+ command line
+                        configureflags: [ --with-bar-source=$srcdir/$bar_srcdir ]
                         depends: bar
 
 = Running autobuild in daemon mode
