@@ -14,7 +14,7 @@ DEFAULT_HTTP_PORT = 2000
 
 def parse_options(args)
     options = OpenStruct.new
-    options.noupdate = false
+    options.update = false
     options.srcdir = nil
     options.prefix = nil
     options.builddir = "build"
@@ -27,38 +27,21 @@ def parse_options(args)
         opts.banner = "Usage: autobuild [options] config.yml"
         opts.separator ""
 
-        opts.on("--srcdir PATH", "Find or imports sources in PATH") do |p|
-            options.srcdir = p
+        opts.on("--srcdir PATH", "Find or imports sources in PATH") do |options.srcdir| end
+        opts.on("--prefix PATH", "Packages are installed in PATH") do |options.prefix|
+            options.logdir = "#{options.prefix}/autobuild"
         end
 
-        opts.on("--prefix PATH", "Packages are installed in PATH") do |p|
-            options.prefix = p
-            options.logdir = "#{p}/autobuild"
-        end
+        opts.on("--logdir", "Where logs are saved (default: <prefix>/autobuild)") do |options.logdir| end
+        opts.on("--[no-]update", "Update already checked-out sources") do |options.update| end
+        opts.on("--verbose", "Display output of commands on stdout") do |$VERBOSE| end
 
-        opts.on("--logdir", "Where logs are saved (default: <prefix>/autobuild)") do |p|
-            options.logdir = p
-        end
-
-        opts.on("--noupdate", "Do not update already checked-out sources") do
-            options.noupdate = true
-        end
-
-        opts.on("--verbose", "Display output of commands on stdout") do
-            $VERBOSE = true
-        end
-
-        opts.on("--daemon", "Go into daemon mode") do
-            options.daemonize = true
-        end
-        opts.on("--http [PORT]", Integer, 
-                "Display a HTTP information page on PORT (PORT default: #{DEFAULT_HTTP_PORT})") do |port| 
-            options.http = (port || DEFAULT_HTTP_PORT)
-        end
-        opts.on("--debug", "Verbose information (for debugging purposes)") do 
-            options.debug = true
-        end
-
+        opts.on("--[no-]daemon", "Go into daemon mode") do |options.daemonize| end
+        #opts.on("--http [PORT]", Integer, 
+        #        "Display a HTTP information page on PORT (PORT default: #{DEFAULT_HTTP_PORT})") do |port| 
+        #    options.http = (port || DEFAULT_HTTP_PORT)
+        #end
+        opts.on("--[no-]debug", "Verbose information (for debugging purposes)") do |options.debug| end
         opts.on_tail("-h", "--help", "Show this message") do
             puts opts
             exit
