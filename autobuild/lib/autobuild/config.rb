@@ -133,7 +133,7 @@ module Config
         end
 
         $MAIL = setup["mail"]
-        $NOUPDATE = (options.noupdate or setup["noupdate"] or false)
+        $UPDATE = (options.update or setup["update"] or true)
 
         envvars = setup["environment"]
         envvars.each { |k, v|
