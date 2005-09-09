@@ -2,12 +2,12 @@ class Importer
     def import(package)
         srcdir = package.srcdir
         if File.directory?(srcdir)
-            if $NOUPDATE
-                puts "Not updating #{package.target} since noupdate is set"
+            if $UPDATE
+                update(package)
+            else
+                puts "Not updating #{package.target}"
                 return
             end
-
-            update(package)
 
         elsif File.exists?(srcdir)
             raise ImportException, "#{srcdir} exists but is not a directory"
