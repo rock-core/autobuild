@@ -10,8 +10,9 @@ require 'autobuild/subcommand'
 # - aclocal, autoheader, autoconf, automake
 #
 # == Available options
-# - aclocal (default: true) run aclocal
-# - autoconf (default: true) run autoconf
+# - aclocal (default: true if autoconf is enabled, false otherwise) run aclocal
+# - autoconf (default: autodetect) run autoconf. Will be enabled if there is 
+#   +configure.in+ or +configure.ac+ in the source directory
 # - autoheader (default: false) run autoheader
 # - automake (default: autodetect) run automake. Will run automake if there is a 
 #   +Makefile.am+ in the source directory
@@ -22,14 +23,14 @@ class Autotools < Package
     attr_reader :builddir
 
     DefaultOptions = {
-        :autoconf => true,
-        :aclocal => true,
         :autoheader => false,
+        :aclocal => nil,
+        :autoconf => nil,
         :automake => nil,
         :builddir => 'build'
     }
 
-    def buildstamp; 
+    def buildstamp
         "#{builddir}/#{target}-#{STAMPFILE}"
     end
 
@@ -77,13 +78,20 @@ class Autotools < Package
                 $PROGRAMS['automake']    ||= 'automake'
 
                 begin
-                    subcommand(target, 'configure', $PROGRAMS['aclocal'])    if @options[:aclocal]
-                    subcommand(target, 'configure', $PROGRAMS['autoconf'])   if @options[:autoconf]
-                    subcommand(target, 'configure', $PROGRAMS['autoheader']) if @options[:autoheader]
-
+                    # Autodetect autoconf/aclocal/automake
+                    if @options[:autoconf].nil?
+                        @options[:autoconf] = 
+                            File.exists?(File.join(srcdir, 'configure.in')) ||
+                            File.exists?(File.join(srcdir, 'configure.ac'))
+                    end
+                    @options[:aclocal] ||= @options[:autoconf]
                     if @options[:automake].nil?
                         @options[:automake] = File.exists?(File.join(srcdir, 'Makefile.am'))
                     end
+
+                    subcommand(target, 'configure', $PROGRAMS['aclocal'])    if @options[:aclocal]
+                    subcommand(target, 'configure', $PROGRAMS['autoconf'])   if @options[:autoconf]
+                    subcommand(target, 'configure', $PROGRAMS['autoheader']) if @options[:autoheader]
                     subcommand(target, 'configure', $PROGRAMS['automake'])   if @options[:automake]
                 rescue SubcommandFailed => e
                     raise BuildException.new(e), "failed to build the configure environment of #{target}"
@@ -100,9 +108,7 @@ class Autotools < Package
         FileUtils.mkdir_p builddir if !File.directory?(builddir)
         Dir.chdir(builddir) {
             command = [ "#{srcdir}/configure", "--no-create", "--prefix=#{prefix}" ]
-            command |= @options[:configureflags].to_a.collect { |item|
-                item.to_a.join("")
-            }
+            command |= @options[:configureflags].to_a
             
             begin
                 subcommand(target, 'configure', *command)
