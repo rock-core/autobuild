@@ -76,9 +76,12 @@ end
 
 # Load the command line options
 options, conffile, targets = parse_options(ARGV)
-Config.load(conffile, options)
+if options.daemonize
+    puts "Going into daemon mode ..."
+    Daemons.daemonize 
+end
 
-Daemons.daemonize if options.daemonize
+Config.load(conffile, options)
 
 $DEBUG = options.debug
 $trace = $DEBUG
