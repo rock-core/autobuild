@@ -22,7 +22,9 @@ end
 
 class Interpolator
     VarDefKey = 'defines'
-    InterpolationMatch = Regexp.new('\$\{([^}]+)\}|\$(\w+)')
+    MatchExpr = '\$\{([^}]+)\}|\$(\w+)'
+    PartialMatch = Regexp.new(MatchExpr)
+    WholeMatch = Regexp.new("^(?:#{MatchExpr})$")
 
     def self.interpolate(config, parent = nil)
         Interpolator.new(config, parent).interpolate
@@ -52,18 +54,14 @@ class Interpolator
             @node.collect { |v| Interpolator.interpolate(v, self) }
 
         else
-            if @node.respond_to?(:to_str)
-                do_string(@node.to_str) { |varname| value_of(varname) }
-            else
-                @node
-            end
+            each_interpolation(@node) { |varname| value_of(varname) }
         end
     end
 
     def value_of(name)
         if @defines.has_key?(name)
             value = @defines.delete(name)
-            @variables[name] = do_string(value) { |varname|
+            @variables[name] = each_interpolation(value) { |varname|
                 begin
                     value_of(varname)
                 rescue UndefinedVariable => e
@@ -83,12 +81,18 @@ class Interpolator
         end
     end
 
-    def do_string(value)
-        return value if value.empty?
+    def each_interpolation(value)
+        return value if (!value.respond_to?(:to_str) || value.empty?)
+        
+        # Special case: if 'value' is *only* an interpolation, avoid
+        # conversion to string
+        WholeMatch.each_match(value) do |data|
+            return yield(data[1] || data[2])
+        end
 
         interpolated = ''
         data = nil
-        InterpolationMatch.each_match(value) do |data|
+        PartialMatch.each_match(value) do |data|
             varname = data[1] || data[2]
             interpolated << data.pre_match << yield(varname)
         end
@@ -97,9 +101,12 @@ class Interpolator
 end
 
 module Config
-    def self.load(conffile, user_options)
-        data = YAML.load( File.open(conffile) )
+    def self.load(conffile, user_options = Options.default)
+        data = YAML.load(conffile)
         data = Interpolator.interpolate(data)
+
+        $VERBOSE = user_options.verbose
+        $DEBUG   = user_options.debug
 
         get_autobuild_config(data, user_options)
         get_package_config(data)
@@ -136,6 +143,8 @@ module Config
         $UPDATE = options.update
         $UPDATE = setup["update"] if $UPDATE.nil?
         $UPDATE = true if $UPDATE.nil?
+        
+        $NICE = setup["nice"]
 
         envvars = setup["environment"]
         envvars.each { |k, v|
@@ -170,6 +179,7 @@ module Config
     # Get the package config
     def self.get_package_config(data)
         setup = data["packages"]
+        return if !setup
         
         # Get the common config block
         common_config = Hash.new

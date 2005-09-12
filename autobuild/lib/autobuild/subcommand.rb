@@ -10,6 +10,7 @@ def subcommand(target, type, *command)
 
     status = File.open(logname, "a") { |logfile|
         pid = fork { 
+            Process.setpriority(Process::PRIO_PROCESS, 0, $NICE) if $NICE
             if $VERBOSE
                 $stderr.dup.reopen(logfile.dup)
                 $stdout.dup.reopen(logfile.dup)

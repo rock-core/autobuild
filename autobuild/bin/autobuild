@@ -6,6 +6,7 @@ require 'rake'
 require 'ostruct'
 require 'optparse'
 
+require 'autobuild/options'
 require 'autobuild/config'
 require 'autobuild/logging'
 require 'daemons'
@@ -13,15 +14,7 @@ require 'daemons'
 DEFAULT_HTTP_PORT = 2000
 
 def parse_options(args)
-    options = OpenStruct.new
-    options.update = false
-    options.srcdir = nil
-    options.prefix = nil
-    options.builddir = "build"
-    options.logdir = nil
-    options.daemonize = false
-    options.use_http = false
-    $VERBOSE = false
+    options = Options.default
 
     parser = OptionParser.new do |opts|
         opts.banner = "Usage: autobuild [options] config.yml"
@@ -31,17 +24,19 @@ def parse_options(args)
         opts.on("--prefix PATH", "Packages are installed in PATH") do |options.prefix|
             options.logdir = "#{options.prefix}/autobuild"
         end
-
         opts.on("--logdir", "Where logs are saved (default: <prefix>/autobuild)") do |options.logdir| end
-        opts.on("--[no-]update", "Update already checked-out sources") do |options.update| end
-        opts.on("--verbose", "Display output of commands on stdout") do |$VERBOSE| end
 
+        opts.on("--[no-]update", "Update already checked-out sources") do |options.update| end
+
+        opts.on('--nice NICE', Integer, 'Nice the subprocesses to the given value') do |options.nice| end
         opts.on("--[no-]daemon", "Go into daemon mode") do |options.daemonize| end
         #opts.on("--http [PORT]", Integer, 
         #        "Display a HTTP information page on PORT (PORT default: #{DEFAULT_HTTP_PORT})") do |port| 
         #    options.http = (port || DEFAULT_HTTP_PORT)
         #end
+        opts.on("--[no-]verbose", "Display output of commands on stdout") do |options.verbose| end
         opts.on("--[no-]debug", "Verbose information (for debugging purposes)") do |options.debug| end
+
         opts.on_tail("-h", "--help", "Show this message") do
             puts opts
             exit
@@ -64,9 +59,9 @@ if options.daemonize
     Daemons.daemonize 
 end
 
-Config.load(conffile, options)
-
-$trace = $DEBUG = options.debug
+File.open(conffile) do |f|
+    Config.load(f, options)
+end
 
 begin
     if targets.empty?
