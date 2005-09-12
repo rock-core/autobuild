@@ -10,7 +10,6 @@ def subcommand(target, type, *command)
     input_streams = command.collect { |o| $1 if o =~ /^\<(.+)/ }.compact
     command.reject! { |o| o =~ /^\<(.+)/ }
 
-
     status = File.open(logname, "a") do |logfile|
         pread, pwrite = IO.pipe
 
@@ -36,10 +35,15 @@ def subcommand(target, type, *command)
 
         # Feed the input
         pread.close
-        input_streams.each do |infile|
-            File.open(infile) do |instream|
-                instream.each_line { |line| pwrite.write(line) }
+        begin
+            input_streams.each do |infile|
+                File.open(infile) do |instream|
+                    instream.each_line { |line| pwrite.write(line) }
+                end
             end
+        rescue Errno::ENOENT => e
+            logfile.puts "Cannot open input files: #{e.message}"
+            raise SubcommandFailed.new(target, command.join(" "), logname, 0), e.message
         end
         pwrite.close
 
@@ -49,9 +53,6 @@ def subcommand(target, type, *command)
 
     if status.exitstatus > 0
         raise SubcommandFailed.new(target, command.join(" "), logname, status.exitstatus)
-        return false
-    else
-        return true
     end
 end
 
