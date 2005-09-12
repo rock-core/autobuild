@@ -8,6 +8,8 @@ class SVNImporter < Importer
         @program = ($PROGRAMS[:svn] || 'svn')
         @up = options[:svnup] || ""
         @co = options[:svnco] || ""
+
+        super(options)
     end
 
     private
