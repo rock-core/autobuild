@@ -129,11 +129,13 @@ module Config
         FileUtils.mkdir_p $LOGDIR if !File.directory?($LOGDIR)
         if setup["clean-log"]
             puts "Cleaning log dir #{$LOGDIR}"
-            FileUtils.rm_rf Dir.glob("#{$LOGDIR}/*")
+            FileUtils.rm_rf Dir.glob("#{$LOGDIR}/*.log")
         end
 
         $MAIL = setup["mail"]
-        $UPDATE = (options.update or setup["update"] or true)
+        $UPDATE = options.update
+        $UPDATE = setup["update"] if $UPDATE.nil?
+        $UPDATE = true if $UPDATE.nil?
 
         envvars = setup["environment"]
         envvars.each { |k, v|
