@@ -1,4 +1,8 @@
 class Importer
+    def initialize(options)
+        @options = options
+    end
+
     def import(package)
         srcdir = package.srcdir
         if File.directory?(srcdir)
@@ -14,11 +18,20 @@ class Importer
         else
             begin
                 checkout(package)
+                patch(package)
             rescue ImportException => error
                 FileUtils.rm_rf package.srcdir
                 raise error
             end
         end
     end
+
+    #    def patch(package)
+    #        patch = $PROGRAMS['patch'] || 'patch'
+    #        # Apply patches, if any
+    #        @options[:patch].to_a.each do |path|
+    #            subcommand(package.target, 'patch', patch
+    #        end
+    #    end
 end
 

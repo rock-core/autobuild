@@ -9,6 +9,7 @@ class CVSImporter < Importer
         @program = ($PROGRAMS[:cvs] || 'cvs')
         @up = (options[:cvsup] || '-dP')
         @co = (options[:cvsco] || '-P')
+        super(options)
     end
 
     private
