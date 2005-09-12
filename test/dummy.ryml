@@ -1,0 +1,7 @@
+defines:
+    global_prefix: <%= File.join(basedir, "/buildtree") %>
+
+autobuild-config:
+    prefix: ${global_prefix}/build
+    srcdir: ${global_prefix}/src
+
