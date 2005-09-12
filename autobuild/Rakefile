@@ -20,7 +20,7 @@ EOF
 
     s.platform = Gem::Platform::RUBY
     s.require_paths << "lib"
-    s.add_dependency('rake')
+    s.add_dependency('rake', '>= 0.6.0')
     s.add_dependency('rmail')
     s.add_dependency('daemons')
     s.files = FileList['lib/**/*.rb', 'bin/*', 'README']
