@@ -120,6 +120,7 @@ Autobuild uses three sections:
 <b>clean-log</b>:: if we must remove all logfiles before each autobuild run or if we should append to them. The
                    default is +true+, that is log files are removed. Note that if mailing is active, all log 
                    files are attached to notification mail.
+*nice*::      The priority at which autobuild should launch subprocesses
 
 
 === Environment (<tt>autobuild-config/environment</tt>)
