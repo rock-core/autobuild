@@ -102,8 +102,15 @@ end
 
 module Config
     def self.load(conffile, user_options = Options.default)
-        data = YAML.load(conffile)
-        data = Interpolator.interpolate(data)
+        case conffile
+        when Hash
+            data = conffile
+        when IO
+            data = YAML.load(conffile)
+            data = Interpolator.interpolate(data)
+        else
+            raise TypeError, "Expected IO object, found #{conffile.class}"
+        end
 
         $VERBOSE = user_options.verbose
         $DEBUG   = user_options.debug
@@ -147,7 +154,7 @@ module Config
         $NICE = setup["nice"]
 
         envvars = setup["environment"]
-        envvars.each { |k, v|
+        envvars.to_a.each { |k, v|
             ENV[k] = v.to_a.join(":")
         }
     end
