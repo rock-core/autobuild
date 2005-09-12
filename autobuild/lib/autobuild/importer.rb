@@ -26,12 +26,12 @@ class Importer
         end
     end
 
-    #    def patch(package)
-    #        patch = $PROGRAMS['patch'] || 'patch'
-    #        # Apply patches, if any
-    #        @options[:patch].to_a.each do |path|
-    #            subcommand(package.target, 'patch', patch
-    #        end
-    #    end
+    def patch(package)
+        patch = $PROGRAMS['patch'] || 'patch'
+        # Apply patches, if any
+        @options[:patch].to_a.each do |path|
+            subcommand(package.target, 'patch', patch, "<#{path}")
+        end
+    end
 end
 
