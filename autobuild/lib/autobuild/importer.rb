@@ -18,7 +18,7 @@ class Importer
         else
             begin
                 checkout(package)
-                patch(package)
+                #patch(package)
             rescue ImportException => error
                 FileUtils.rm_rf package.srcdir
                 raise error
