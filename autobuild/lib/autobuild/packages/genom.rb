@@ -1,4 +1,5 @@
 require 'autobuild/packages/autotools'
+require 'open3'
 
 class GenomModule < Autotools
     def initialize(target, options)
@@ -15,7 +16,7 @@ class GenomModule < Autotools
 
     def get_requires
         cpp = ($PROGRAMS['cpp'] || 'cpp')
-        Open3.popen3("#{cpp} #{cpp_options.join(" ")} #{srcdir}/#{target}.gen") do |in, out, err|
+        Open3.popen3("#{cpp} #{cpp_options.join(" ")} #{srcdir}/#{target}.gen") do |cin, out, err|
             out.each_line { |line|
                 if line =~ /^\s*requires\s*:\s*([\w\-]+(?:\s*,\s*[\w\-]+)*);/
                     $1.split(/, /).each { |name| 
