@@ -54,6 +54,10 @@ end
 
 # Load the command line options
 options, conffile, targets = parse_options(ARGV)
+
+# make conffile an absolute path since daemonize mode makes
+# / the current directory
+conffile = File.expand_path(conffile, Dir.pwd)
 if options.daemonize
     puts "Going into daemon mode ..."
     Daemons.daemonize 
