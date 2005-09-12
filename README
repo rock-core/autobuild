@@ -100,7 +100,9 @@ Autobuild uses three sections:
 *programs*::                the programs used by importers and builders. See each tool 
                             documentation for the list of used options
 *packages*::                the list of packages to build. See <b>Package configuration</b> below
-
+*defines*::                 this is used for variable interpolation. Any key/value pair defined in
+                            this section can be used later in other parts of the config files using
+                            the $key or ${key} notation
 
 == Autobuild configuration (<tt>autobuild-config</tt>)
 === Misc options
@@ -193,7 +195,7 @@ source and the builder to build and install it.
 
 <b>importer/source</b>:: 
             where the importer should get the sources. The format of this options depends on
-            the importer used.
+            the importer used. See Available importers.
 
 *prefix*::  where the program is to be installed. If this is a relative path, it is relative to the global
             <tt>/autobuild-config/prefix</tt> option. Otherwise, the absolute path is used. If no prefix
@@ -275,6 +277,7 @@ The only program used during the build phase is +make+. The make command can too
                         depends: bar
 
 = Running autobuild in daemon mode
+The <tt>--daemon</tt> command line options makes autobuild go into daemon mode.
  
 = Copyright and license
 Author::    Sylvain Joyeux <sylvain.joyeux@m4x.org>
