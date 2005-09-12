@@ -52,11 +52,16 @@ class Autotools < Package
         end
 
         source_tree srcdir, builddir
-        file srcdir => dependencies if !dependencies.empty?
         file buildstamp => [ srcdir, "#{builddir}/config.status" ] do 
             build
         end
-        file installstamp => [ buildstamp ] do 
+
+        if !dependencies.empty?
+            file buildstamp => dependencies
+            file srcdir => dependencies
+        end
+
+        file installstamp => buildstamp do 
             install
             update_environment(prefix)
         end
