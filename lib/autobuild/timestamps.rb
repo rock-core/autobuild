@@ -1,5 +1,6 @@
 require 'find'
 require 'rake/tasklib'
+require 'fileutils'
 
 STAMPFILE = "autobuild-stamp"
 
@@ -43,6 +44,7 @@ def get_stamp(stampfile)
 end
 
 def touch_stamp(stampfile)
-    File.open(stampfile, "w") { |*| }
+    puts "Touching #{stampfile}" if $trace
+    FileUtils.touch(stampfile)
 end
 
