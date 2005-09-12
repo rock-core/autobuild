@@ -9,9 +9,14 @@ class GenomModule < Autotools
 
     def genomstamp; "#{srcdir}/.genom/genom-stamp" end
 
+    def cpp_options
+        @options[:genomflags].to_a.find_all { |opt| opt =~ /^-D/ }
+    end
+
     def get_requires
-        File.open("#{srcdir}/#{target}.gen") do |f|
-            f.each_line { |line|
+        cpp = ($PROGRAMS['cpp'] || 'cpp')
+        Open3.popen3("#{cpp} #{cpp_options.join(" ")} #{srcdir}/#{target}.gen") do |in, out, err|
+            out.each_line { |line|
                 if line =~ /^\s*requires\s*:\s*([\w\-]+(?:\s*,\s*[\w\-]+)*);/
                     $1.split(/, /).each { |name| 
                         depends_on name
