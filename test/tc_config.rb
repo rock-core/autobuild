@@ -1,49 +1,38 @@
 require 'test/unit'
-require 'stringio'
+require 'test/conffile-generator'
 require 'autobuild/options'
 require 'autobuild/config'
 
 class TC_Config < Test::Unit::TestCase
-CONFIG_FILE = <<EOF
-defines:
-    global_prefix: /home/sjoyeux/openrobots
-    platform: B21R
-    buildname: i386-linux
-    mail: sjoyeux@laas.fr
-
-    srcdir: ${global_prefix}/robots/$platform
-    prefix: ${global_prefix}/$buildname/robots/$platform
-
-repositories:
-    - &openrobots ':ext:sjoyeux@cvs.laas.fr/cvs/openrobots'
-    - &sjoyeux 'svn+ssh://sjoyeux@pollux.laas.fr/home/sjoyeux/svnroot'
-    - &sjoyeux_openrobots 'svn+ssh://sjoyeux@pollux.laas.fr/home/sjoyeux/svnroot-openrobots'
-    - &fpy ':ext:sjoyeux@pollux.laas.fr/home/fpy/RIA/CVSDIR'
-
-autobuild-config:
-    srcdir: $srcdir
-    prefix: $prefix
-    clean-log: true
-    nice: 0
-
-    mail:
-        to: $mail
-
-    environment:
-        PATH: [ /bin, /usr/bin, $global_prefix/$buildname/tools/bin ]
-        PKG_CONFIG_PATH: $global_prefix/$buildname/tools/lib/pkgconfig
-        LD_LIBRARY_PATH:
-
-programs:
-    aclocal: aclocal-1.9
-EOF
     def setup
-        @options = StringIO.open(CONFIG_FILE) { |f| Config.load(f, Options.default) }
+        @conffile = ConffileGenerator.dummy
+        @options_hash = File.open(@conffile) { |f| YAML.load(f) }
+        @options = File.open(@conffile) { |f| Config.load(f, Options.default) }
     end
 
-    def test_nice_type
-        assert_equal(0, $NICE)
+    def teardown
+        ConffileGenerator.clean
+    end
+
+    def test_keys_to_sym
+        symed = @options_hash.keys_to_sym
+
+        pass_through = {}
+        symed.each_recursive { |k, v|
+            assert_kind_of(Symbol, k)
+            pass_through[k] = true
+        }
+
+        assert(pass_through[:PATH])
+        assert(pass_through[:prefix])
+        assert(pass_through[:autobuild])
+        assert_kind_of(String, symed[:autobuild][:srcdir])
+    end
+        
+    def test_value_type
+        assert_kind_of(String, $SRCDIR)
         assert_kind_of(Fixnum, $NICE)
+        assert_equal(0, $NICE)
     end
 end
 
