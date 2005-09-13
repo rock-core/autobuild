@@ -3,12 +3,13 @@ defines:
     platform: B21R
     buildname: i386-linux
     mail: doudou@melix.net
+    nice: 0
 
 autobuild:
     prefix: ${global_prefix}/build
     srcdir: ${global_prefix}/src
     clean_log: true
-    nice: 0
+    nice: $nice
 
     mail:
         to: $mail
