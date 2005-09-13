@@ -75,9 +75,9 @@ module RMail
 end
 
 def send_mail(subject, body)
-    from = ($MAIL['from'] || "autobuild@#{Socket.gethostname}")
-    to = $MAIL['to']
-    smtp = ($MAIL['smtp']  || "localhost" )
+    from = ($MAIL[:from] || "autobuild@#{Socket.gethostname}")
+    to = $MAIL[:to]
+    smtp = ($MAIL[:smtp]  || "localhost" )
 
     mail = RMail::Message.new
     mail.header.date = Time.now
@@ -96,7 +96,7 @@ def send_mail(subject, body)
     end
 
     # Send the mail
-    smtp = Net::SMTP.new(smtp, Integer($MAIL['port'] || 25))
+    smtp = Net::SMTP.new(smtp, Integer($MAIL[:port] || 25))
     smtp.start {
         smtp.send_mail RMail::Serialize.write('', mail), from, to
     }

@@ -154,7 +154,7 @@ module Config
             }
             # Remove p -> p dependency which may come from common
             if config.has_key?(:depends)
-                config[:depends] = config[:depends].to_a.reject { |el| el == p }
+                config[:depends] = config[:depends].to_a.reject { |el| el == p.to_s }
             end
 
             add_package(p, config)
