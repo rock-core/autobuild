@@ -19,13 +19,13 @@ It takes the dependencies between packages into account in its build process.
           - &compilers [ "CC=gcc-3.3", "CXX=g++-3.3" ]
           - &global_prefix /home/doudou/laas/openrobots
 
-2.  <tt>autobuild-config</tt> holds the configuration of the build tool itself. See the
+2.  <tt>autobuild</tt> holds the configuration of the build tool itself. See the
     <b>Autobuild configuration</b> section for the available configuration options.
 
-        autobuild-config:
+        autobuild:
           srcdir: &srcdir /home/doudou/laas/openrobots/tools
           prefix: &prefix /home/doudou/laas/openrobots/build/tools
-          clean-log: true
+          clean_log: true
         
           mail:
             to: sjoyeux@laas.fr
@@ -47,10 +47,10 @@ It takes the dependencies between packages into account in its build process.
 
         packages:
 
-5.  options in <tt>common-config</tt> are merged in each package configuration. See 
+5.  options in <tt>common</tt> are merged in each package configuration. See 
     <b>Configuring packages</b> for the detailed merging rules.
 
-            common-config:
+            config:
                 configureflags: *compilers
                 prefix: ""
 
@@ -92,11 +92,11 @@ each element is a section:
 
 In the documentation, I'll sometime use paths to reference the config options. For instance, 
 +option1+ is <tt>section1/option1</tt>. The +to+ option in the configuration example
-is <tt>autobuild-config/mail/to</tt>
+is <tt>autobuild/mail/to</tt>
   
 Autobuild uses three sections:
 
-<b>autobuild-config</b>::   main autobuild configuration. See <b>Autobuild configuration</b> below
+<b>autobuild</b>::   main autobuild configuration. See <b>Autobuild configuration</b> below
 *programs*::                the programs used by importers and builders. See each tool 
                             documentation for the list of used options
 *packages*::                the list of packages to build. See <b>Package configuration</b> below
@@ -104,12 +104,12 @@ Autobuild uses three sections:
                             this section can be used later in other parts of the config files using
                             the $key or ${key} notation
 
-== Autobuild configuration (<tt>autobuild-config</tt>)
+== Autobuild configuration (<tt>autobuild</tt>)
 === Misc options
 *update*::    if false, do not update the packages that are already imported (default: true). You
               can also use the <tt>--no-update</tt> on the command line
 
-=== Directories (<tt>autobuild-config/srcdir</tt>, <tt>autobuild-config/prefix</tt> and <tt>autobuild-config/logdir</tt>)
+=== Directories (<tt>autobuild/srcdir</tt>, <tt>autobuild/prefix</tt> and <tt>autobuild/logdir</tt>)
 *srcdir*::    the path where programs are to be imported. See <b>Packages configuration</b> for 
               more information on how this option is used.
 *prefix*::    the path where programs are to be installed. See <b>Packages configuration</b> for more 
@@ -117,20 +117,20 @@ Autobuild uses three sections:
 *logdir*::    by default, autobuild does not displays the output of each subcommand it launches. 
               Insteads, it saves this output in log files. These log files are saved in +logdir+. 
               The default value is <tt>prefix/autobuild</tt>
-<b>clean-log</b>:: if we must remove all logfiles before each autobuild run or if we should append to them. The
+<b>clean_log</b>:: if we must remove all logfiles before each autobuild run or if we should append to them. The
                    default is +true+, that is log files are removed. Note that if mailing is active, all log 
                    files are attached to notification mail.
 *nice*::      The priority at which autobuild should launch subprocesses
 
 
-=== Environment (<tt>autobuild-config/environment</tt>)
-The <tt>autobuild-config/environment</tt> section lists the initial values for 
+=== Environment (<tt>autobuild/environment</tt>)
+The <tt>autobuild/environment</tt> section lists the initial values for 
 the environment variables. While packages builders shall update the environment 
 variables as needed, you can have to set up a proper initial environment. Arrays 
 are converted into strings by joining elements by ':'
 
 For instance
-    autobuild-config:
+    autobuild:
           environment:
             PATH: [ "/bin", "/usr/bin" ]
             LD_LIBRARY_PATH:
@@ -143,11 +143,11 @@ sets
     PKG_CONFIG_PATH=""
 
 
-=== Mail (<tt>autobuild-config/mail</tt>)
+=== Mail (<tt>autobuild/mail</tt>)
 If you want to receive a mail when the build has finished (on success and failures), set
 at least the +to+ option, like this:
 
-    autobuild-config:
+    autobuild:
         mail:
             from: autobuild@mymachine.rubyrules.org
             to: myself+autobuild@rubyrules.org
@@ -162,10 +162,10 @@ All log files relative to the current build are attached to the mail.
 
 
 == Configuring packages (<tt>packages/*</tt>)
-=== The <tt>packages/common-config</tt> section
+=== The <tt>packages/config</tt> section
 If you want to add common options in each package, just set it them here. Note that the options
 are /merged/ in the package config. It neither replaces the values in the package nor be replaced
-by them. The merging strategy depends on the way the <tt>common-config</tt> is specified:
+by them. The merging strategy depends on the way the <tt>common</tt> is specified:
 * if it is an array, the package option is converted to an array and the common option is appended
 * if it is a string, the package option is converted to a string and the common option is appended
 with a space inserted between the two
@@ -173,17 +173,17 @@ with a space inserted between the two
 * any other values are forbidden
 
 To ease the config file writing, all options that accept arrays also accept a string when there 
-is only one element. <b>Do not</b> do that in the <tt>common-config</tt> option.
+is only one element. <b>Do not</b> do that in the <tt>common</tt> option.
 
 === Package definition
-All subsections of the <tt>packages/</tt> section but <tt>common-config</tt> are package definitions
+All subsections of the <tt>packages/</tt> section but <tt>common</tt> are package definitions
 The section name is used as the package name. The package definition sets up the importer to get the
 source and the builder to build and install it.
 
 *type*::    the package type. See the <b>Available package types</b> sections
 
 *srcdir*::  where sources are to be imported. If this is a relative path, it is relative to the global
-            <tt>/autobuild-config/srcdir</tt> option. Otherwise, the absolute path is used. If no +srcdir+
+            <tt>/autobuild/srcdir</tt> option. Otherwise, the absolute path is used. If no +srcdir+
             is given, the package name is used, so that the default import dir is 
             <em>global srcdir</em>/<em>package_name</em>.
         
@@ -204,12 +204,12 @@ source and the builder to build and install it.
             the importer used. See Available importers.
 
 *prefix*::  where the program is to be installed. If this is a relative path, it is relative to the global
-            <tt>/autobuild-config/prefix</tt> option. Otherwise, the absolute path is used. If no prefix
+            <tt>/autobuild/prefix</tt> option. Otherwise, the absolute path is used. If no prefix
             is given, the package name is used, so that the default install dir is 
             <em>global prefix</em>/<em>package name</em>
 
 *depends*::     the array of packages that should be built and installed before this one is built. <tt>depends: [ foo ]</tt>
-                is equivalent to <tt>depends: foo</tt>. To make the use of +depends+ in the <tt>common-config</tt> 
+                is equivalent to <tt>depends: foo</tt>. To make the use of +depends+ in the <tt>common</tt> 
                 section possible, this package name is automatically removed from the package +depends+ array.
 *provides*::    defines aliases for this package. As for +depends+, an array with only element can be replaced
                 by the simple value.
@@ -289,7 +289,7 @@ The <tt>--daemon</tt> command line options makes autobuild go into daemon mode.
 == 0.2 to 0.3
 * added support for patching source code. Add patch: [ patches ] to the package configuration
 * renamed autobuild-config, common-config and clean-log to autobuild, common and clean_log. Autobuild
-  warns if it finds one the previous spelling
+  warns if it finds one the previous spelling but ignores it anyway
 
 = Copyright and license
 Author::    Sylvain Joyeux <sylvain.joyeux@m4x.org>
