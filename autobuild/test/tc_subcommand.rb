@@ -10,7 +10,7 @@ TESTDIR = File.join(File.dirname(__FILE__), 'dummy.yml')
 
 class TC_Subcommand < Test::Unit::TestCase
 EXAMPLE_1 = <<EOF
-THis is a file
+This is a file
 It will be the first part of the two-part cat
 EOF
 
@@ -22,11 +22,8 @@ EOF
     attr_reader :tmpdir
     attr_reader :source1, :source2
     def setup
-        # Configure with logdir=/tmp/<temp dir>
-        @tmpdir = Dir::tmpdir + "/autobuild-#{Process.uid}"
-        FileUtils.mkdir_p(tmpdir, :mode => 0700)
-
-        conffile = ConffileGenerator.dummy(tmpdir)
+        conffile = ConffileGenerator.dummy
+        @tmpdir = File.dirname(conffile)
 
         options = Options.default
         options.logdir = tmpdir
@@ -42,7 +39,7 @@ EOF
     end
 
     def teardown
-        FileUtils.rm_rf(tmpdir)
+        ConffileGenerator.clean
     end
 
     def test_subcommand

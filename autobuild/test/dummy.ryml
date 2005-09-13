@@ -1,7 +1,23 @@
 defines:
-    global_prefix: <%= File.join(basedir, "/buildtree") %>
+    global_prefix: <%= "#{basedir}/prefix" %>
+    platform: B21R
+    buildname: i386-linux
+    mail: doudou@melix.net
 
-autobuild-config:
+autobuild:
     prefix: ${global_prefix}/build
     srcdir: ${global_prefix}/src
+    clean_log: true
+    nice: 0
+
+    mail:
+        to: $mail
+
+    environment:
+        PATH: [ /bin, /usr/bin, $global_prefix/$buildname/tools/bin ]
+        PKG_CONFIG_PATH: $global_prefix/$buildname/tools/lib/pkgconfig
+        LD_LIBRARY_PATH:
+
+programs:
+    aclocal: aclocal-1.9
 
