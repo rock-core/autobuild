@@ -194,10 +194,12 @@ source and the builder to build and install it.
             the importer type. For now, only +cvs+ and +svn+ are available. See the <b>Available importers</b>
             section.
 
-<b>importer/patch</b>:: the list of patch we should apply. Patches are applied in order, with -p0. Autobuild
+*patch*::   the list of patch we should apply. Patches are applied in order, with -p0. Autobuild
             remembers the list of already applied patches, and will handle the changes to this list gracefully.
+            Since relative paths for patch files are relative to the autobuild working directory, I recommend 
+            you put absolute paths here.
 
-<b>importer/source</b>:: 
+*source*</b>:: 
             where the importer should get the sources. The format of this options depends on
             the importer used. See Available importers.
 
@@ -283,6 +285,12 @@ The only program used during the build phase is +make+. The make command can too
 = Running autobuild in daemon mode
 The <tt>--daemon</tt> command line options makes autobuild go into daemon mode.
  
+= Changes
+== 0.2 to 0.3
+* added support for patching source code. Add patch: [ patches ] to the package configuration
+* renamed autobuild-config, common-config and clean-log to autobuild, common and clean_log. Autobuild
+  warns if it finds one the previous spelling
+
 = Copyright and license
 Author::    Sylvain Joyeux <sylvain.joyeux@m4x.org>
 Copyright:: Copyright (c) 2005 Sylvain Joyeux
