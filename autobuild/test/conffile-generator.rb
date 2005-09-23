@@ -1,34 +1,28 @@
 require 'tmpdir'
 require 'erb'
+require 'fileutils'
 
-DATADIR = File.dirname(__FILE__)
+DATADIR = File.join(File.dirname(__FILE__), 'data')
 
 class ConffileGenerator
-    class << self
-        def tempdir
-            @tmpdir = Dir::tmpdir + "/autobuild-#{Process.uid}"
-            FileUtils.mkdir_p(@tmpdir, :mode => 0700)
-        end
+    def self.tempdir
+        @tmpdir = File.join(Dir::tmpdir, "/autobuild-test-#{Process.uid}")
+        FileUtils.mkdir_p(@tmpdir, :mode => 0700)
+    end
 
-        def dummy(basedir = tempdir)
-            apply(binding, basedir, 'dummy')
-        end
+    def self.build(bind, template)
+        eval "basedir = '#{ConffileGenerator.tempdir}'", bind
+        ryml = File.open(File.join(DATADIR, "#{template}.ryml")) { |f| f.readlines }.join('')
+        result = ERB.new(ryml).result(bind)
 
-        def clean
-            FileUtils.rm_rf tempdir
-        end
+        yml = File.join(tempdir, "#{template}.yml")
+        File.open(yml, 'w+') { |f| f.write(result) }
+        
+        return yml
+    end
 
-        private
-
-        def apply(binding, basedir, basename)
-            template = File.open(File.join(DATADIR, "#{basename}.ryml")) { |f| f.readlines }.join('')
-            result = ERB.new(template).result(binding)
-
-            yml = File.join(basedir, "#{basename}.yml")
-            File.open(yml, 'w+') { |f| f.write(result) }
-            
-            return yml
-        end
+    def self.clean
+        FileUtils.rm_rf tempdir
     end
 end
 

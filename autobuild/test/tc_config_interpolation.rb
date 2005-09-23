@@ -1,6 +1,7 @@
 require 'test/unit'
-require 'yaml'
 require 'autobuild/config-interpolator'
+
+require 'yaml'
 require 'stringio'
 
 class TC_ConfigInterpolation < Test::Unit::TestCase

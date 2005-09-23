@@ -1,11 +1,13 @@
+$LOAD_PATH << File.expand_path('../lib', File.dirname(__FILE__))
+$LOAD_PATH << File.dirname(__FILE__)
 require 'test/unit'
-require 'test/conffile-generator'
+require 'conffile-generator'
 require 'autobuild/options'
 require 'autobuild/config'
 
 class TC_Config < Test::Unit::TestCase
     def setup
-        @conffile = ConffileGenerator.dummy
+        @conffile = ConffileGenerator.build(binding, 'dummy')
         @options_hash = File.open(@conffile) { |f| YAML.load(f) }
         @options = File.open(@conffile) { |f| Config.load(f, Options.default) }
     end
