@@ -1,12 +1,13 @@
+$LOAD_PATH << File.expand_path('../lib', File.dirname(__FILE__))
+$LOAD_PATH << File.dirname(__FILE__)
 require 'test/unit'
-require 'fileutils'
 require 'autobuild/options'
 require 'autobuild/config'
+
+require 'conffile-generator'
+
 require 'tmpdir'
-
-require 'test/conffile-generator'
-
-TESTDIR = File.join(File.dirname(__FILE__), 'dummy.yml')
+require 'fileutils'
 
 class TC_Subcommand < Test::Unit::TestCase
 EXAMPLE_1 = <<EOF
@@ -22,7 +23,7 @@ EOF
     attr_reader :tmpdir
     attr_reader :source1, :source2
     def setup
-        conffile = ConffileGenerator.dummy
+        conffile = ConffileGenerator.build(binding, 'dummy')
         @tmpdir = File.dirname(conffile)
 
         options = Options.default
