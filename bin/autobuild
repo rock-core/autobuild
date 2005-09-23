@@ -8,7 +8,7 @@ require 'optparse'
 
 require 'autobuild/options'
 require 'autobuild/config'
-require 'autobuild/logging'
+require 'autobuild/reporting'
 require 'daemons'
 
 DEFAULT_HTTP_PORT = 2000
@@ -63,19 +63,21 @@ if options.daemonize
     Daemons.daemonize 
 end
 
-File.open(conffile) do |f|
-    Config.load(f, options)
-end
+Reporting.report do
+    begin
+        File.open(conffile) do |f|
+            Config.load(f, options)
+        end
 
-begin
-    if targets.empty?
-        Rake::Task[:default].invoke
-    else
-        targets.each { |t| Rake::Task[t.to_sym].invoke }
+        if targets.empty?
+            Rake::Task[:default].invoke
+        else
+            targets.each { |t| Rake::Task[t.to_sym].invoke }
+        end
+    rescue ConfigException => e
+        e.target = conffile
+        raise
     end
-    success
-rescue BuildException => error
-    error(error, "Error during build of #{error.target}")
-    exit(1)
+    Reporting.success
 end
 
