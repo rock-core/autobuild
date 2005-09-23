@@ -11,6 +11,10 @@ class CVSImporter < Importer
         @co = (options[:cvsco] || '-P')
         super(options)
     end
+    
+    def modulename
+        @module
+    end
 
     private
 
@@ -27,7 +31,6 @@ class CVSImporter < Importer
     def checkout(package)
         head, tail = File.split(package.srcdir)
         cvsroot = @root
-        modulename = @module
            
         FileUtils.mkdir_p(head) if !File.directory?(head)
         Dir.chdir(head) {
