@@ -1,19 +1,19 @@
 $LOAD_PATH << File.expand_path('../lib', File.dirname(__FILE__))
 $LOAD_PATH << File.dirname(__FILE__)
 require 'test/unit'
-require 'conffile-generator'
+require 'tools'
 require 'autobuild/options'
 require 'autobuild/config'
 
 class TC_Config < Test::Unit::TestCase
     def setup
-        @conffile = ConffileGenerator.build(binding, 'dummy')
+        @conffile = TestTools.build_config(binding, 'dummy')
         @options_hash = File.open(@conffile) { |f| YAML.load(f) }
         @options = File.open(@conffile) { |f| Config.load(f, Options.default) }
     end
 
     def teardown
-        ConffileGenerator.clean
+        TestTools.clean
     end
 
     def test_keys_to_sym
