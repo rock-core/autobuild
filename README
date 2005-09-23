@@ -13,18 +13,19 @@ It takes the dependencies between packages into account in its build process.
 1.  This section is not used at all by autobuild. It is only here to define references 
     used in the reste of the config file
 
-        variables:
-          - &openrobots ':ext:sjoyeux@cvs.laas.fr/cvs/openrobots'
-          - &openprs_cvs ':ext:sjoyeux@cvs.laas.fr:/usr/local/openprs/CVS-Repository'
-          - &compilers [ "CC=gcc-3.3", "CXX=g++-3.3" ]
-          - &global_prefix /home/doudou/laas/openrobots
+        defines:
+          openrobots: ':ext:sjoyeux@cvs.laas.fr/cvs/openrobots'
+          openprs_cvs: ':ext:sjoyeux@cvs.laas.fr:/usr/local/openprs/CVS-Repository'
+          global_prefix: /home/doudou/laas/openrobots
+          srcdir: ${global_prefix}/tools
+          prefix: ${global_prefix}/build/tools
 
 2.  <tt>autobuild</tt> holds the configuration of the build tool itself. See the
     <b>Autobuild configuration</b> section for the available configuration options.
 
         autobuild:
-          srcdir: &srcdir /home/doudou/laas/openrobots/tools
-          prefix: &prefix /home/doudou/laas/openrobots/build/tools
+          srcdir: $srcdir
+          prefix: $prefix
           clean_log: true
         
           mail:
@@ -51,7 +52,6 @@ It takes the dependencies between packages into account in its build process.
     <b>Configuring packages</b> for the detailed merging rules.
 
             config:
-                configureflags: *compilers
                 prefix: ""
 
 6.  Tell autobuild to build the pocolibs package. Two common options here: 
@@ -64,7 +64,7 @@ It takes the dependencies between packages into account in its build process.
             pocolibs:
                 type: autotools
                 import: cvs
-                source: [ *openrobots, pocolibs ]
+                source: [ $openrobots, pocolibs ]
 
    
 7. Autobuild takes the dependencies between packages into account. Just list in +depends+ 
@@ -73,7 +73,7 @@ It takes the dependencies between packages into account in its build process.
             genom:
                 type: autotools
                 import: cvs
-                source: [ *openrobots, genom ]
+                source: [ $openrobots, genom ]
                 depends: pocolibs
 
 
@@ -199,8 +199,7 @@ source and the builder to build and install it.
             Since relative paths for patch files are relative to the autobuild working directory, I recommend 
             you put absolute paths here.
 
-*source*</b>:: 
-            where the importer should get the sources. The format of this options depends on
+*source*::  where the importer should get the sources. The format of this options depends on
             the importer used. See Available importers.
 
 *prefix*::  where the program is to be installed. If this is a relative path, it is relative to the global
@@ -227,7 +226,7 @@ source and the builder to build and install it.
                 packages:
                     foo:
                         import: svn
-                        source: [ *my_home_repository, /trunk/foo ]
+                        source: [ $my_home_repository, /trunk/foo ]
 
 *svnup*::   options to add to svn up. Defaults to ''
 *svnco*::   options to add to svn co. Defaults to ''
@@ -241,7 +240,7 @@ to set up the importer and +srcdir+. +prefix+ is ignored.
         bar:
             type: import
             import: cvs
-            source: [ *my_repository, "bar" ]
+            source: [ $my_repository, "bar" ]
             srcdir: bar
 
 === Autotools (<tt>type: autotools</tt>)
