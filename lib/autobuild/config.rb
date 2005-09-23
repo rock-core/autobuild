@@ -2,7 +2,7 @@ require 'yaml'
 require 'pathname'
 
 require 'autobuild/config-interpolator'
-require 'autobuild/logging'
+require 'autobuild/reporting'
 require 'autobuild/package'
 require 'autobuild/importer'
 
@@ -56,7 +56,7 @@ module Config
         check_backward_compatibility(config)
         config = config.keys_to_sym
         if !config[:autobuild]
-            raise ConfigException, "no autobuild block"
+            raise ConfigException, "no toplevel autobuild config block"
         end
 
         # Merge user_options into the autobuild block
@@ -70,30 +70,20 @@ module Config
             end
         }
 
-        $VERBOSE = config[:verbose]
-        $DEBUG   = config[:debug]
+        $VERBOSE = autobuild_config[:verbose]
+        $trace = $DEBUG   = autobuild_config[:debug]
 
         get_autobuild_config(config)
         get_package_config(config)
-    rescue ConfigException => error
-        error(error, "Error in config file '#{conffile}'")
-        exit(1)
-    rescue ImportException => error
-        error(error, "Error: unable to import #{p}")
-        exit(1)
     end
 
     def self.get_autobuild_config(config)
         $PROGRAMS = (config[:programs] or "make")
         
         autobuild = config[:autobuild]
-        $SRCDIR = autobuild[:srcdir]
-        $PREFIX = autobuild[:prefix]
-        if !$SRCDIR || !$PREFIX
-            raise ConfigException, 'you must at least set srcdir and prefix in the config files'
-        end
-
-        $LOGDIR = (autobuild[:logdir] || "#{$PREFIX}/autobuild")
+        $SRCDIR = File.expand_path(autobuild[:srcdir], Dir.pwd)
+        $PREFIX = File.expand_path(autobuild[:prefix], Dir.pwd)
+        $LOGDIR = File.expand_path(autobuild[:logdir] || "autobuild", $PREFIX)
 
         FileUtils.mkdir_p $SRCDIR if !File.directory?($SRCDIR)
         FileUtils.mkdir_p $LOGDIR if !File.directory?($LOGDIR)
@@ -131,7 +121,7 @@ module Config
         config[:srcdir] ||= name.to_s
         config[:prefix] ||= name.to_s
 
-        # Build the rake rules for this package
+        # Initializes the package
         Package.build(package_type, name, config)
     end
 
@@ -159,6 +149,9 @@ module Config
 
             add_package(p, config)
         end
+
+        # Post-import, pre-build pass
+        Package.each { |p| p.prepare }
     end
 
     private_class_method :get_autobuild_config, :get_package_config, :add_package

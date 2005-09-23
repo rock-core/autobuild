@@ -12,6 +12,7 @@ class ImporterPackage < Package
             touch_stamp installstamp
         end
     end
+    def prepare; end
 
     factory :import, ImporterPackage
 end
