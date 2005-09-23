@@ -4,14 +4,17 @@ require 'open3'
 class GenomModule < Autotools
     def initialize(target, options)
         super(target, options)
+    end
+
+    def prepare
+        super
         get_requires
         get_provides
     end
-
     def genomstamp; "#{srcdir}/.genom/genom-stamp" end
 
     def cpp_options
-        @options[:genomflags].to_a.find_all { |opt| opt =~ /^-D/ }
+        @options[:genflags].to_a.find_all { |opt| opt =~ /^-D/ }
     end
 
     def get_requires
@@ -44,7 +47,7 @@ class GenomModule < Autotools
         
 
     def regen_targets
-        cmdline = [ 'genom', target ] | @options[:genomflags].to_a
+        cmdline = [ 'genom', target ] | @options[:genflags].to_a
 
         file buildstamp => genomstamp
         file genomstamp => [ :genom, "#{srcdir}/#{target}.gen" ] do
