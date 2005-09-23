@@ -12,7 +12,15 @@ end
 
 class UndefinedVariable < ConfigException
     attr_reader :name
-    def initialize(name); @name = name end
+    attr_accessor :reference
+    def initialize(name, reference = [])
+        @name = name 
+        @reference = reference
+    end
+
+    def to_s
+        "undefined variable '#{name}' in #{reference.join('/')}"
+    end
 end
 
 class Interpolator
@@ -39,8 +47,13 @@ class Interpolator
 
             interpolated = Hash.new
             @node.each do |k, v|
-                next if k == VarDefKey
-                interpolated[k] = Interpolator.interpolate(v, self)
+                begin
+                    next if k == VarDefKey
+                    interpolated[k] = Interpolator.interpolate(v, self)
+                rescue UndefinedVariable => e
+                    e.reference.unshift k
+                    raise e
+                end
             end
 
             interpolated
@@ -49,7 +62,12 @@ class Interpolator
             @node.collect { |v| Interpolator.interpolate(v, self) }
 
         else
-            each_interpolation(@node) { |varname| value_of(varname) }
+            begin
+                each_interpolation(@node) { |varname| value_of(varname) }
+            rescue UndefinedVariable => e
+                e.reference.unshift @node.to_str if @node.respond_to?(:to_str)
+                raise e
+            end
         end
     end
 
@@ -61,7 +79,7 @@ class Interpolator
                     value_of(varname)
                 rescue UndefinedVariable => e
                     if e.varname == name
-                        raise ConfigException, "cyclic reference found in definition of #{name}"
+                        raise ConfigException, "cyclic reference found in definition of '#{name}'"
                     else
                         raise
                     end
@@ -72,7 +90,7 @@ class Interpolator
         elsif @parent
             @parent.value_of(name)
         else
-            raise UndefinedVariable.new(name), "Interpolated variable #{name} is not defined"
+            raise UndefinedVariable.new(name)
         end
     end
 
