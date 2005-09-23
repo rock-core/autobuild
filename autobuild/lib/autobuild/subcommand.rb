@@ -1,4 +1,4 @@
-require 'autobuild/logging'
+require 'autobuild/reporting'
 
 def subcommand(target, type, *command)
     # Filter nil and empty? in command
@@ -29,7 +29,7 @@ def subcommand(target, type, *command)
             end
            
             if !exec(*command)
-                raise "Error running command"
+                raise SubcommandFailed.new(target, command.join(" "), logname, 0), "error running command"
             end
         }
 

@@ -9,11 +9,21 @@ class Package
     attr_reader :target, :srcdir, :prefix
 
     def installstamp; "#{prefix}/#{target}-#{STAMPFILE}" end
+
+    def self.each(&p); @@packages.each_value(&p) end
     def self.[](target); @@packages[target] end
 
+    ## Available options
+    #   srcdir: the source dir. If a relative path, it is based on $SRCDIR
+    #   prefix: the install dir. If a relative path, it is based on $PREFIX
+    #   import: the package importer object
+    #   depends: the list of package name we depend upon
+    #   provides: a list of aliases for this package
+    #
+    # $SRCDIR and $PREFIX are supposed to be valid absolute paths
     def initialize(target, options)
         @target = Package.name2target(target)
-        raise ConfigException, "Package #{target} is already defined" if Package[target]
+        raise ConfigException, "package #{target} is already defined" if Package[target]
             
         @options = options
         @dependencies = Array.new

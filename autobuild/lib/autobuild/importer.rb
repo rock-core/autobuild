@@ -1,3 +1,5 @@
+require 'autobuild/exceptions'
+
 class Importer
     def initialize(options)
         @options = options
@@ -15,14 +17,14 @@ class Importer
             end
 
         elsif File.exists?(srcdir)
-            raise ImportException, "#{srcdir} exists but is not a directory"
+            raise ConfigException, "#{srcdir} exists but is not a directory"
         else
             begin
                 checkout(package)
                 patch(package)
-            rescue ImportException => error
+            rescue ImportException
                 FileUtils.rm_rf package.srcdir
-                raise error
+                raise
             end
         end
     end

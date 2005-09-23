@@ -1,3 +1,5 @@
+require 'autobuild/exceptions'
+
 class Regexp
     def each_match(string)
         string = string.to_str
@@ -8,7 +10,7 @@ class Regexp
     end
 end
 
-class UndefinedVariable < Exception
+class UndefinedVariable < ConfigException
     attr_reader :name
     def initialize(name); @name = name end
 end
@@ -59,7 +61,7 @@ class Interpolator
                     value_of(varname)
                 rescue UndefinedVariable => e
                     if e.varname == name
-                        raise "Cyclic reference found in definition of #{name}"
+                        raise ConfigException, "cyclic reference found in definition of #{name}"
                     else
                         raise
                     end

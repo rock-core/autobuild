@@ -41,10 +41,12 @@ class Autotools < Package
         super(target, options)
 
         @builddir = options[:builddir]
-        raise ConfigException, "Autotools packages need a non-empty builddir" if (@builddir.nil? || @builddir.empty?)
-        raise ConfigException, "No support for absolute builddirs" if (Pathname.new(@builddir).absolute?)
+        raise ConfigException, "autotools packages need a non-empty builddir" if (@builddir.nil? || @builddir.empty?)
+        raise ConfigException, "absolute builddirs are unsupported" if (Pathname.new(@builddir).absolute?)
         @builddir = File.expand_path(builddir, srcdir)
+    end
 
+    def prepare
         regen_targets
 
         file "#{builddir}/config.status" => "#{srcdir}/configure" do
@@ -72,8 +74,10 @@ class Autotools < Package
         conffile = "#{srcdir}/configure"
         if File.exists?("#{conffile}.ac")
             file conffile => [ "#{conffile}.ac" ]
-        else
+        elsif File.exists?("#{conffile}.in")
             file conffile => [ "#{conffile}.in" ]
+        else
+            raise PackageException.new(target), "neither configure.ac nor configure.in present in #{srcdir}"
         end
         file conffile do
             Dir.chdir(srcdir) {
@@ -107,7 +111,7 @@ class Autotools < Package
 
     def configure
         if File.exists?(builddir) && !File.directory?(builddir)
-            raise BuildException, "#{builddir} already exists but is not a directory"
+            raise ConfigException, "#{builddir} already exists but is not a directory"
         end
 
         FileUtils.mkdir_p builddir if !File.directory?(builddir)
@@ -148,5 +152,4 @@ class Autotools < Package
         touch_stamp(installstamp)
     end
 end
-
 
