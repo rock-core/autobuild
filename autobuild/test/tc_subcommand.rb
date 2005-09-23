@@ -4,7 +4,7 @@ require 'test/unit'
 require 'autobuild/options'
 require 'autobuild/config'
 
-require 'conffile-generator'
+require 'tools'
 
 require 'tmpdir'
 require 'fileutils'
@@ -23,7 +23,7 @@ EOF
     attr_reader :tmpdir
     attr_reader :source1, :source2
     def setup
-        conffile = ConffileGenerator.build(binding, 'dummy')
+        conffile = TestTools.build_config(binding, 'dummy')
         @tmpdir = File.dirname(conffile)
 
         options = Options.default
@@ -40,7 +40,7 @@ EOF
     end
 
     def teardown
-        ConffileGenerator.clean
+        TestTools.clean
     end
 
     def test_subcommand
