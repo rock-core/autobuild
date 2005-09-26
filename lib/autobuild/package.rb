@@ -4,14 +4,20 @@ require 'autobuild/subcommand'
 
 class Package
     @@packages = {}
+    @@provides = {}
 
     attr_reader :dependencies
     attr_reader :target, :srcdir, :prefix
 
     def installstamp; "#{prefix}/#{target}-#{STAMPFILE}" end
 
-    def self.each(&p); @@packages.each_value(&p) end
-    def self.[](target); @@packages[target] end
+    def self.each(with_provides = false, &p)
+        @@packages.each(&p) 
+        @@provides.each(&p) if with_provides
+    end
+    def self.[](target)
+        @@packages[target] or @@provides[target]
+    end
 
     ## Available options
     #   srcdir: the source dir. If a relative path, it is based on $SRCDIR
@@ -60,7 +66,7 @@ class Package
 
     def provides(p)
         p = Package.name2target(p)
-        @@packages[p] = self 
+        @@provides[p] = self 
         puts "Defining #{p} as an alias to #{target}"
         task p => target
 
