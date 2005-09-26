@@ -81,10 +81,10 @@ class Autotools < Package
         end
         file conffile do
             Dir.chdir(srcdir) {
-                $PROGRAMS['aclocal']     ||= 'aclocal'
-                $PROGRAMS['autoconf']    ||= 'autoconf'
-                $PROGRAMS['autoheader']  ||= 'autoheader'
-                $PROGRAMS['automake']    ||= 'automake'
+                $PROGRAMS[:aclocal]     ||= 'aclocal'
+                $PROGRAMS[:autoconf]    ||= 'autoconf'
+                $PROGRAMS[:autoheader]  ||= 'autoheader'
+                $PROGRAMS[:automake]    ||= 'automake'
 
                 begin
                     if @options[:autogen]
@@ -101,10 +101,10 @@ class Autotools < Package
                             @options[:automake] = File.exists?(File.join(srcdir, 'Makefile.am'))
                         end
 
-                        subcommand(target, 'configure', $PROGRAMS['aclocal'])    if @options[:aclocal]
-                        subcommand(target, 'configure', $PROGRAMS['autoconf'])   if @options[:autoconf]
-                        subcommand(target, 'configure', $PROGRAMS['autoheader']) if @options[:autoheader]
-                        subcommand(target, 'configure', $PROGRAMS['automake'])   if @options[:automake]
+                        subcommand(target, 'configure', $PROGRAMS[:aclocal])    if @options[:aclocal]
+                        subcommand(target, 'configure', $PROGRAMS[:autoconf])   if @options[:autoconf]
+                        subcommand(target, 'configure', $PROGRAMS[:autoheader]) if @options[:autoheader]
+                        subcommand(target, 'configure', $PROGRAMS[:automake])   if @options[:automake]
                     end
                 rescue SubcommandFailed => e
                     raise BuildException.new(e), "failed to build the configure environment of #{target}"
