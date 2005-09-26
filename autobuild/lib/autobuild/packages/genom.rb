@@ -2,10 +2,6 @@ require 'autobuild/packages/autotools'
 require 'open3'
 
 class GenomModule < Autotools
-    def initialize(target, options)
-        super(target, options)
-    end
-
     def prepare
         super
         get_requires
@@ -24,13 +20,17 @@ class GenomModule < Autotools
                 if line =~ /^\s*requires\s*:\s*([\w\-]+(?:\s*,\s*[\w\-]+)*);/
                     $1.split(/, /).each { |name| 
                         depends_on name
-                        file genomstamp => Package.name2target(name)
                     }
                 elsif line =~ /^\s*requires/
                     puts "failed to match #{line}"
                 end
             }
         end
+    end
+
+    def depends_on(name)
+        super
+        file genomstamp => Package.name2target(name)
     end
 
     def get_provides
@@ -67,7 +67,7 @@ class GenomModule < Autotools
                 # since the generation takes care of rebuilding configure
                 # if .gen has changed
                 begin
-                    subcommand(target, 'genom', *cmdline)
+                    subcommand(target, 'genom', File.expand_path('autogen'))
                 rescue SubcommandFailed => e
                     raise BuildException.new(e), "failed to generate module #{target}"
                 end
