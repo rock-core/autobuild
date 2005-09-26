@@ -4,7 +4,7 @@ def pathvar(path, varname)
         if oldpath.empty?
             ENV[varname] = path
         else
-            ENV[varname] = "#{oldpath}:#{path}"
+            ENV[varname] = "#{path}:#{oldpath}"
         end
     end
 end
