@@ -151,7 +151,7 @@ module Config
         end
 
         # Post-import, pre-build pass
-        Package.each { |p| p.prepare }
+        Package.each(false) { |name, pkg| pkg.prepare }
     end
 
     private_class_method :get_autobuild_config, :get_package_config, :add_package
