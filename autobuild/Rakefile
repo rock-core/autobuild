@@ -3,7 +3,7 @@ require 'rake/gempackagetask'
 
 spec = Gem::Specification.new do |s|
     s.name = 'autobuild'
-    s.version = '0.3'
+    s.version = '0.4'
     s.author = 'Sylvain Joyeux'
     s.email = 'sylvain.joyeux@m4x.org'
     s.summary = 'Rake-based utility to build and install multiple packages with dependencies'
