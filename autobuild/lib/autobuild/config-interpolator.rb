@@ -89,6 +89,8 @@ class Interpolator
             @variables[name]
         elsif @parent
             @parent.value_of(name)
+        elsif ENV[name.to_s]
+            ENV[name.to_s]
         else
             raise UndefinedVariable.new(name)
         end
