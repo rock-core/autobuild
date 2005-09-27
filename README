@@ -285,6 +285,31 @@ The only program used during the build phase is +make+. The make command can too
 The <tt>--daemon</tt> command line options makes autobuild go into daemon mode.
  
 = Changes
+== 0.3 to 0.4
+* added support to split import and build. For instance
+
+    whole_tree:
+        type: import
+        import: cvs
+        source: [ a, repository ]
+
+    package1:
+        type: autotools
+        srcdir: whole_tree/package1
+        depends: whole_tree
+        
+    package2:
+        type: autotools
+        srcdir: whole_tree/package2
+        depends: whole_tree
+        
+  Now works well
+
+* the <tt>autotools</tt> package has now an <tt>autogen</tt> options, which gives a name for the script
+  to run to create the autoconf environment
+* renamed 'genomflags' -> 'genflags'
+* variable interpolation checks for environment variables
+* bugfixes
 == 0.2 to 0.3
 * added support for patching source code. Add patch: [ patches ] to the package configuration
 * renamed autobuild-config, common-config and clean-log to autobuild, common and clean_log. Autobuild
