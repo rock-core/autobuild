@@ -7,8 +7,8 @@ class CVSImporter < Importer
         @module = name
 
         @program = ($PROGRAMS[:cvs] || 'cvs')
-        @up = (options[:cvsup] || '-dP')
-        @co = (options[:cvsco] || '-P')
+        @options_up = ( options[:cvsup] || '-dP' ).to_a
+        @options_co = ( options[:cvsco] || '-P' ).to_a
         super(options)
     end
     
@@ -21,7 +21,7 @@ class CVSImporter < Importer
     def update(package)
         Dir.chdir(package.srcdir) {
             begin
-                subcommand(package.target, 'cvs', @program, 'up' , @up)
+                subcommand(package.target, 'cvs', @program, 'up', *@options_up)
             rescue SubcommandFailed => e
                 raise ImportException.new(e), "failed to update #{modulename}"
             end
@@ -35,7 +35,8 @@ class CVSImporter < Importer
         FileUtils.mkdir_p(head) if !File.directory?(head)
         Dir.chdir(head) {
             begin
-                subcommand(package.target, 'cvs', @program, '-d', cvsroot, 'co', @co, '-d', tail, modulename)
+                options = [ @program, '-d', cvsroot, 'co', '-d', tail ] + @options_co + [ modulename ]
+                subcommand(package.target, 'cvs', *@options_co)
             rescue SubcommandFailed => e
                 raise ImportException.new(e), "failed to check out #{modulename}"
             end
