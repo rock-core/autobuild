@@ -36,7 +36,7 @@ class CVSImporter < Importer
         Dir.chdir(head) {
             begin
                 options = [ @program, '-d', cvsroot, 'co', '-d', tail ] + @options_co + [ modulename ]
-                subcommand(package.target, 'cvs', *@options_co)
+                subcommand(package.target, 'cvs', *@options)
             rescue SubcommandFailed => e
                 raise ImportException.new(e), "failed to check out #{modulename}"
             end
