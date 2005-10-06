@@ -1,3 +1,6 @@
+$LOAD_PATH.unshift File.expand_path('..', File.dirname(__FILE__))
+$LOAD_PATH << File.expand_path('../lib', File.dirname(__FILE__))
+
 require 'test/unit'
 require 'autobuild/config-interpolator'
 
@@ -16,6 +19,7 @@ autobuild:
     srcdir: $srcdir
     prefix: $prefix
     nice: $nice
+    envvar: $ENVVAR
 
 EOF
         
@@ -41,9 +45,11 @@ EOF
     end
         
     def test_interpolation
+        ENV['ENVVAR'] = 'envvar'
         data = Interpolator.interpolate(@wellformed)
         assert_equal('/home/doudou/src', data["autobuild"]["srcdir"])
         assert_equal('/home/doudou/build', data["autobuild"]["prefix"])
+        assert_equal('envvar', data["autobuild"]["envvar"])
         assert_equal(10, data["autobuild"]["nice"])
         assert_kind_of(Fixnum, data["autobuild"]["nice"])
     end

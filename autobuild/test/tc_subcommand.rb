@@ -1,10 +1,9 @@
+$LOAD_PATH.unshift File.expand_path('..', File.dirname(__FILE__))
 $LOAD_PATH << File.expand_path('../lib', File.dirname(__FILE__))
-$LOAD_PATH << File.dirname(__FILE__)
 require 'test/unit'
+require 'test/tools'
 require 'autobuild/options'
 require 'autobuild/config'
-
-require 'tools'
 
 require 'tmpdir'
 require 'fileutils'
