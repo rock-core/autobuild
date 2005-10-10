@@ -43,15 +43,15 @@ EOF
     end
 
     def test_subcommand
-        assert_raise(SubcommandFailed) { || subcommand('test', 'copy', 'cat', 'bla') }
+        assert_raise(SubcommandFailed) { || Subprocess.run('test', 'copy', 'cat', 'bla') }
         
-        subcommand('test', 'simple', 'cat', nil, '', source1)
+        Subprocess.run('test', 'simple', 'cat', nil, '', source1)
         assert( FileUtils.identical?(source1, File.join(tmpdir, 'test-simple.log')) )
 
-        subcommand('test', 'use-lt', 'cat', "<#{source1}")
+        Subprocess.run('test', 'use-lt', 'cat', "<#{source1}")
         assert( FileUtils.identical?(source1, File.join(tmpdir, 'test-use-lt.log')) )
 
-        subcommand('test', 'use-both', 'cat', source1, '-', "<#{source2}")
+        Subprocess.run('test', 'use-both', 'cat', source1, '-', "<#{source2}")
         result = File.open( File.join(tmpdir, 'test-use-both.log') ) do |f|
             f.readlines
         end
