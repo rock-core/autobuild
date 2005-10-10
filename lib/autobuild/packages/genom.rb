@@ -10,7 +10,7 @@ class GenomModule < Autotools
     def genomstamp; "#{srcdir}/.genom/genom-stamp" end
 
     def cpp_options
-        @options[:genflags].to_a.find_all { |opt| opt =~ /^-D/ }
+        @options[:genomflags].to_a.find_all { |opt| opt =~ /^-D/ }
     end
 
     def get_requires
@@ -47,13 +47,13 @@ class GenomModule < Autotools
         
 
     def regen_targets
-        cmdline = [ 'genom', target ] | @options[:genflags].to_a
+        cmdline = [ 'genom', target ] | @options[:genomflags].to_a
 
         file buildstamp => genomstamp
         file genomstamp => [ :genom, "#{srcdir}/#{target}.gen" ] do
             Dir.chdir(srcdir) {
                 begin
-                    subcommand(target, 'genom', *cmdline)
+                    Subprocess.run(target, 'genom', *cmdline)
                 rescue SubcommandFailed => e
                     raise BuildException.new(e), "failed to generate module #{target}"
                 end
@@ -67,7 +67,7 @@ class GenomModule < Autotools
                 # since the generation takes care of rebuilding configure
                 # if .gen has changed
                 begin
-                    subcommand(target, 'genom', File.expand_path('autogen'))
+                    Subprocess.run(target, 'genom', File.expand_path('autogen'))
                 rescue SubcommandFailed => e
                     raise BuildException.new(e), "failed to generate module #{target}"
                 end

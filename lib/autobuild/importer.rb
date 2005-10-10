@@ -40,7 +40,7 @@ class Importer
     def call_patch(package, reverse, file)
         patch = ($PROGRAMS['patch'] || 'patch')
         Dir.chdir(package.srcdir) {
-            subcommand(package.target, 'patch', patch, '-p0', (reverse ? '-R' : nil), "<#{file}")
+            Subprocess.run(package.target, 'patch', patch, '-p0', (reverse ? '-R' : nil), "<#{file}")
         }
     end
 

@@ -88,7 +88,7 @@ class Autotools < Package
 
                 begin
                     if @options[:autogen]
-                        subcommand(target, 'configure', File.expand_path(@options[:autogen]))
+                        Subprocess.run(target, 'configure', File.expand_path(@options[:autogen]))
                     else
                         # Autodetect autoconf/aclocal/automake
                         if @options[:autoconf].nil?
@@ -101,10 +101,10 @@ class Autotools < Package
                             @options[:automake] = File.exists?(File.join(srcdir, 'Makefile.am'))
                         end
 
-                        subcommand(target, 'configure', $PROGRAMS[:aclocal])    if @options[:aclocal]
-                        subcommand(target, 'configure', $PROGRAMS[:autoconf])   if @options[:autoconf]
-                        subcommand(target, 'configure', $PROGRAMS[:autoheader]) if @options[:autoheader]
-                        subcommand(target, 'configure', $PROGRAMS[:automake])   if @options[:automake]
+                        Subprocess.run(target, 'configure', $PROGRAMS[:aclocal])    if @options[:aclocal]
+                        Subprocess.run(target, 'configure', $PROGRAMS[:autoconf])   if @options[:autoconf]
+                        Subprocess.run(target, 'configure', $PROGRAMS[:autoheader]) if @options[:autoheader]
+                        Subprocess.run(target, 'configure', $PROGRAMS[:automake])   if @options[:automake]
                     end
                 rescue SubcommandFailed => e
                     raise BuildException.new(e), "failed to build the configure environment of #{target}"
@@ -124,7 +124,7 @@ class Autotools < Package
             command |= @options[:configureflags].to_a
             
             begin
-                subcommand(target, 'configure', *command)
+                Subprocess.run(target, 'configure', *command)
             rescue SubcommandFailed => e
                 raise BuildException.new(e), "failed to configure #{target}"
             end
@@ -134,9 +134,9 @@ class Autotools < Package
     def build
         Dir.chdir(builddir) {
             begin
-                subcommand(target, 'build', './config.status')
+                Subprocess.run(target, 'build', './config.status')
                 $PROGRAMS['make'] ||= 'make'
-                subcommand(target, 'build', $PROGRAMS['make'])
+                Subprocess.run(target, 'build', $PROGRAMS['make'])
             rescue SubcommandFailed => e
                 raise BuildException.new(e), "failed to build #{target}"
             end
@@ -148,7 +148,7 @@ class Autotools < Package
         Dir.chdir(builddir) {
             make = ($PROGRAMS['make'] or 'make')
             begin
-                subcommand(target, 'install', make, 'install')
+                Subprocess.run(target, 'install', make, 'install')
             rescue SubcommandFailed => e
                 raise BuildException.new(e), "failed to install #{builddir}"
             end
