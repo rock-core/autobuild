@@ -7,8 +7,9 @@ class AutobuildException < Exception
         @target = target
     end
 
+    alias :exception_message :to_s 
     def to_s
-        "#{target}: #{message}"
+        "#{target}: #{super}"
     end
 end
 class ConfigException  < AutobuildException; end
@@ -25,6 +26,7 @@ class SubcommandFailed < AutobuildException
             sc = args[0]
             target, command, logfile, status = 
                 sc.target, sc.command, sc.logfile, sc.status
+            @orig_message = sc.exception_message
         elsif args.size == 4
             target, command, logfile, status = *args
         else
@@ -38,13 +40,12 @@ class SubcommandFailed < AutobuildException
     end
 
     def to_s
-"#{target}: #{super}
-    command '#{command}' failed with status #{status}
-    see #{File.basename(logfile)} for details
-"
+        prefix = "#{super}\n    command '#{command}' failed"
+        prefix << ": " + @orig_message if @orig_message
+        prefix << "\n    see #{File.basename(logfile)} for details\n"
     end
 end
+class CommandNotFound < SubcommandFailed; end
 class ImportException < SubcommandFailed; end
 class BuildException  < SubcommandFailed; end
-    
-
+ 
