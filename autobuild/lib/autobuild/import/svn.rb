@@ -1,4 +1,4 @@
-require 'autobuild/subcommand' 
+require 'autobuild/subcommand'
 require 'autobuild/importer'
 
 class SVNImporter < Importer
@@ -16,7 +16,7 @@ class SVNImporter < Importer
     def update(package)
         Dir.chdir(package.srcdir) {
             begin
-                subcommand(package.target, 'svn', @program, 'up', *@options_up)
+                Subprocess.run(package.target, 'svn', @program, 'up', *@options_up)
             rescue SubcommandFailed => e
                 raise ImportException.new(e), "failed to update #{package.target}"
             end
@@ -26,7 +26,7 @@ class SVNImporter < Importer
     def checkout(package)
         begin
             options = [ @program, 'co' ] + @options_co + [ @source, package.srcdir ]
-            subcommand(package.target, 'svn', *options)
+            Subprocess.run(package.target, 'svn', *options)
         rescue SubcommandFailed => e
             raise ImportException.new(e), "failed to check out #{package.target}"
         end
