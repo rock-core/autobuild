@@ -92,7 +92,10 @@ module Config
             FileUtils.rm_rf Dir.glob("#{$LOGDIR}/*.log")
         end
 
-        $MAIL   = autobuild[:mail]
+        if autobuild[:mail]
+            mail_config = autobuild[:mail]
+            Reporting << MailReporter.new(mail_config[:from], mail_config[:to], mail_config[:smtp], mail_config[:port])
+        end
         $UPDATE = autobuild[:update]
         $NICE   = autobuild[:nice]
 
