@@ -35,12 +35,12 @@ EOF
     def test_match
         data = @wellformed['defines']['srcdir']
         all_matches = []
-        Interpolator::PartialMatch.each_match(data) { |m| all_matches << m[1] }
+        data.gsub(Interpolator::PartialMatch) { |m| all_matches << ($1 || $2) }
         assert_equal( ['global_prefix'], all_matches )
         
         data = @wellformed['autobuild']['srcdir']
         all_matches = []
-        Interpolator::PartialMatch.each_match(data) { |m| all_matches << m[2] }
+        data.gsub(Interpolator::PartialMatch) { |m| all_matches << ($1 || $2) }
         assert_equal( ['srcdir'], all_matches )
     end
         
