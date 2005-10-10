@@ -107,7 +107,7 @@ class Autotools < Package
                         Subprocess.run(target, 'configure', $PROGRAMS[:automake])   if @options[:automake]
                     end
                 rescue SubcommandFailed => e
-                    raise BuildException.new(e), "failed to build the configure environment of #{target}"
+                    raise BuildException.new(e), "failed to build the configure environment"
                 end
             }
         end
