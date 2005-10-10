@@ -3,7 +3,9 @@ require 'rmail/serialize'
 require 'net/smtp'
 require 'socket'
 
-module Reporting
+class Reporting
+    @@reporters = Array.new
+
     def self.report
         begin
             yield
@@ -15,39 +17,46 @@ module Reporting
     end
     
     def self.success
-        message = "Build finished successfully at #{Time.now}"
-        puts message
-        send_mail("Build success", message) if $MAIL
+        @@reporters.each do |rep| rep.success end
     end
 
-    def self.error(object)
-        if object.kind_of?(SubcommandFailed)
-            body = <<EOF
-#{object.target}: #{object.message}
-    command '#{object.command}' failed with status #{object.status}
-    see #{File.basename(object.logfile)} for details
-EOF
+    def self.error(error)
+        @@reporters.each do |rep| rep.error(error) end
+    end
 
-            message = <<EOF
-#{object.target}: #{object.message}
-    command '#{object.command}' failed with status #{object.status}
-    see #{object.logfile} for details
-EOF
-        else
-            body = message = "#{object.target}: #{object.message}"
+    def self.<<(reporter)
+        @@reporters << reporter
+    end
+
+    def self.each_log(&iter)
+        Dir.glob("#{$LOGDIR}/*.log", &iter)
+    end
+end
+
+class Reporter
+    def error(error); end
+    def success; end
+end
+
+class MailReporter < Reporter
+    def initialize(from, to, smtp = nil, port = 25)
+        @from = (from || "autobuild@#{Socket.gethostname}")
+        @to   = to
+        @smtp = (smtp || "localhost" )
+        @port = Integer(port || 25)
+    end
+
+    def error(error)
+        if error.mail?
+            send_mail("Build failed", error.to_s)
         end
-
-        puts message
-        send_mail("Build failed", body) if $MAIL && object.mail?
     end
 
-    private
+    def success
+        send_mail("Build success", "finished successfully at #{Time.now}")
+    end
 
-    def self.send_mail(subject, body)
-        from = ($MAIL[:from] || "autobuild@#{Socket.gethostname}")
-        to = $MAIL[:to]
-        smtp = ($MAIL[:smtp]  || "localhost" )
-
+    def send_mail(subject, body)
         mail = RMail::Message.new
         mail.header.date = Time.now
         mail.header.from = from
@@ -60,18 +69,17 @@ EOF
         mail.add_part(part)
 
         # Attach log files
-        Dir.glob("#{$LOGDIR}/*.log") do |file|
+        Reporting.each_log do |file|
             mail.add_file(file)
         end
 
         # Send the mail
-        smtp = Net::SMTP.new(smtp, Integer($MAIL[:port] || 25))
+        smtp = Net::SMTP.new(smtp, port)
         smtp.start {
             smtp.send_mail RMail::Serialize.write('', mail), from, to
         }
     end
 end
-
 
 module RMail
     class Message
