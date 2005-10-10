@@ -38,6 +38,15 @@ class Reporter
     def success; end
 end
 
+class StdoutReporter < Reporter
+    def error(error)
+        puts "Build failed: #{error}"
+    end
+    def success
+        puts "Build finished successfully at #{Time.now}"
+    end
+end
+
 class MailReporter < Reporter
     def initialize(from, to, smtp = nil, port = 25)
         @from = (from || "autobuild@#{Socket.gethostname}")
@@ -59,8 +68,8 @@ class MailReporter < Reporter
     def send_mail(subject, body)
         mail = RMail::Message.new
         mail.header.date = Time.now
-        mail.header.from = from
-        mail.header.to = to
+        mail.header.from = @from
+        mail.header.to = @to
         mail.header.subject = subject
 
         part = RMail::Message.new
@@ -74,9 +83,9 @@ class MailReporter < Reporter
         end
 
         # Send the mail
-        smtp = Net::SMTP.new(smtp, port)
+        smtp = Net::SMTP.new(@smtp, @port)
         smtp.start {
-            smtp.send_mail RMail::Serialize.write('', mail), from, to
+            smtp.send_mail RMail::Serialize.write('', mail), @from, @to
         }
     end
 end
