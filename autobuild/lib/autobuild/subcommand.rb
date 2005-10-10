@@ -6,6 +6,8 @@ module Subprocess
         @@nice = value
     end
 
+    CONTROL_COMMAND_NOT_FOUND = 1
+    CONTROL_UNEXPECTED = 2
     def self.run(target, type, *command)
         # Filter nil and empty? in command
         command.reject! { |o| o.nil? || (o.respond_to?(:empty?) && o.empty?) }
@@ -17,25 +19,33 @@ module Subprocess
         command.reject! { |o| o =~ /^\<(.+)/ }
 
         status = File.open(logname, "a") do |logfile|
-            pread, pwrite = IO.pipe
+            pread, pwrite = IO.pipe # to feed subprocess stdin 
+            cread, cwrite = IO.pipe # to control that exec goes well
 
             pid = fork { 
-                Process.setpriority(Process::PRIO_PROCESS, 0, @@nice)
-                if $VERBOSE
-                    $stderr.dup.reopen(logfile.dup)
-                    $stdout.dup.reopen(logfile.dup)
-                else
-                    $stderr.reopen(logfile.dup)
-                    $stdout.reopen(logfile.dup)
-                end
+                cwrite.sync = true
+                begin
+                    Process.setpriority(Process::PRIO_PROCESS, 0, @@nice)
+                    if $VERBOSE
+                        $stderr.dup.reopen(logfile.dup)
+                        $stdout.dup.reopen(logfile.dup)
+                    else
+                        $stderr.reopen(logfile.dup)
+                        $stdout.reopen(logfile.dup)
+                    end
 
-                if !input_streams.empty?
-                    pwrite.close
-                    $stdin.reopen(pread)
-                end
-               
-                if !exec(*command)
-                    raise SubcommandFailed.new(target, command.join(" "), logname, 0), "error running command"
+                    if !input_streams.empty?
+                        pwrite.close
+                        $stdin.reopen(pread)
+                    end
+                   
+                    exec(*command)
+                rescue Errno::ENOENT
+                    cwrite.write([CONTROL_COMMAND_NOT_FOUND].pack('I'))
+                    raise
+                rescue Exception
+                    cwrite.write([CONTROL_UNEXPECTED].pack('I'))
+                    raise
                 end
             }
 
@@ -52,6 +62,19 @@ module Subprocess
                 raise SubcommandFailed.new(target, command.join(" "), logname, 0), e.message
             end
             pwrite.close
+
+            # Get control status
+            cwrite.close
+            value = cread.read(4)
+            if value
+                # An error occured
+                value = value.unpack('I').first
+                if value == CONTROL_COMMAND_NOT_FOUND
+                    raise SubcommandFailed.new(target, command.join(" "), logname, 0), "file not found"
+                else
+                    raise SubcommandFailed.new(target, command.join(" "), logname, 0), "something unexpected happened"
+                end
+            end
 
             childpid, childstatus = Process.wait2(pid)
             childstatus
