@@ -1,15 +1,5 @@
 require 'autobuild/exceptions'
 
-class Regexp
-    def each_match(string)
-        string = string.to_str
-        while data = match(string)
-            yield(data)
-            string = data.post_match
-        end
-    end
-end
-
 class UndefinedVariable < ConfigException
     attr_reader :name
     attr_accessor :reference
@@ -101,17 +91,14 @@ class Interpolator
         
         # Special case: if 'value' is *only* an interpolation, avoid
         # conversion to string
-        WholeMatch.each_match(value) do |data|
-            return yield(data[1] || data[2])
+        if match = WholeMatch.match(value)
+            return yield($1 || $2)
         end
 
-        interpolated = ''
-        data = nil
-        PartialMatch.each_match(value) do |data|
-            varname = data[1] || data[2]
-            interpolated << data.pre_match << yield(varname)
-        end
-        return data ? (interpolated << data.post_match) : value
+        return value.gsub(PartialMatch) { |match|
+            varname = $1 || $2
+            yield(varname)
+        }
     end
 end
 
