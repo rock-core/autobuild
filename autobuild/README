@@ -285,6 +285,9 @@ The only program used during the build phase is +make+. The make command can too
 The <tt>--daemon</tt> command line options makes autobuild go into daemon mode.
  
 = Changes
+== 0.4 to 0.5
+* genflags has been renamed to genomflags once again. The convention is now to
+  have a <tool>flags option. For instance: genomflags, configureflags
 == 0.3 to 0.4
 * added support to split import and build. For instance
 
