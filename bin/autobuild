@@ -65,6 +65,7 @@ if options.daemonize
     Daemons.daemonize 
 end
 
+Reporting << StdoutReporter.new
 Reporting.report do
     begin
         File.open(conffile) do |f|
