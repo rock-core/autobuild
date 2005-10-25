@@ -144,21 +144,18 @@ sets
 
 
 === Mail (<tt>autobuild/mail</tt>)
-If you want to receive a mail when the build has finished (on success and failures), set
-at least the +to+ option, like this:
+Use this options if you want to receive a mail when the build has finished (on success and failures)
 
     autobuild:
-        mail:
-            from: autobuild@mymachine.rubyrules.org
-            to: myself+autobuild@rubyrules.org
-            smtp: localhost
+        mail: true
 
-Other options are:
-*from*:: what to set in the <tt>From:</tt> field, default is <tt>autobuild@hostname</tt>
+Valid options are:
+*to*::   the mail destination, default is <tt>user@hostname</tt> (for instance sylvain@localhost)
+*from*:: the mail source, default is <tt>user@hostname</tt>
 *smtp*:: the stmp server to use. Default is +localhost+
+*port*:: the port the server is running on. Default is the smtp port (25)
 
 All log files relative to the current build are attached to the mail.
-
 
 
 == Configuring packages (<tt>packages/*</tt>)
@@ -275,8 +272,8 @@ The only program used during the build phase is +make+. The make command can too
         make: gnumake
 
 ==== Other options
-*builddir*::    the directory where the build takes place. For now, it has to be a relative path, 
-                which is added to the import dir. The default value is "build"
+*builddir*::    the directory where the build takes place. For now, it has to be a relative path,
+                which will be considered relative to the source directory.
 *configureflags*::  array of options to add to the +configure+ command line
                         configureflags: [ --with-bar-source=$srcdir/$bar_srcdir ]
                         depends: bar
@@ -286,8 +283,12 @@ The <tt>--daemon</tt> command line options makes autobuild go into daemon mode.
  
 = Changes
 == 0.4 to 0.5
-* genflags has been renamed to genomflags once again. The convention is now to
+* genflags has been renamed back to genomflags. The convention is now to
   have a <tool>flags option. For instance: genomflags, configureflags
+* added the --[no-]build option to do only import
+* set sensible default options for mail. A simple mail: true is often enough now.
+* if a value is undefined in the config file, parameter expansion tries to get
+  it from the program environment
 == 0.3 to 0.4
 * added support to split import and build. For instance
 
@@ -308,8 +309,8 @@ The <tt>--daemon</tt> command line options makes autobuild go into daemon mode.
         
   Now works well
 
-* the <tt>autotools</tt> package has now an <tt>autogen</tt> options, which gives a name for the script
-  to run to create the autoconf environment
+* the <tt>autotools</tt> package has now an <tt>autogen</tt> options, which gives a name for a script
+  which creates the autotools environment
 * renamed 'genomflags' -> 'genflags'
 * variable interpolation checks for environment variables
 * bugfixes
