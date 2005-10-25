@@ -93,8 +93,8 @@ module Config
         end
 
         if autobuild[:mail]
-            mail_config = autobuild[:mail]
-            Reporting << MailReporter.new(mail_config[:from], mail_config[:to], mail_config[:smtp], mail_config[:port])
+            mail_config = (autobuild[:mail].respond_to?(:[])) ? autobuild[:mail] : nil
+            Reporting << MailReporter.new(mail_config)
         end
         $UPDATE = autobuild[:update]
         $NICE   = autobuild[:nice]

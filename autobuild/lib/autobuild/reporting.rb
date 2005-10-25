@@ -2,6 +2,7 @@ require 'rmail'
 require 'rmail/serialize'
 require 'net/smtp'
 require 'socket'
+require 'etc'
 
 class Reporting
     @@reporters = Array.new
@@ -48,11 +49,21 @@ class StdoutReporter < Reporter
 end
 
 class MailReporter < Reporter
-    def initialize(from, to, smtp = nil, port = 25)
-        @from = (from || "autobuild@#{Socket.gethostname}")
-        @to   = to
+    def default_mail
+        Etc::endpwent
+        uname = while (pwent = Etc::getpwent)
+                    break (pwent.name) if pwent.uid == Process.uid
+                end
+
+        raise "FATAL: cannot find a user with uid=#{Process.uid}" unless uname
+        "#{pwent.name}@#{Socket.gethostname}"
+    end
+    
+    def initialize(from = nil, to = nil, smtp = nil, port = nil)
+        @from = (from || default_mail)
+        @to   = (to   || default_mail)
         @smtp = (smtp || "localhost" )
-        @port = Integer(port || 25)
+        @port = Integer(port || Socket.getservbyname('smtp'))
     end
 
     def error(error)
@@ -87,6 +98,10 @@ class MailReporter < Reporter
         smtp.start {
             smtp.send_mail RMail::Serialize.write('', mail), @from, @to
         }
+
+        # Notify the sending
+        puts "Sent notification mail to #{@to} with source #{@from}"
+
     end
 end
 
