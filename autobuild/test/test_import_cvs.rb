@@ -6,7 +6,7 @@ require 'autobuild/import/cvs'
 require 'autobuild/import/svn'
 require 'autobuild/import/tar'
 
-class TC_Import < Test::Unit::TestCase
+class TC_CVSImport < Test::Unit::TestCase
     Package = Struct.new :srcdir, :target
 
     def setup
