@@ -4,6 +4,7 @@ require 'test/unit'
 require 'test/tools'
 require 'autobuild/import/cvs'
 require 'autobuild/import/svn'
+require 'autobuild/import/tar'
 
 class TC_Import < Test::Unit::TestCase
     Package = Struct.new :srcdir, :target
@@ -21,28 +22,6 @@ class TC_Import < Test::Unit::TestCase
         $UPDATE = true
         $LOGDIR = nil
         TestTools.clean
-    end
-
-    def test_cvs
-        TestTools.untar('cvsroot.tar')
-        cvsroot = File.join(TestTools.tempdir, 'cvsroot')
-        pkg_cvs = Package.new File.join(TestTools.tempdir, 'cvs'), :cvs
-
-        # Make a checkout
-        importer = Import.cvs [ cvsroot, 'cvs' ], {}
-        importer.import(pkg_cvs)
-        assert( File.exists?(File.join(pkg_cvs.srcdir, 'test')) )
-
-        # Make an update
-        importer.import(pkg_cvs)
-
-        # Make an update fail
-        FileUtils.rm_rf cvsroot
-        assert_raise(ImportException) { importer.import pkg_cvs }
-
-        # Make a checkout fail
-        FileUtils.rm_rf pkg_cvs.srcdir
-        assert_raise(ImportException) { importer.import pkg_cvs }
     end
 
     def test_svn
@@ -72,6 +51,12 @@ class TC_Import < Test::Unit::TestCase
         # Make a checkout fail
         FileUtils.rm_rf pkg_svn.srcdir
         assert_raise(ImportException) { importer.import(pkg_svn) }
+    end
+
+    def test_tar
+        assert_equal(TarImporter::Plain, TarImporter.url_to_mode('tarfile.tar'))
+        assert_equal(TarImporter::Gzip, TarImporter.url_to_mode('tarfile.tar.gz'))
+        assert_equal(TarImporter::Bzip, TarImporter.url_to_mode('tarfile.tar.bz2'))
     end
 end
  
