@@ -17,6 +17,11 @@ class TC_TarImporter < Test::Unit::TestCase
         $LOGDIR = "#{TestTools.tempdir}/log"
         FileUtils.mkdir_p($LOGDIR)
 
+        @datadir = File.join(TestTools.tempdir, 'data')
+        FileUtils.mkdir_p(@datadir)
+        @tarfile = File.join(@datadir, 'tarimport.tar.gz')
+        FileUtils.cp(File.join(TestTools::DATADIR, 'tarimport.tar.gz'), @tarfile)
+        
         @cachedir = File.join(TestTools.tempdir, 'cache')
     end
     
@@ -40,21 +45,20 @@ class TC_TarImporter < Test::Unit::TestCase
     end
 
     def test_tar_remote
-        s = HTTPServer.new :Port => 2000, :DocumentRoot => TestTools::DATADIR
-        s.mount("/files", HTTPServlet::FileHandler, TestTools::DATADIR)
-
+        s = HTTPServer.new :Port => 2000, :DocumentRoot => TestTools.tempdir
+        s.mount("/files", HTTPServlet::FileHandler, TestTools.tempdir)
         webrick = Thread.new { s.start }
 
-        # Try to get the file through it
+        # Try to get the file through the http server
         pkg = Package.new File.join(TestTools.tempdir, 'tarimport'), 'tarimport'
-        importer = TarImporter.new 'http://localhost:2000/files/tarimport.tar.gz', :cachedir => @cachedir
+        importer = TarImporter.new 'http://localhost:2000/files/data/tarimport.tar.gz', :cachedir => @cachedir
 
         importer.checkout(pkg)
         assert(File.directory?(pkg.srcdir))
         assert(!importer.update_cache)
 
         sleep 2 # The Time class have a 1-second resolution
-        FileUtils.touch File.join(TestTools::DATADIR, "tarimport.tar.gz")
+        FileUtils.touch @tarfile
         assert(importer.update_cache)
         assert(!importer.update_cache)
 
