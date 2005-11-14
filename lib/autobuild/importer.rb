@@ -1,6 +1,6 @@
 require 'autobuild/exceptions'
 
-class Importer
+class Autobuild::Importer
     def initialize(options)
         @options = options
     end
@@ -22,7 +22,7 @@ class Importer
             begin
                 checkout(package)
                 patch(package)
-            rescue ImportException
+            rescue Autobuild::Exception
                 FileUtils.rm_rf package.srcdir
                 raise
             end
@@ -40,7 +40,7 @@ class Importer
     def call_patch(package, reverse, file)
         patch = ($PROGRAMS['patch'] || 'patch')
         Dir.chdir(package.srcdir) {
-            Subprocess.run(package.target, 'patch', patch, '-p0', (reverse ? '-R' : nil), "<#{file}")
+            Subprocess.run(package.target, :patch, patch, '-p0', (reverse ? '-R' : nil), "<#{file}")
         }
     end
 
@@ -68,8 +68,6 @@ class Importer
                 apply(package, p) 
                 cur_patches << p
             }
-        rescue SubcommandFailed => e
-            raise ImportException.new(e), "can't patch #{package.target} (#{e.message})"
         ensure
             File.open(patchlist(package), 'w+') do |f|
                 f.write(cur_patches.join("\n"))

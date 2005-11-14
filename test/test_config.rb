@@ -9,7 +9,7 @@ class TC_Config < Test::Unit::TestCase
     def setup
         @conffile = TestTools.build_config(binding, 'dummy')
         @options_hash = File.open(@conffile) { |f| YAML.load(f) }
-        @options = File.open(@conffile) { |f| Config.load(f, Options.default) }
+        @options = File.open(@conffile) { |f| Autobuild::Config.load(f, Options.default) }
     end
 
     def teardown

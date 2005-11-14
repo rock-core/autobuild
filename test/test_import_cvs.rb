@@ -6,6 +6,8 @@ require 'autobuild/import/cvs'
 require 'autobuild/import/svn'
 require 'autobuild/import/tar'
 
+include Autobuild
+
 class TC_CVSImport < Test::Unit::TestCase
     Package = Struct.new :srcdir, :target
 
@@ -39,11 +41,11 @@ class TC_CVSImport < Test::Unit::TestCase
 
         # Make an update fail
         FileUtils.rm_rf cvsroot
-        assert_raise(ImportException) { importer.import pkg_cvs }
+        assert_raise(Autobuild::SubcommandFailed) { importer.import pkg_cvs }
 
         # Make a checkout fail
         FileUtils.rm_rf pkg_cvs.srcdir
-        assert_raise(ImportException) { importer.import pkg_cvs }
+        assert_raise(Autobuild::SubcommandFailed) { importer.import pkg_cvs }
     end
 end
 

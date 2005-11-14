@@ -11,6 +11,8 @@ require 'autobuild/config'
 require 'autobuild/reporting'
 require 'daemons'
 
+include Autobuild
+
 DEFAULT_HTTP_PORT = 2000
 
 def parse_options(args)
@@ -69,7 +71,7 @@ Reporting << StdoutReporter.new
 Reporting.report do
     begin
         File.open(conffile) do |f|
-            Config.load(f, options)
+            Autobuild::Config.load(f, options)
         end
 
         if options.do_build

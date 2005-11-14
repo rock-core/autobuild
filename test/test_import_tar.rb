@@ -7,6 +7,8 @@ require 'autobuild/import/svn'
 require 'autobuild/import/tar'
 require 'webrick'
 
+include Autobuild
+
 class TC_TarImporter < Test::Unit::TestCase
     include WEBrick
     Package = Struct.new :srcdir, :target
@@ -44,26 +46,43 @@ class TC_TarImporter < Test::Unit::TestCase
         }
     end
 
-    def test_tar_remote
+    def web_server
         s = HTTPServer.new :Port => 2000, :DocumentRoot => TestTools.tempdir
         s.mount("/files", HTTPServlet::FileHandler, TestTools.tempdir)
         webrick = Thread.new { s.start }
 
-        # Try to get the file through the http server
-        pkg = Package.new File.join(TestTools.tempdir, 'tarimport'), 'tarimport'
-        importer = TarImporter.new 'http://localhost:2000/files/data/tarimport.tar.gz', :cachedir => @cachedir
+        yield
 
-        importer.checkout(pkg)
-        assert(File.directory?(pkg.srcdir))
-        assert(!importer.update_cache)
-
-        sleep 2 # The Time class have a 1-second resolution
-        FileUtils.touch @tarfile
-        assert(importer.update_cache)
-        assert(!importer.update_cache)
-
+    ensure
         s.shutdown
         webrick.join
+    end
+
+    def test_tar_remote
+        web_server do
+            # Try to get the file through the http server
+            pkg = Package.new File.join(TestTools.tempdir, 'tarimport'), 'tarimport'
+            importer = TarImporter.new 'http://localhost:2000/files/data/tarimport.tar.gz', :cachedir => @cachedir
+
+            importer.checkout(pkg)
+            assert(File.directory?(pkg.srcdir))
+            assert(!importer.update_cache)
+
+            sleep 2 # The Time class have a 1-second resolution
+            FileUtils.touch @tarfile
+            assert(importer.update_cache)
+            assert(!importer.update_cache)
+        end
+    end
+
+    def test_tar_remote_notfound
+        web_server do
+            # Try to get the file through the http server
+            pkg = Package.new File.join(TestTools.tempdir, 'tarimport'), 'tarimport'
+            importer = TarImporter.new 'http://localhost:2000/files/data/tarimport-nofile.tar.gz', :cachedir => @cachedir
+
+            assert_raise(Autobuild::Exception) { importer.checkout(pkg) }
+        end
     end
 end
  

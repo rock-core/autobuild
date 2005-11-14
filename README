@@ -109,6 +109,7 @@ Autobuild uses three sections:
 *update*::    if false, do not update the packages that are already imported (default: true). You
               can also use the <tt>--no-update</tt> on the command line
 
+
 === Directories (<tt>autobuild/srcdir</tt>, <tt>autobuild/prefix</tt> and <tt>autobuild/logdir</tt>)
 *srcdir*::    the path where programs are to be imported. See <b>Packages configuration</b> for 
               more information on how this option is used.
@@ -150,7 +151,7 @@ Use this options if you want to receive a mail when the build has finished (on s
         mail: true
 
 Valid options are:
-*to*::   the mail destination, default is <tt>user@hostname</tt> (for instance sylvain@localhost)
+*to*::   the mail destination, default is <tt>user@hostname</tt> (for instance sylvain@localhost for a user 'sylvain')
 *from*:: the mail source, default is <tt>user@hostname</tt>
 *smtp*:: the stmp server to use. Default is +localhost+
 *port*:: the port the server is running on. Default is the smtp port (25)
@@ -161,10 +162,10 @@ All log files relative to the current build are attached to the mail.
 == Configuring packages (<tt>packages/*</tt>)
 === The <tt>packages/config</tt> section
 If you want to add common options in each package, just set it them here. Note that the options
-are /merged/ in the package config. It neither replaces the values in the package nor be replaced
-by them. The merging strategy depends on the way the <tt>common</tt> is specified:
-* if it is an array, the package option is converted to an array and the common option is appended
-* if it is a string, the package option is converted to a string and the common option is appended
+are /merged/ in the package config. It neither replaces the values in the package nor the package 
+options replaces them. The merging strategy depends on the way the option is specified in this common section:
+* if it is an array, the package option is converted to an array and the common options are appended
+* if it is a string, the package option is converted to a string and the common option are appended
 with a space inserted between the two
 * if it is a boolean value, it is <em>overriden</em> by the package value
 * any other values are forbidden
@@ -228,6 +229,22 @@ source and the builder to build and install it.
 *svnup*::   options to add to svn up. Defaults to ''
 *svnco*::   options to add to svn co. Defaults to ''
 
+=== Tar (<tt>type: tar</tt>)
+This importer gets a tarball file, which may be on a remote server, and un-tars
+it. For now, it cannot determine itself what is the directory included in the tarball,
+so you should set the srcdir: appropriately.
+
+For instance, a tarball with one directory <tt>package-0.1</tt> in it will 
+need a <tt>srcdir</tt> option of <tt>package-0.1</tt>. If you do 
+not set +srcdir+, autobuild will untar the package in the global srcdir
+(as intended) but will search for <tt>$global_srcdir/package</tt>
+
+*source*::   the source URL. For now, http, ftp and file URLs are supported
+*cachedir*:: the directory where the local copy of the file should be saved 
+             if it is on a remote server
+
+
+
 == Available package types (<tt>packages/</tt><em>name</em><tt>/type</tt>)
 === Source only (<tt>type: import</tt>)
 Use +import+ if you need the package sources but don't need to build it. You just need
@@ -286,9 +303,17 @@ The <tt>--daemon</tt> command line options makes autobuild go into daemon mode.
 * genflags has been renamed back to genomflags. The convention is now to
   have a <tool>flags option. For instance: genomflags, configureflags
 * added the --[no-]build option to do only import
-* set sensible default options for mail. A simple mail: true is often enough now.
+* changed behaviour for mail reports:
+    - set sensible default options for mail
+    - mail: true uses default options
+    - mail: <string> is equivalent to
+        mail:
+            to: <string>
 * if a value is undefined in the config file, parameter expansion tries to get
-  it from the program environment
+  it from the program environment, and raises an error if it is not present in
+  the environment vars
+* changed the names of log files. All importers now uses <package>-<import>.log
+* added the 'tar' importer, which downloads and uncompress a tarball 
 == 0.3 to 0.4
 * added support to split import and build. For instance
 
@@ -307,7 +332,7 @@ The <tt>--daemon</tt> command line options makes autobuild go into daemon mode.
         srcdir: whole_tree/package2
         depends: whole_tree
         
-  Now works well
+  Works as it should
 
 * the <tt>autotools</tt> package has now an <tt>autogen</tt> options, which gives a name for a script
   which creates the autotools environment

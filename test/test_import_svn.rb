@@ -5,6 +5,7 @@ require 'test/tools'
 require 'autobuild/import/cvs'
 require 'autobuild/import/svn'
 require 'autobuild/import/tar'
+include Autobuild
 
 class TC_SVNImport < Test::Unit::TestCase
     Package = Struct.new :srcdir, :target
@@ -46,17 +47,12 @@ class TC_SVNImport < Test::Unit::TestCase
 
         # Make an update fail
         FileUtils.rm_rf svnrepo
-        assert_raise(ImportException) { importer.import(pkg_svn) }
+        assert_raise(SubcommandFailed) { importer.import(pkg_svn) }
 
         # Make a checkout fail
         FileUtils.rm_rf pkg_svn.srcdir
-        assert_raise(ImportException) { importer.import(pkg_svn) }
+        assert_raise(SubcommandFailed) { importer.import(pkg_svn) }
     end
 
-    def test_tar
-        assert_equal(TarImporter::Plain, TarImporter.url_to_mode('tarfile.tar'))
-        assert_equal(TarImporter::Gzip, TarImporter.url_to_mode('tarfile.tar.gz'))
-        assert_equal(TarImporter::Bzip, TarImporter.url_to_mode('tarfile.tar.bz2'))
-    end
 end
  

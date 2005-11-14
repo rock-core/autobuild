@@ -2,7 +2,7 @@ require 'autobuild/timestamps'
 require 'autobuild/environment'
 require 'autobuild/subcommand'
 
-class Package
+class Autobuild::Package
     @@packages = {}
     @@provides = {}
 
