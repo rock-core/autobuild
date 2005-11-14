@@ -59,11 +59,11 @@ class MailReporter < Reporter
         "#{pwent.name}@#{Socket.gethostname}"
     end
     
-    def initialize(from = nil, to = nil, smtp = nil, port = nil)
-        @from = (from || default_mail)
-        @to   = (to   || default_mail)
-        @smtp = (smtp || "localhost" )
-        @port = Integer(port || Socket.getservbyname('smtp'))
+    def initialize(config)
+        @from = (config[:from] || default_mail)
+        @to   = (config[:to]   || default_mail)
+        @smtp = (config[:smtp] || "localhost" )
+        @port = Integer(config[:port] || Socket.getservbyname('smtp'))
     end
 
     def error(error)
