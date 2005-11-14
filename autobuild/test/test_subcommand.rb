@@ -8,6 +8,8 @@ require 'autobuild/config'
 require 'tmpdir'
 require 'fileutils'
 
+include Autobuild
+
 class TC_Subcommand < Test::Unit::TestCase
 EXAMPLE_1 = <<EOF
 This is a file
@@ -28,7 +30,7 @@ EOF
         options = Options.default
         options.logdir = tmpdir
         File.open(conffile) do |confstream|
-            Config.load confstream, options
+            Autobuild::Config.load confstream, options
         end
 
         # Write example files

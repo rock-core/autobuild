@@ -1,18 +1,26 @@
 require 'autobuild/reporting'
 
-module Subprocess
+module Autobuild::Subprocess
     @@nice = 0
     def self.nice=(value)
         @@nice = value
     end
 
+    class Failed < Exception
+        attr_reader :status
+        def initialize(status = 0)
+            @status = status
+        end
+    end
+
     CONTROL_COMMAND_NOT_FOUND = 1
     CONTROL_UNEXPECTED = 2
-    def self.run(target, type, *command)
+    def self.run(target, phase, *command)
         # Filter nil and empty? in command
-        command.reject! { |o| o.nil? || (o.respond_to?(:empty?) && o.empty?) }
+        command.reject!  { |o| o.nil? || (o.respond_to?(:empty?) && o.empty?) }
         command.collect! { |o| o.to_s }
-        logname = "#{$LOGDIR}/#{target}-#{type}.log"
+        logname = "#{$LOGDIR}/#{target}-#{phase}.log"
+
         puts "#{target}: running #{command.join(" ")}\n    (output goes to #{logname})"
 
         input_streams = command.collect { |o| $1 if o =~ /^\<(.+)/ }.compact
@@ -58,8 +66,7 @@ module Subprocess
                     end
                 end
             rescue Errno::ENOENT => e
-                logfile.puts "Cannot open input files: #{e.message}"
-                raise SubcommandFailed.new(target, command.join(" "), logname, 0), e.message
+                raise Failed.new, "cannot open input files: #{e.message}"
             end
             pwrite.close
 
@@ -70,9 +77,9 @@ module Subprocess
                 # An error occured
                 value = value.unpack('I').first
                 if value == CONTROL_COMMAND_NOT_FOUND
-                    raise SubcommandFailed.new(target, command.join(" "), logname, 0), "file not found"
+                    raise Failed.new, "file not found"
                 else
-                    raise SubcommandFailed.new(target, command.join(" "), logname, 0), "something unexpected happened"
+                    raise Failed.new, "something unexpected happened"
                 end
             end
 
@@ -81,8 +88,14 @@ module Subprocess
         end
 
         if status.exitstatus > 0
-            raise SubcommandFailed.new(target, command.join(" "), logname, status.exitstatus)
+            raise Failed.new(status.exitstatus), "command returned with status #{status.exitstatus}"
         end
+
+    rescue Failed => e
+        error = SubcommandFailed.new(target, command.join(" "), logname, e.status)
+        error.phase = phase
+        raise error, e.message
     end
+
 end
 

@@ -29,7 +29,7 @@ class Hash
     end
 end
 
-module Config
+module Autobuild::Config
     def self.check_backward_compatibility(config)
         if config.has_key?('autobuild-config')
             puts 'WARNING: the \'autobuild-config\' block is now named \'autobuild\''
@@ -81,9 +81,10 @@ module Config
         $PROGRAMS = (config[:programs] or "make")
         
         autobuild = config[:autobuild]
-        $SRCDIR = File.expand_path(autobuild[:srcdir], Dir.pwd)
-        $PREFIX = File.expand_path(autobuild[:prefix], Dir.pwd)
-        $LOGDIR = File.expand_path(autobuild[:logdir] || "autobuild", $PREFIX)
+        $SRCDIR   = File.expand_path(autobuild[:srcdir], Dir.pwd)
+        $PREFIX   = File.expand_path(autobuild[:prefix], Dir.pwd)
+        $LOGDIR   = File.expand_path(autobuild[:logdir]   || "autobuild/log",   $PREFIX)
+        $CACHEDIR = File.expand_path(autobuild[:cachedir] || "autobuild/cache", $PREFIX)
 
         FileUtils.mkdir_p $SRCDIR if !File.directory?($SRCDIR)
         FileUtils.mkdir_p $LOGDIR if !File.directory?($LOGDIR)
@@ -92,8 +93,19 @@ module Config
             FileUtils.rm_rf Dir.glob("#{$LOGDIR}/*.log")
         end
 
+        FileUtils.mkdir_p $CACHEDIR if !File.directory?($CACHEDIR)
+
         if autobuild[:mail]
-            mail_config = (autobuild[:mail].respond_to?(:[])) ? autobuild[:mail] : {}
+            if autobuild[:mail].respond_to?(:[])
+                mail_config = autobuild[:mail]
+            elsif autobuild[:mail].respond_to?(:to_str)
+                Hash[:to => autobuild[:mail].to_str]
+            elsif autobuild[:mail] == true
+                mail_config = {}
+            else
+                raise ConfigException, "mail configuration should be either a option hash or a string"
+            
+            end
             Reporting << MailReporter.new(mail_config)
         end
         $UPDATE = autobuild[:update]
