@@ -105,6 +105,9 @@ module Autobuild
 
         rescue OpenURI::HTTPError
             raise Autobuild::Exception.new(package.target, :import)
+        rescue SubcommandFailed
+            FileUtils.rm_f cachefile
+            raise
         end
     end
 
