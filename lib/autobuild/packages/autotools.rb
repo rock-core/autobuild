@@ -66,9 +66,9 @@ module Autobuild
 
             file installstamp => buildstamp do 
                 install
-                update_environment(prefix)
+                Autobuild.update_environment(prefix)
             end
-            update_environment(prefix)
+            Autobuild.update_environment(prefix)
         end
 
         def regen_targets
