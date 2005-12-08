@@ -87,28 +87,24 @@ module Autobuild
                     $PROGRAMS[:autoheader]  ||= 'autoheader'
                     $PROGRAMS[:automake]    ||= 'automake'
 
-                    begin
-                        if @options[:autogen]
-                            Subprocess.run(target, 'configure', File.expand_path(@options[:autogen]))
-                        else
-                            # Autodetect autoconf/aclocal/automake
-                            if @options[:autoconf].nil?
-                                @options[:autoconf] = 
-                                    File.exists?(File.join(srcdir, 'configure.in')) ||
-                                    File.exists?(File.join(srcdir, 'configure.ac'))
-                            end
-                            @options[:aclocal] ||= @options[:autoconf]
-                            if @options[:automake].nil?
-                                @options[:automake] = File.exists?(File.join(srcdir, 'Makefile.am'))
-                            end
-
-                            Subprocess.run(target, 'configure', $PROGRAMS[:aclocal])    if @options[:aclocal]
-                            Subprocess.run(target, 'configure', $PROGRAMS[:autoconf])   if @options[:autoconf]
-                            Subprocess.run(target, 'configure', $PROGRAMS[:autoheader]) if @options[:autoheader]
-                            Subprocess.run(target, 'configure', $PROGRAMS[:automake])   if @options[:automake]
+                    if @options[:autogen]
+                        Subprocess.run(target, 'configure', File.expand_path(@options[:autogen]))
+                    else
+                        # Autodetect autoconf/aclocal/automake
+                        if @options[:autoconf].nil?
+                            @options[:autoconf] = 
+                                File.exists?(File.join(srcdir, 'configure.in')) ||
+                                File.exists?(File.join(srcdir, 'configure.ac'))
                         end
-                    rescue SubcommandFailed => e
-                        raise BuildException.new(e), "failed to build the configure environment"
+                        @options[:aclocal] ||= @options[:autoconf]
+                        if @options[:automake].nil?
+                            @options[:automake] = File.exists?(File.join(srcdir, 'Makefile.am'))
+                        end
+
+                        Subprocess.run(target, 'configure', $PROGRAMS[:aclocal])    if @options[:aclocal]
+                        Subprocess.run(target, 'configure', $PROGRAMS[:autoconf])   if @options[:autoconf]
+                        Subprocess.run(target, 'configure', $PROGRAMS[:autoheader]) if @options[:autoheader]
+                        Subprocess.run(target, 'configure', $PROGRAMS[:automake])   if @options[:automake]
                     end
                 }
             end
@@ -124,23 +120,15 @@ module Autobuild
                 command = [ "#{srcdir}/configure", "--no-create", "--prefix=#{prefix}" ]
                 command |= @options[:configureflags].to_a
                 
-                begin
-                    Subprocess.run(target, 'configure', *command)
-                rescue SubcommandFailed => e
-                    raise BuildException.new(e), "failed to configure #{target}"
-                end
+                Subprocess.run(target, 'configure', *command)
             }
         end
 
         def build
             Dir.chdir(builddir) {
-                begin
-                    Subprocess.run(target, 'build', './config.status')
-                    $PROGRAMS['make'] ||= 'make'
-                    Subprocess.run(target, 'build', $PROGRAMS['make'])
-                rescue SubcommandFailed => e
-                    raise BuildException.new(e), "failed to build #{target}"
-                end
+                Subprocess.run(target, 'build', './config.status')
+                $PROGRAMS['make'] ||= 'make'
+                Subprocess.run(target, 'build', $PROGRAMS['make'])
             }
             touch_stamp(buildstamp)
         end
@@ -148,11 +136,7 @@ module Autobuild
         def install
             Dir.chdir(builddir) {
                 make = ($PROGRAMS['make'] or 'make')
-                begin
-                    Subprocess.run(target, 'install', make, 'install')
-                rescue SubcommandFailed => e
-                    raise BuildException.new(e), "failed to install #{builddir}"
-                end
+                Subprocess.run(target, 'install', make, 'install')
             }
             touch_stamp(installstamp)
         end

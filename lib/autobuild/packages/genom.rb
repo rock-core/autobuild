@@ -53,11 +53,7 @@ module Autobuild
             file buildstamp => genomstamp
             file genomstamp => [ :genom, "#{srcdir}/#{target}.gen" ] do
                 Dir.chdir(srcdir) {
-                    begin
-                        Subprocess.run(target, 'genom', *cmdline)
-                    rescue SubcommandFailed => e
-                        raise BuildException.new(e), "failed to generate module #{target}"
-                    end
+                    Subprocess.run(target, 'genom', *cmdline)
                 }
             end
 
@@ -67,11 +63,7 @@ module Autobuild
                     # configure does not depend on the .gen file
                     # since the generation takes care of rebuilding configure
                     # if .gen has changed
-                    begin
-                        Subprocess.run(target, 'genom', File.expand_path('autogen'))
-                    rescue SubcommandFailed => e
-                        raise BuildException.new(e), "failed to generate module #{target}"
-                    end
+                    Subprocess.run(target, 'genom', File.expand_path('autogen'))
                 end
             end
         end
