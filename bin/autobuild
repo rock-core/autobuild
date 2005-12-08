@@ -68,23 +68,27 @@ if options.daemonize
 end
 
 Reporting << StdoutReporter.new
-Reporting.report do
-    begin
-        File.open(conffile) do |f|
-            Autobuild::Config.load(f, options)
-        end
-
-        if options.do_build
-            if targets.empty?
-                Rake::Task[:default].invoke
-            else
-                targets.each { |t| Rake::Task[t.to_sym].invoke }
+begin
+    Reporting.report do
+        begin
+            File.open(conffile) do |f|
+                Autobuild::Config.load(f, options)
             end
+
+            if options.do_build
+                if targets.empty?
+                    Rake::Task[:default].invoke
+                else
+                    targets.each { |t| Rake::Task[t.to_sym].invoke }
+                end
+            end
+        rescue ConfigException => e
+            e.target = conffile
+            raise
         end
-    rescue ConfigException => e
-        e.target = conffile
-        raise
+        Reporting.success
     end
-    Reporting.success
+rescue Interrupt
 end
+    
 
