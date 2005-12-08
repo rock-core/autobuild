@@ -241,7 +241,7 @@ not set +srcdir+, autobuild will untar the package in the global srcdir
 
 *source*::   the source URL. For now, http, ftp and file URLs are supported
 *cachedir*:: the directory where the local copy of the file should be saved 
-             if it is on a remote server
+             (for http and ftp URLs only)
 
 
 
