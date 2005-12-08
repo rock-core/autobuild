@@ -70,7 +70,7 @@ module Autobuild::Config
             end
         }
 
-        $VERBOSE = autobuild_config[:verbose]
+        $verbose = $VERBOSE = autobuild_config[:verbose]
         $trace = $DEBUG   = autobuild_config[:debug]
 
         get_autobuild_config(config)
