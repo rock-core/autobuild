@@ -6,15 +6,21 @@ STAMPFILE = "autobuild-stamp"
 
 module Autobuild
     def tree_timestamp(path, *exclude)
+        # Exclude autobuild timestamps
+        exclude << "*-#{STAMPFILE}"
+
+        puts "getting tree timestamp for #{path}" if $DEBUG
         latest = Time.at(0)
         latest_file = ""
-        dot = "."[0]
 
         exclude.collect! { |e| File.expand_path(e, path) }
         Find.find(path) { |p|
-            Find.prune if File.basename(p)[0] == dot
+            Find.prune if File.basename(p) =~ /^\./
             exclude.each { |pattern| 
-                Find.prune if File.fnmatch?(pattern, p) 
+                if File.fnmatch?(pattern, p) 
+                    puts "  excluding #{p}" if $DEBUG
+                    Find.prune
+                end
             }
             next if File.directory?(p)
 
@@ -25,6 +31,7 @@ module Autobuild
             end
         }
 
+        puts "  #{latest}" if $DEBUG
         return latest
     end
 
@@ -45,8 +52,9 @@ module Autobuild
     end
 
     def touch_stamp(stampfile)
-        puts "Touching #{stampfile}" if $trace
+        puts "Touching #{stampfile}" if $DEBUG
         FileUtils.touch(stampfile)
+        sleep(1)
     end
 end
 
