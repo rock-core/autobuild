@@ -1,0 +1,57 @@
+= Autobuild changelog
+
+== Version 0.5
+
+Fixes the mail default behaviour. Added the 'tar' importer.
+
+* all the API is now in a separate module
+* genflags has been renamed back to genomflags. The convention is now to
+  have a <tool>flags option. For instance: genomflags, configureflags
+* added the --[no-]build option to do only import
+* changed behaviour for mail reports:
+    - set sensible default options for mail
+    - mail: true uses default options
+    - mail: <string> is equivalent to
+        mail:
+            to: <string>
+* if a value is undefined in the config file, parameter expansion tries to get
+  it from the program environment, and raises an error if it is not present in
+  the environment vars
+* changed the names of log files. All importers now uses <package>-<import>.log
+* added the 'tar' importer, which downloads and uncompress a tarball 
+
+
+== Version 0.4
+
+* added support to split import and build. For instance
+
+    whole_tree:
+        type: import
+        import: cvs
+        source: [ a, repository ]
+
+    package1:
+        type: autotools
+        srcdir: whole_tree/package1
+        depends: whole_tree
+        
+    package2:
+        type: autotools
+        srcdir: whole_tree/package2
+        depends: whole_tree
+        
+  Works as it should
+
+* the <tt>autotools</tt> package has now an <tt>autogen</tt> options, which gives a name for a script
+  which creates the autotools environment
+* renamed 'genomflags' -> 'genflags'
+* variable interpolation checks for environment variables
+* bugfixes
+
+== Version 0.3
+
+* added support for patching source code. Add patch: [ patches ] to the package configuration
+* renamed autobuild-config, common-config and clean-log to autobuild, common and clean_log. Autobuild
+  warns if it finds one the previous spelling but ignores it anyway
+
+
