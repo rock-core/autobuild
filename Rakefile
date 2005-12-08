@@ -3,7 +3,7 @@ require 'rake/gempackagetask'
 
 spec = Gem::Specification.new do |s|
     s.name = 'autobuild'
-    s.version = '0.4'
+    s.version = '0.5'
     s.author = 'Sylvain Joyeux'
     s.email = 'sylvain.joyeux@m4x.org'
     s.summary = 'Rake-based utility to build and install multiple packages with dependencies'
@@ -26,6 +26,15 @@ EOF
     s.files = FileList['lib/**/*.rb', 'bin/*', 'README']
     s.test_files = FileList['test/*' ]
     s.executables = 'autobuild'
+end
+
+# Fix 1.8.4 - 1.8.3 issue
+class << spec
+    def to_yaml
+        out = super 
+        out = '--- ' + out unless out =~ /^---/ 
+        out 
+    end
 end
 
 Rake::GemPackageTask.new(spec) do |pkg| end
