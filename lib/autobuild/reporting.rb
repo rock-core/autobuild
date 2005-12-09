@@ -7,9 +7,18 @@ require 'etc'
 require 'autobuild/exceptions'
 
 module Autobuild
-    class Reporting
+    ## The reporting module provides the framework
+    # to run commands in autobuild and report errors 
+    # to the user
+    #
+    # It does not use a logging framework like Log4r, but it should ;-)
+    module Reporting
         @@reporters = Array.new
 
+        ## Run a block and report known exception
+        # If an exception is fatal, the program is terminated using exit()
+        #
+        # :yield:
         def self.report
             begin
                 yield
@@ -20,28 +29,34 @@ module Autobuild
             end
         end
         
+        ## Reports a successful build to the user
         def self.success
             @@reporters.each do |rep| rep.success end
         end
 
+        ## Reports that the build failed to the user
         def self.error(error)
             @@reporters.each do |rep| rep.error(error) end
         end
 
+        ## Add a new reporter
         def self.<<(reporter)
             @@reporters << reporter
         end
 
+        ## Iterate on all log files
         def self.each_log(&iter)
             Dir.glob("#{$LOGDIR}/*.log", &iter)
         end
     end
 
+    ## Base class for reporters
     class Reporter
         def error(error); end
         def success; end
     end
 
+    ## Display using stdout
     class StdoutReporter < Reporter
         def error(error)
             puts "Build failed: #{error}"
@@ -51,6 +66,7 @@ module Autobuild
         end
     end
 
+    ## Report by mail
     class MailReporter < Reporter
         def default_mail
             Etc::endpwent
@@ -111,6 +127,7 @@ end
 
 module RMail
     class Message
+        ## Attachs a file to a message
         def add_file(path, content_type='text/plain')
             part = RMail::Message.new
             part.header.set('Content-Type', content_type)

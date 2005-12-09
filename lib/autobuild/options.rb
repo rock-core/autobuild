@@ -4,6 +4,7 @@ module Autobuild
             :verbose, :debug, :do_build,
             :daemonize, :use_http )
 
+    ## Option class for the autobuild tool
     class Options
         def self.default
             default_values = { :update => true, :nice => 0,
