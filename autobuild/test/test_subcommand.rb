@@ -3,7 +3,7 @@ $LOAD_PATH << File.expand_path('../lib', File.dirname(__FILE__))
 require 'test/unit'
 require 'test/tools'
 require 'autobuild/options'
-require 'autobuild/config'
+require 'autobuild/loaders/config'
 
 require 'tmpdir'
 require 'fileutils'

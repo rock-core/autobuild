@@ -1,7 +1,7 @@
 require 'yaml'
 require 'pathname'
 
-require 'autobuild/config-interpolator'
+require 'autobuild/loaders/config-interpolator'
 require 'autobuild/reporting'
 require 'autobuild/package'
 require 'autobuild/importer'
