@@ -1,9 +1,14 @@
 module Autobuild
+    ## Base class for all Autobuild exceptions
     class Exception < RuntimeError
+        ## If the error should be reported by mail
         def mail?;  false end
+        ## If the error is fatal
         def fatal?; true end
         attr_accessor :target, :phase
 
+        ## Creates a new exception which occured while doing *phase* 
+        # in *target*
         def initialize(target = nil, phase = nil)
             @target = target
             @phase = phase
@@ -15,12 +20,17 @@ module Autobuild
             "   #{super}"
         end
     end
+
+    ## There is an error/inconsistency in the configuration
     class ConfigException  < Exception; end
+    ## An error occured in a package
     class PackageException < Exception
         def mail?; true end
     end
 
+    ## The subcommand is not found
     class CommandNotFound  < Exception; end
+    ## An error occured while running a subcommand
     class SubcommandFailed < Exception
         def mail?; true end
         attr_reader :command, :logfile, :status
@@ -39,7 +49,7 @@ module Autobuild
             super(target)
             @command = command
             @logfile = logfile
-            @status = status
+            @status  = status
         end
 
         def to_s
