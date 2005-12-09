@@ -35,8 +35,11 @@ module Autobuild::Config
             puts 'WARNING: the \'autobuild-config\' block is now named \'autobuild\''
         end
         config.each_recursive { |k, v|
-            if k == 'common-config'
-                puts 'WARNING: the \'common-config\' blocks are now named \'common\''
+            case k
+            when 'common-config'
+                puts %{WARNING: the 'common-config' blocks are now named 'common'}
+            when 'genflags'
+                puts %{WARNING: the 'genflags' has been renamed into 'genomflags'}
             end
         }
         if config["autobuild"] && config["autobuild"]["clean-log"]
