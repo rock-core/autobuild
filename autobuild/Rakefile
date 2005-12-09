@@ -152,10 +152,9 @@ end
 
 desc "Tag all the svn files with the latest release number (REL=x.y.z)"
 task :tag do
-  reltag = "RELEASE_#{PKG_VERSION.gsub(/\./, '_')}"
-  puts "Tagging svn with [#{reltag}]"
+  puts "Tagging release"
   base_url = %{svn+ssh://#{RUBYFORGE_USER}@rubyforge.org/var/svn/autobuild}
-  sh %{svn cp #{base_url}/trunk/autobuild #{base_url}/tags/#{reltag}}
+  sh %{svn cp #{base_url}/trunk/autobuild #{base_url}/tags/release/#{PKG_VERSION}}
 end
 
 
