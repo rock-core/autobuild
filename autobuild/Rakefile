@@ -25,7 +25,7 @@ require 'rake/rdoctask'
 # Later DamageControl can bump PATCH automatically.
 #
 # REMEMBER TO KEEP PKG_VERSION IN SYNC WITH THE CHANGES FILE!
-PKG_NAME = "meta_project"
+PKG_NAME = "autobuild"
 PKG_VERSION = "0.5"
 PKG_FILE_NAME = "#{PKG_NAME}-#{PKG_VERSION}"
 PKG_FILES = FileList[
@@ -132,7 +132,7 @@ task :release_files => [:gem] do
     release.user_name = ENV['RUBYFORGE_USER']
     release.password = ENV['RUBYFORGE_PASSWORD']
     release.files = release_files.to_a
-    release.release_name = "MetaProject #{PKG_VERSION}"
+    release.release_name = "Autobuild #{PKG_VERSION}"
     # The rest of the options are defaults (among others, release_notes and release_changes, parsed from CHANGES)
   end
 end
@@ -150,11 +150,12 @@ task :publish_news => [:gem] do
   end
 end
 
-desc "Tag all the CVS files with the latest release number (REL=x.y.z)"
+desc "Tag all the svn files with the latest release number (REL=x.y.z)"
 task :tag do
-  reltag = "REL_#{PKG_VERSION.gsub(/\./, '_')}"
-  puts "Tagging CVS with [#{reltag}]"
-  sh %{cvs tag #{reltag}}
+  reltag = "RELEASE_#{PKG_VERSION.gsub(/\./, '_')}"
+  puts "Tagging svn with [#{reltag}]"
+  base_url = %{svn+ssh://#{RUBYFORGE_USER}@rubyforge.org/var/svn/autobuild}
+  sh %{svn cp #{base_url}/trunk/autobuild #{base_url}/tags/#{reltag}}
 end
 
 
