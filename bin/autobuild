@@ -7,7 +7,7 @@ require 'ostruct'
 require 'optparse'
 
 require 'autobuild/options'
-require 'autobuild/config'
+require 'autobuild/loaders/config'
 require 'autobuild/reporting'
 require 'daemons'
 

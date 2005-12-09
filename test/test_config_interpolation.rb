@@ -2,7 +2,7 @@ $LOAD_PATH.unshift File.expand_path('..', File.dirname(__FILE__))
 $LOAD_PATH << File.expand_path('../lib', File.dirname(__FILE__))
 
 require 'test/unit'
-require 'autobuild/config-interpolator'
+require 'autobuild/loaders/config-interpolator'
 
 require 'yaml'
 require 'stringio'
