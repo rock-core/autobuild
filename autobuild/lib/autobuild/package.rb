@@ -6,9 +6,13 @@ class Autobuild::Package
     @@packages = {}
     @@provides = {}
 
-    attr_reader :dependencies
-    attr_reader :target, :srcdir, :prefix
+    attr_reader :target
+    attr_accessor :srcdir, :prefix
 
+    ## The file which marks when the last sucessful install
+    # has finished. The path is absolute
+    #
+    # A package is sucessfully built when it is installed
     def installstamp; "#{prefix}/#{target}-#{STAMPFILE}" end
 
     def self.each(with_provides = false, &p)
@@ -20,76 +24,87 @@ class Autobuild::Package
     end
 
     ## Available options
-    #   srcdir: the source dir. If a relative path, it is based on $SRCDIR
-    #   prefix: the install dir. If a relative path, it is based on $PREFIX
-    #   import: the package importer object
-    #   depends: the list of package name we depend upon
-    #   provides: a list of aliases for this package
+    #  * +:srcdir   - the source dir (default: package name). If a relative path, it is based on Autobuild::Config.srcdir
+    #  * +:prefix   - the install dir (default: empty). If a relative path, it is based on Autobuild::Config.prefix
+    #  * +:import   - the package importer object
+    #  * +:depends  - the list of package name we depend upon
+    #  * +:provides - a list of aliases for this package
     #
-    # $SRCDIR and $PREFIX are supposed to be valid absolute paths
-    def initialize(target, options)
-        @target = Package.name2target(target)
+    #  Alternatively, a block can be given to 
+    #  The import is done after t
+    #
+    def initialize(target, *options)
+        @target = target
         raise ConfigException, "package #{target} is already defined" if Package[target]
+        options = Hash.new if options.empty?
             
-        @options = options
-        @dependencies = Array.new
-        @provides = Array.new
+        @dependencies   = Array.new
+        @provides       = Array.new
 
-        srcdir, prefix = 
+        @srcdir, @prefix = 
             (options[:srcdir] or target.to_s),
             (options[:prefix] or "")
 
-        srcdir = File.expand_path(srcdir, $SRCDIR)
-        prefix = File.expand_path(prefix, $PREFIX)
-
-        @srcdir, @prefix = srcdir, prefix
         @import = options[:import]
-        @import.import(self) if @import
+
+        options[:depends_on].to_a.each { |p| depends_on(p) }
+        options[:provides].to_a.each   { |p| provides(p) }
+
+        yield(self) if block_given?
+        
+        @@packages[target] = self
+        @srcdir, @prefix =
+            File.expand_path(@srcdir, Config.srcdir),
+            File.expand_path(@prefix, Config.prefix)
+        @srcdir = @srcdir.freeze!
+        @prefix = @prefix.freeze!
 
         file installstamp
         task @target => installstamp
-
-        @options[:depends].to_a.each { |p| depends_on(p) }
-        @options[:provides].to_a.each { |p| provides(p) }
-        @@packages[target] = self
+        @import.import(self) if @import
     end
 
-    @@factories = Hash.new
 
-    def depends_on(p)
-        p = Package.name2target(p)
-        task target => p
-        puts "#{target} depends on #{p}"
-
-        @dependencies << p
+    def import=(importer); @import = importer end
+    def depends_on(*packages)
+        packages.each do |p|
+            p = Package.to_target(p)
+            task target => p
+            @dependencies << p
+        end
     end
 
-    def provides(p)
-        p = Package.name2target(p)
-        @@provides[p] = self 
-        puts "Defining #{p} as an alias to #{target}"
-        task p => target
-
-        @provides << p
+    def provides(*packages)
+        packages.each do |p|
+            p = Package.to_target(p)
+            @@provides[p] = self 
+            task p => target
+            @provides << p
+        end
     end
 
     def self.all; @@packages; end
-    def self.name2target(name)
-        if name.respond_to?(:to_str)
-            name.to_str.gsub(/-\//, '_').to_sym
-        elsif name.respond_to?(:to_sym)
-            name.to_sym
-        else
-            raise TypeError, "expected either a symbol or a string, got #{name.class}"
+    def self.to_target(*packages)
+        packages = packages.collect do |name|
+            if name.respond_to?(:id2name)
+                name.id2name
+            else
+                raise TypeError, "#{name.class} does not respond to id2name"
+            end
         end
+
+        return packages.first if packages.size == 1
+        return packages
     end
+
+    @@factories = Hash.new
     def self.factory(type, klass)
         @@factories[type] = klass
     end
     def self.build(type, name, options)
         raise ConfigException, "#{type} is not a valide package type" if !@@factories.has_key?(type)
 
-        target = name2target(name)
+        target = Package.to_target(name)
         task :default => [ target ]
         raise ConfigException, "there is already a package named #{target}" if Package[target]
         return @@factories[type].new(target, options)

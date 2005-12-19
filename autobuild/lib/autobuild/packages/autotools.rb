@@ -7,16 +7,18 @@ module Autobuild
     ## 
     # ==== Handles autotools-based packages
     #
-    # == Used programs
-    # - aclocal, autoheader, autoconf, automake
+    # == Used programs (see <tt>Config.programs</tt>)
+    # * aclocal
+    # * autoheader
+    # * autoconf
+    # * automake
     #
     # == Available options
-    # - aclocal (default: true if autoconf is enabled, false otherwise) run aclocal
-    # - autoconf (default: autodetect) run autoconf. Will be enabled if there is 
-    #   +configure.in+ or +configure.ac+ in the source directory
-    # - autoheader (default: false) run autoheader
-    # - automake (default: autodetect) run automake. Will run automake if there is a 
-    #   +Makefile.am+ in the source directory
+    # * aclocal     (default: true if autoconf is enabled, false otherwise) run aclocal
+    # * autoconf    (default: true)
+    # * autoheader  (default: false) run autoheader
+    # * automake    (default: autodetect) run automake. Will run automake if there is a 
+    #               +Makefile.am+ in the source directory
     # 
     class Autotools < Package
         factory :autotools, self
@@ -31,20 +33,38 @@ module Autobuild
             :builddir => 'build'
         }
 
-        def buildstamp
-            "#{builddir}/#{target}-#{STAMPFILE}"
-        end
+        ## Build stamp
+        # This returns the name of the file which marks when the package has been
+        # successfully built for the last time. The path is absolute
+        def buildstamp; "#{builddir}/#{target}-#{STAMPFILE}" end
 
-        def initialize(target, options)
+        ##
+        # Available options:
+        # * +:builddir+ -   the subdir in which the package should be built 
+        #                   before it is installed. It should be relative to 
+        #                   the source dir. Default: 'build'
+        # 
+        # For other options, see the documentation of +Package::new+
+        # 
+        def initialize(target, options, &proc)
             options = DefaultOptions.merge(options) { |key, old, new|
                 (new.nil? || (new.respond_to?(:empty) && new.empty?)) ? old : new
             }
-            super(target, options)
-
             @builddir = options[:builddir]
+
+            super(target, options, &proc)
+
             raise ConfigException, "autotools packages need a non-empty builddir" if (@builddir.nil? || @builddir.empty?)
             raise ConfigException, "absolute builddirs are unsupported" if (Pathname.new(@builddir).absolute?)
-            @builddir = File.expand_path(builddir, srcdir)
+            @builddir = File.expand_path(@builddir, srcdir)
+            Autobuild.update_environment(prefix)
+        end
+
+        def depends_on(*packages)
+            super
+            packages = Package.to_target(packages)
+            file "#{builddir}/config.status" => packages
+            file buildstamp => packages
         end
 
         def prepare
@@ -59,18 +79,16 @@ module Autobuild
                 build
             end
 
-            if !dependencies.empty?
-                file buildstamp => dependencies
-                file srcdir => dependencies
-            end
-
             file installstamp => buildstamp do 
                 install
                 Autobuild.update_environment(prefix)
             end
-            Autobuild.update_environment(prefix)
         end
 
+
+    private
+
+        ## Adds a target to rebuild the autotools environment
         def regen_targets
             conffile = "#{srcdir}/configure"
             if File.exists?("#{conffile}.ac")
@@ -82,34 +100,29 @@ module Autobuild
             end
             file conffile do
                 Dir.chdir(srcdir) {
-                    $PROGRAMS[:aclocal]     ||= 'aclocal'
-                    $PROGRAMS[:autoconf]    ||= 'autoconf'
-                    $PROGRAMS[:autoheader]  ||= 'autoheader'
-                    $PROGRAMS[:automake]    ||= 'automake'
-
                     if @options[:autogen]
                         Subprocess.run(target, 'configure', File.expand_path(@options[:autogen]))
                     else
                         # Autodetect autoconf/aclocal/automake
-                        if @options[:autoconf].nil?
-                            @options[:autoconf] = 
-                                File.exists?(File.join(srcdir, 'configure.in')) ||
-                                File.exists?(File.join(srcdir, 'configure.ac'))
-                        end
-                        @options[:aclocal] ||= @options[:autoconf]
+                        #
+                        # Let the user disable the use of autoconf explicitely
+                        @options[:autoconf] = true if @options[:autoconf].nil?
+                        @options[:aclocal] = @options[:autoconf] if @options[:aclocal].nil?
                         if @options[:automake].nil?
                             @options[:automake] = File.exists?(File.join(srcdir, 'Makefile.am'))
                         end
 
-                        Subprocess.run(target, 'configure', $PROGRAMS[:aclocal])    if @options[:aclocal]
-                        Subprocess.run(target, 'configure', $PROGRAMS[:autoconf])   if @options[:autoconf]
-                        Subprocess.run(target, 'configure', $PROGRAMS[:autoheader]) if @options[:autoheader]
-                        Subprocess.run(target, 'configure', $PROGRAMS[:automake])   if @options[:automake]
+                        [ :aclocal, :autoconf, :autoheader, :automake ].each do |tool|
+                            if options[tool]
+                                Subprocess.run(target, 'configure', Config.tool(tool))
+                            end
+                        end
                     end
                 }
             end
         end
 
+        ## Configure the builddir directory before starting make
         def configure
             if File.exists?(builddir) && !File.directory?(builddir)
                 raise ConfigException, "#{builddir} already exists but is not a directory"
@@ -124,19 +137,19 @@ module Autobuild
             }
         end
 
+        ## Do the build in builddir
         def build
             Dir.chdir(builddir) {
                 Subprocess.run(target, 'build', './config.status')
-                $PROGRAMS['make'] ||= 'make'
-                Subprocess.run(target, 'build', $PROGRAMS['make'])
+                Subprocess.run(target, 'build', Config.tool(:make))
             }
             touch_stamp(buildstamp)
         end
 
+        ## Install the result in prefix
         def install
             Dir.chdir(builddir) {
-                make = ($PROGRAMS['make'] or 'make')
-                Subprocess.run(target, 'install', make, 'install')
+                Subprocess.run(target, 'install', Config.tool(:make), 'install')
             }
             touch_stamp(installstamp)
         end
