@@ -12,6 +12,7 @@ module Autobuild
     end
 
     ## Updates the environment when a new prefix has been added
+    # TODO: modularize that
     def self.update_environment(newprefix)
         pathvar("#{newprefix}/bin", 'PATH')
         pathvar("#{newprefix}/lib/pkgconfig", 'PKG_CONFIG_PATH')

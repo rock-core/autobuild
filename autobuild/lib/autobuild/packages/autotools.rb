@@ -23,15 +23,11 @@ module Autobuild
     class Autotools < Package
         factory :autotools, self
 
-        attr_reader :builddir
-
-        DefaultOptions = {
+        attr_accessor :builddir => 'build',
             :autoheader => false,
             :aclocal => nil,
             :autoconf => nil,
-            :automake => nil,
-            :builddir => 'build'
-        }
+            :automake => nil
 
         ## Build stamp
         # This returns the name of the file which marks when the package has been
@@ -47,11 +43,10 @@ module Autobuild
         # For other options, see the documentation of +Package::new+
         # 
         def initialize(target, options, &proc)
-            options = DefaultOptions.merge(options) { |key, old, new|
-                (new.nil? || (new.respond_to?(:empty) && new.empty?)) ? old : new
-            }
-            @builddir = options[:builddir]
-
+            options.each do |name, value|
+                send("#{name}=", value)
+            end
+                
             super(target, options, &proc)
 
             raise ConfigException, "autotools packages need a non-empty builddir" if (@builddir.nil? || @builddir.empty?)
@@ -62,7 +57,7 @@ module Autobuild
 
         def depends_on(*packages)
             super
-            packages = Package.to_target(packages)
+            packages = packages.collect { |p| p.to_s }
             file "#{builddir}/config.status" => packages
             file buildstamp => packages
         end
