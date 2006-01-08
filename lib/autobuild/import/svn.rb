@@ -2,11 +2,19 @@ require 'autobuild/subcommand'
 require 'autobuild/importer'
 
 module Autobuild
-    class SVNImporter < Importer
+    class SVN < Importer
+        include ConfigMixin
+        @config = {
+            :program => 'svn',
+            :up => '',
+            :co => ''
+        }
+
         def initialize(source, options)
             @source = source.to_a.join("/")
 
-            @program = ($PROGRAMS[:svn] || 'svn')
+            options = config(options)
+            @program = Config.programs
             @options_up = options[:svnup].to_a
             @options_co = options[:svnco].to_a
             super(options)
@@ -28,7 +36,7 @@ module Autobuild
 
     module Import
         def self.svn(source, options)
-            SVNImporter.new(source, options)
+            SVN.new(source, options)
         end
     end
 end

@@ -1,15 +1,21 @@
+require 'autobuild/config'
 require 'autobuild/subcommand'
 require 'autobuild/importer'
 
 module Autobuild
+    class Config
+        config_option '-dP', :cvsup
+        config_option '-P', :cvsco
+    end
+
     class CVSImporter < Importer
         def initialize(root, name, options)
             @root = root
             @module = name
 
-            @program    = ($PROGRAMS[:cvs] || 'cvs')
-            @options_up = ( options[:cvsup] || '-dP' ).to_a
-            @options_co = ( options[:cvsco] || '-P' ).to_a
+            @program    = Config.tool('cvs')
+            @options_up = options[:cvsup] || Config.cvsup
+            @options_co = options[:cvsco] || Config.cvsco
             super(options)
         end
         
