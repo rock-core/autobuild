@@ -67,9 +67,6 @@ It can be used in software development to make sure that nothing is broken in th
 build process of a set of packages, or can be used as an automated installation tool.
 EOF
 
-  s.files = PKG_FILES.to_a
-  s.require_path = 'lib'
-
   #### Documentation and testing.
 
   s.has_rdoc = true
@@ -84,6 +81,16 @@ EOF
   s.email = "sylvain.joyeux@m4x.org"
   s.homepage = "http://autobuild.rubyforge.org"
   s.rubyforge_project = "autobuild"
+
+  #### Advanced project information
+  s.platform = Gem::Platform::RUBY
+  s.require_paths << "lib"
+  s.add_dependency('rake', '>= 0.6.0')
+  s.add_dependency('rmail')
+  s.add_dependency('daemons')
+  s.files = PKG_FILES.to_a
+  s.test_files = FileList['test/*' ]
+  s.executables = 'autobuild'
 end
 
 # Fix 1.8.4 - 1.8.3 issue
