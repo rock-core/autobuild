@@ -1,3 +1,4 @@
+require 'autobuild/config'
 require 'autobuild/exceptions'
 
 class Autobuild::Importer
@@ -8,11 +9,11 @@ class Autobuild::Importer
     def import(package)
         srcdir = package.srcdir
         if File.directory?(srcdir)
-            if $UPDATE
+            if Autobuild.do_update
                 update(package)
                 patch(package)
             else
-                puts "Not updating #{package.target}"
+                puts "Not updating #{package.name}"
                 return
             end
 
@@ -38,9 +39,9 @@ class Autobuild::Importer
     end
 
     def call_patch(package, reverse, file)
-        patch = ($PROGRAMS['patch'] || 'patch')
+        patch = Autobuild.tool('patch')
         Dir.chdir(package.srcdir) {
-            Subprocess.run(package.target, :patch, patch, '-p0', (reverse ? '-R' : nil), "<#{file}")
+            Subprocess.run(package.name, :patch, patch, '-p0', (reverse ? '-R' : nil), "<#{file}")
         }
     end
 

@@ -1,68 +1,20 @@
 #! /usr/bin/ruby
 
-# :main: README
-
-require 'rake'
-require 'ostruct'
-require 'optparse'
-
-require 'autobuild/options'
-require 'autobuild/loaders/config'
-require 'autobuild/reporting'
 require 'daemons'
+require 'autobuild/config'
+require 'autobuild/reporting'
 
 include Autobuild
 
 DEFAULT_HTTP_PORT = 2000
 
-def parse_options(args)
-    options = Options.default
-
-    parser = OptionParser.new do |opts|
-        opts.banner = "Usage: autobuild [options] <config file>"
-
-        opts.separator ""
-        opts.separator "Path specification"
-        opts.on("--srcdir PATH", "sources are installed in PATH") do |options.srcdir| end
-        opts.on("--prefix PATH", "built packages are installed in PATH") do |options.prefix|
-            options.logdir = "#{options.prefix}/autobuild"
-        end
-        opts.on("--logdir PATH", "logs are saved in PATH (default: <prefix>/autobuild)") do |options.logdir| end
-
-        opts.separator ""
-        opts.separator "General behaviour"
-        opts.on('--nice NICE', Integer, 'nice the subprocesses to the given value') do |options.nice| end
-        opts.on("--[no-]daemon", "go into daemon mode") do |options.daemonize| end
-        opts.on("--[no-]update", "update already checked-out sources") do |options.update| end
-        opts.on("--[no-]build",  "only prepare packages, do not build them") do |options.do_build| end 
-
-        opts.separator ""
-        opts.separator "Program output"
-        opts.on("--[no-]verbose", "display output of commands on stdout") do |options.verbose| end
-        opts.on("--[no-]debug", "verbose information (for debugging purposes)") do |options.debug| end
-
-        opts.on_tail("-h", "--help", "Show this message") do
-            puts opts
-            exit
-        end
-    end
-
-    parser.parse!(args)
-    if !args[0]
-        puts parser
-        exit
-    end
-
-    [ options, args[0], args[1..-1] ]
-end
-
 # Load the command line options
-options, conffile, targets = parse_options(ARGV)
+conffile, *targets = Autobuild.commandline(ARGV)
 
 # make conffile an absolute path since daemonize mode makes
 # / the current directory
 conffile = File.expand_path(conffile, Dir.pwd)
-if options.daemonize
+if Autobuild.daemonize
     puts "Going into daemon mode ..."
     Daemons.daemonize 
 end
@@ -71,15 +23,16 @@ Reporting << StdoutReporter.new
 begin
     Reporting.report do
         begin
-            File.open(conffile) do |f|
-                Autobuild::Config.load(f, options)
-            end
-
-            if options.do_build
-                if targets.empty?
-                    Rake::Task[:default].invoke
-                else
-                    targets.each { |t| Rake::Task[t.to_sym].invoke }
+            load File.join('.', File.basename(conffile))
+            [ :import, :prepare, :build ].each do |target|
+                if !Config.respond_to?("do_#{target}") || Config.send("do_#{target}")
+                    if targets.empty?
+                        Rake::Task[target].invoke
+                    else
+                        targets.each do |pkg|
+                            Rake::Task["#{pkg}-#{target}"].invoke
+                        end
+                    end
                 end
             end
         rescue ConfigException => e
@@ -90,5 +43,4 @@ begin
     end
 rescue Interrupt
 end
-    
-
+ 

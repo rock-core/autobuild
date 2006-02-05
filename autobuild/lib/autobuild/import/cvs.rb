@@ -3,19 +3,16 @@ require 'autobuild/subcommand'
 require 'autobuild/importer'
 
 module Autobuild
-    class Config
-        config_option '-dP', :cvsup
-        config_option '-P', :cvsco
-    end
-
     class CVSImporter < Importer
-        def initialize(root, name, options)
+        def initialize(root, name, options = {})
             @root = root
             @module = name
 
-            @program    = Config.tool('cvs')
-            @options_up = options[:cvsup] || Config.cvsup
-            @options_co = options[:cvsco] || Config.cvsco
+            @program    = Autobuild.tool('cvs')
+            @options_up = options[:cvsup] || '-dP'
+            @options_up = Array[*@options_up]
+            @options_co = options[:cvsco] || '-P'
+            @options_co = Array[*@options_co]
             super(options)
         end
         
@@ -27,7 +24,7 @@ module Autobuild
 
         def update(package)
             Dir.chdir(package.srcdir) {
-                Subprocess.run(package.target, :import, @program, 'up', *@options_up)
+                Subprocess.run(package.name, :import, @program, 'up', *@options_up)
             }
         end
 
@@ -38,15 +35,13 @@ module Autobuild
             FileUtils.mkdir_p(head) if !File.directory?(head)
             Dir.chdir(head) {
                 options = [ @program, '-d', cvsroot, 'co', '-d', tail ] + @options_co + [ modulename ]
-                Subprocess.run(package.target, :import, *options)
+                Subprocess.run(package.name, :import, *options)
             }
         end
     end
 
-    module Import
-        def self.cvs(source, package_options)
-            CVSImporter.new(source[0], source[1], package_options)
-        end
+    def self.cvs(repo, name, package_options = {})
+        CVSImporter.new(repo, name, package_options)
     end
 end
 

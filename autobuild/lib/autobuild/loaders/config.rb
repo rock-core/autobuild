@@ -29,7 +29,7 @@ class Hash
     end
 end
 
-module Autobuild::Config
+module Autobuild
     def self.check_backward_compatibility(config)
         if config.has_key?('autobuild-config')
             puts 'WARNING: the \'autobuild-config\' block is now named \'autobuild\''

@@ -1,13 +1,18 @@
+require 'pathname'
 require 'autobuild/timestamps'
 require 'autobuild/environment'
 require 'autobuild/package'
 require 'autobuild/subcommand'
 
 module Autobuild
-    ## 
+    def self.autotools(opts, &proc)
+        Autotools.new(opts, &proc)
+    end
+        
+    # 
     # ==== Handles autotools-based packages
     #
-    # == Used programs (see <tt>Config.programs</tt>)
+    # == Used programs (see <tt>Autobuild.programs</tt>)
     # * aclocal
     # * autoheader
     # * autoconf
@@ -21,56 +26,76 @@ module Autobuild
     #               +Makefile.am+ in the source directory
     # 
     class Autotools < Package
-        factory :autotools, self
+        attr_accessor   :using
+        attr_accessor   :configureflags
+        class << self
+            attr_reader :builddir
+            def builddir=(new)
+                raise ConfigException, "absolute builddirs are not supported" if (Pathname.new(new).absolute?)
+                raise ConfigException, "builddir must be non-nil and non-empty" if (new.nil? || new.empty?)
+                @builddir = new
+            end
+        end
+        @builddir = 'build'
+        
+        def builddir=(new)
+            raise ConfigException, "absolute builddirs are not supported" if (Pathname.new(new).absolute?)
+            raise ConfigException, "builddir must be non-empty" if new.empty?
+            @builddir = new
+        end
+        # Returns the absolute builddir
+        def builddir; File.expand_path(@builddir || Autotools.builddir, srcdir) end
 
-        attr_accessor :builddir => 'build',
-            :autoheader => false,
-            :aclocal => nil,
-            :autoconf => nil,
-            :automake => nil
-
-        ## Build stamp
+        # Build stamp
         # This returns the name of the file which marks when the package has been
         # successfully built for the last time. The path is absolute
-        def buildstamp; "#{builddir}/#{target}-#{STAMPFILE}" end
+        def buildstamp; "#{builddir}/#{name}-#{STAMPFILE}" end
 
-        ##
-        # Available options:
-        # * +:builddir+ -   the subdir in which the package should be built 
-        #                   before it is installed. It should be relative to 
-        #                   the source dir. Default: 'build'
-        # 
-        # For other options, see the documentation of +Package::new+
-        # 
-        def initialize(target, options, &proc)
-            options.each do |name, value|
-                send("#{name}=", value)
-            end
-                
-            super(target, options, &proc)
+        def initialize(options)
+            @using = Hash.new
 
-            raise ConfigException, "autotools packages need a non-empty builddir" if (@builddir.nil? || @builddir.empty?)
-            raise ConfigException, "absolute builddirs are unsupported" if (Pathname.new(@builddir).absolute?)
-            @builddir = File.expand_path(@builddir, srcdir)
+            super
+
             Autobuild.update_environment(prefix)
+        end
+
+        def use(*programs)
+            programs = *programs
+            if !programs.kind_of?(Hash)
+                programs = Array[*programs].inject({}) do |programs, spec|
+                    programs[spec.first] = spec.last
+                    programs
+                end
+            end
+            programs.each do |name, opt|
+                using[name.to_sym] = opt
+            end
+
+            nil
         end
 
         def depends_on(*packages)
             super
-            packages = packages.collect { |p| p.to_s }
-            file "#{builddir}/config.status" => packages
-            file buildstamp => packages
+            stamps = packages.collect { |p| Package[p.to_s].installstamp }
+            #file "#{builddir}/config.status" => stamps
+            file buildstamp => stamps
+        end
+
+        def ensure_dependencies_installed
+            dependencies.each do |pkg|
+                Rake::Task[Package[pkg].installstamp].invoke
+            end
         end
 
         def prepare
-            regen_targets
-
-            file "#{builddir}/config.status" => "#{srcdir}/configure" do
+            file "#{builddir}/config.status" => regen do
+                ensure_dependencies_installed
                 configure
             end
 
             source_tree srcdir, builddir
             file buildstamp => [ srcdir, "#{builddir}/config.status" ] do 
+                ensure_dependencies_installed
                 build
             end
 
@@ -82,42 +107,47 @@ module Autobuild
 
 
     private
-
-        ## Adds a target to rebuild the autotools environment
-        def regen_targets
+        # Adds a target to rebuild the autotools environment
+        def regen
             conffile = "#{srcdir}/configure"
-            if File.exists?("#{conffile}.ac")
-                file conffile => [ "#{conffile}.ac" ]
-            elsif File.exists?("#{conffile}.in")
-                file conffile => [ "#{conffile}.in" ]
+            if confext = %w{.ac .in}.find { |ext| File.exists?("#{conffile}#{ext}") }
+                file conffile => "#{conffile}#{confext}"
             else
-                raise PackageException.new(target), "neither configure.ac nor configure.in present in #{srcdir}"
+                raise PackageException.new(name), "neither configure.ac nor configure.in present in #{srcdir}"
             end
+
             file conffile do
                 Dir.chdir(srcdir) {
-                    if @options[:autogen]
-                        Subprocess.run(target, 'configure', File.expand_path(@options[:autogen]))
+                    if using[:autogen].nil?
+                        using[:autogen] = %w{autogen autogen.sh}.find { |f| File.exists?(f) }
+                    end
+
+                    if using[:autogen]
+                        Subprocess.run(name, 'configure', File.expand_path(using[:autogen]))
                     else
                         # Autodetect autoconf/aclocal/automake
                         #
-                        # Let the user disable the use of autoconf explicitely
-                        @options[:autoconf] = true if @options[:autoconf].nil?
-                        @options[:aclocal] = @options[:autoconf] if @options[:aclocal].nil?
-                        if @options[:automake].nil?
-                            @options[:automake] = File.exists?(File.join(srcdir, 'Makefile.am'))
+                        # Let the user disable the use of autoconf explicitely by using 'false'.
+                        # 'nil' means autodetection
+                        using[:autoconf] = true if using[:autoconf].nil?
+                        using[:aclocal] = using[:autoconf] if using[:aclocal].nil?
+                        if using[:automake].nil?
+                            using[:automake] = File.exists?(File.join(srcdir, 'Makefile.am'))
                         end
 
                         [ :aclocal, :autoconf, :autoheader, :automake ].each do |tool|
-                            if options[tool]
-                                Subprocess.run(target, 'configure', Config.tool(tool))
+                            if using[tool]
+                                Subprocess.run(name, 'configure', Autobuild.tool(tool))
                             end
                         end
                     end
                 }
             end
+
+            return conffile
         end
 
-        ## Configure the builddir directory before starting make
+        # Configure the builddir directory before starting make
         def configure
             if File.exists?(builddir) && !File.directory?(builddir)
                 raise ConfigException, "#{builddir} already exists but is not a directory"
@@ -126,25 +156,25 @@ module Autobuild
             FileUtils.mkdir_p builddir if !File.directory?(builddir)
             Dir.chdir(builddir) {
                 command = [ "#{srcdir}/configure", "--no-create", "--prefix=#{prefix}" ]
-                command |= @options[:configureflags].to_a
+                command |= Array[*configureflags]
                 
-                Subprocess.run(target, 'configure', *command)
+                Subprocess.run(name, 'configure', *command)
             }
         end
 
-        ## Do the build in builddir
+        # Do the build in builddir
         def build
             Dir.chdir(builddir) {
-                Subprocess.run(target, 'build', './config.status')
-                Subprocess.run(target, 'build', Config.tool(:make))
+                Subprocess.run(name, 'build', './config.status')
+                Subprocess.run(name, 'build', Autobuild.tool(:make))
             }
             touch_stamp(buildstamp)
         end
 
-        ## Install the result in prefix
+        # Install the result in prefix
         def install
             Dir.chdir(builddir) {
-                Subprocess.run(target, 'install', Config.tool(:make), 'install')
+                Subprocess.run(name, 'install', Autobuild.tool(:make), 'install')
             }
             touch_stamp(installstamp)
         end

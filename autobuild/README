@@ -1,4 +1,7 @@
 = Introduction
+
+== WARNING: this documentation is outdated. Since 0.6, Autobuild uses Ruby for configuration (just like rake does)
+
 == What's autobuild ?
 Autobuild is a builder for a set of software packages. It takes as input a yaml config file as input and
 

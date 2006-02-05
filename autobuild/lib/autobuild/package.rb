@@ -2,83 +2,119 @@ require 'autobuild/timestamps'
 require 'autobuild/environment'
 require 'autobuild/subcommand'
 
+# Basic block for the autobuilder
+#
+# The build is done in three phases:
+#   - import
+#   - prepare
+#   - build & install
 class Autobuild::Package
     @@packages = {}
     @@provides = {}
 
-    attr_reader     :target
-    attr_accessor   :srcdir, :prefix
+    # the package name
+    attr_reader     :name
+    # set the source directory. If a relative path is given,
+    # it is relative to Autobuild.srcdir. Defaults to #name
+    attr_writer     :srcdir
+    # set the installation directory. If a relative path is given,
+    # it is relative to Autobuild.prefix. Defaults to ''
+    attr_writer :prefix
+    
+    # The importer object for this package
+    attr_accessor :import
 
-    ## The file which marks when the last sucessful install
+    # The list of packages this one depends upon
+    attr_reader :dependencies
+
+    # Absolute path to the source directory. See #srcdir=
+    def srcdir; File.expand_path(@srcdir || name, Autobuild.srcdir) end
+    # Absolute path to the installation directory. See #prefix=
+    def prefix; File.expand_path(@prefix || '', Autobuild.prefix) end
+
+    # The file which marks when the last sucessful install
     # has finished. The path is absolute
     #
     # A package is sucessfully built when it is installed
-    def installstamp; "#{prefix}/#{target}-#{STAMPFILE}" end
+    def installstamp; "#{prefix}/#{name}-#{STAMPFILE}" end
 
-    def initialize(target)
-        target = target.to_s
-        raise ConfigException, "package #{target} is already defined" if Package[target]
-
-        # Declare the task in rake
-        @target = target
-        task target
-        @@packages[target] = self
-        
+    def initialize(spec)
         @dependencies   = Array.new
         @provides       = Array.new
 
-        # Read 'options'
-        options = Hash.new if options.empty?
-        @srcdir, @prefix = 
-            (options[:srcdir] or target),
-            (options[:prefix] or "")
-        @import = options[:import]
-        options[:depends_on].to_a.each { |p| depends_on(p) }
-        options[:provides].to_a.each   { |p| provides(p) }
+        if Hash === spec
+            name, depends = spec.to_a.first
+        else
+            name, depends = spec, nil
+        end
+
+        name = name.to_s
+        @name = name
+        raise ConfigException, "package #{name} is already defined" if Package[name]
+        @@packages[name] = self
 
         # Call the config block (if any)
         yield(self) if block_given?
         
-        @srcdir, @prefix =
-            File.expand_path(@srcdir, Config.srcdir).freeze,
-            File.expand_path(@prefix, Config.prefix).freeze
-
+        # Declare the installation stampfile
         file installstamp
-        task target => installstamp
-        @import.import(self) if @import
+        task "#{name}-build" => installstamp
+        task :build => "#{name}-build"
+
+        # Add dependencies declared in spec
+        depends_on *depends if depends
+
+        # Define the import task
+        task "#{name}-import" do import end
+        task :import => "#{name}-import"
+
+        # Define the prepare task
+        task "#{name}-prepare" do prepare end
+        task :prepare => "#{name}-prepare"
+
+        task(name) do
+            Rake::Task("#{name}-import").invoke
+            Rake::Task("#{name}-prepare").invoke
+            Rake::Task("#{name}-build").invoke
+        end
+        task :default => name
     end
 
-    ## The importer object for this package
-    def import=(importer); @import = importer end
+    def import; @import.import(self) if @import end
+    def prepare; end
 
-    ## This package depends on +packages+
+    # This package depends on +packages+
     def depends_on(*packages)
         packages.each do |p|
             p = p.to_s
-            task target => p
+            next if p == name
+            raise "package #{p} not defined" unless Package[p]
+            file installstamp => Package[p].installstamp
             @dependencies << p
         end
     end
 
-    ## Declare that this package provides +packages+
+    # Declare that this package provides +packages+
     def provides(*packages)
         packages.each do |p|
             p = p.to_s
             @@provides[p] = self 
-            task p => target
+            task p => name
             @provides << p
         end
     end
 
-
-
-
+    # Iterates on all available packages
+    # if with_provides is true, includes the list
+    # of package aliases
     def self.each(with_provides = false, &p)
         @@packages.each(&p) 
         @@provides.each(&p) if with_provides
     end
-    def self.[](target)
-        @@packages[target.to_s] or @@provides[target.to_s]
+
+    # Gets a package from its name
+    def self.[](name)
+        @@packages[name.to_s] || @@provides[name.to_s]
     end
 end
 

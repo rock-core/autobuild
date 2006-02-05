@@ -3,7 +3,6 @@ require 'autobuild/importer'
 
 module Autobuild
     class SVN < Importer
-        include ConfigMixin
         @config = {
             :program => 'svn',
             :up => '',
@@ -14,9 +13,9 @@ module Autobuild
             @source = source.to_a.join("/")
 
             options = config(options)
-            @program = Config.programs
-            @options_up = options[:svnup].to_a
-            @options_co = options[:svnco].to_a
+            @program = Autobuild.programs
+            @options_up = Array[*options[:svnup]]
+            @options_co = Array[*options[:svnco]]
             super(options)
         end
 
@@ -24,13 +23,13 @@ module Autobuild
 
         def update(package)
             Dir.chdir(package.srcdir) {
-                Subprocess.run(package.target, :import, @program, 'up', *@options_up)
+                Subprocess.run(package.name, :import, @program, 'up', *@options_up)
             }
         end
 
         def checkout(package)
             options = [ @program, 'co' ] + @options_co + [ @source, package.srcdir ]
-            Subprocess.run(package.target, :import, *options)
+            Subprocess.run(package.name, :import, *options)
         end
     end
 

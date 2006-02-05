@@ -19,7 +19,9 @@ module Autobuild::Subprocess
         # Filter nil and empty? in command
         command.reject!  { |o| o.nil? || (o.respond_to?(:empty?) && o.empty?) }
         command.collect! { |o| o.to_s }
-        logname = "#{$LOGDIR}/#{target}-#{phase}.log"
+
+        FileUtils.mkdir_p Autobuild.logdir unless File.directory?(Autobuild.logdir)
+        logname = "#{Autobuild.logdir}/#{target}-#{phase}.log"
 
         puts "#{target}: running #{command.join(" ")}\n    (output goes to #{logname})"
 
@@ -34,7 +36,7 @@ module Autobuild::Subprocess
                 cwrite.sync = true
                 begin
                     Process.setpriority(Process::PRIO_PROCESS, 0, @@nice)
-                    if $VERBOSE
+                    if Autobuild.verbose
                         $stderr.dup.reopen(logfile.dup)
                         $stdout.dup.reopen(logfile.dup)
                     else
