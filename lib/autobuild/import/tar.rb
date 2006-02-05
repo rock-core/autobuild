@@ -91,7 +91,7 @@ module Autobuild
         def update(package)
             checkout if update_cache
         rescue OpenURI::HTTPError
-            raise Autobuild::Exception.new(package.target, :import)
+            raise Autobuild::Exception.new(package.name, :import)
         end
 
         def checkout(package)
@@ -101,10 +101,10 @@ module Autobuild
             FileUtils.mkdir_p base_dir
             cmd = [ 'tar', "x#{TAR_OPTION[mode]}f", cachefile, '-C', base_dir ]
             
-            Subprocess.run(package.target, :import, *cmd)
+            Subprocess.run(package.name, :import, *cmd)
 
         rescue OpenURI::HTTPError
-            raise Autobuild::Exception.new(package.target, :import)
+            raise Autobuild::Exception.new(package.name, :import)
         rescue SubcommandFailed
             FileUtils.rm_f cachefile
             raise

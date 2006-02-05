@@ -1,3 +1,4 @@
+require 'autobuild/config'
 require 'find'
 require 'rake/tasklib'
 require 'fileutils'
@@ -9,7 +10,7 @@ module Autobuild
         # Exclude autobuild timestamps
         exclude << "*-#{STAMPFILE}"
 
-        puts "getting tree timestamp for #{path}" if $DEBUG
+        puts "getting tree timestamp for #{path}" if Autobuild.debug
         latest = Time.at(0)
         latest_file = ""
 
@@ -18,7 +19,7 @@ module Autobuild
             Find.prune if File.basename(p) =~ /^\./
             exclude.each { |pattern| 
                 if File.fnmatch?(pattern, p) 
-                    puts "  excluding #{p}" if $DEBUG
+                    puts "  excluding #{p}" if Autobuild.debug
                     Find.prune
                 end
             }
@@ -31,7 +32,7 @@ module Autobuild
             end
         }
 
-        puts "  #{latest}" if $DEBUG
+        puts "  #{latest}" if Autobuild.debug
         return latest
     end
 
@@ -52,7 +53,7 @@ module Autobuild
     end
 
     def touch_stamp(stampfile)
-        puts "Touching #{stampfile}" if $DEBUG
+        puts "Touching #{stampfile}" if Autobuild.debug
         FileUtils.touch(stampfile)
         sleep(1)
     end

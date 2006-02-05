@@ -1,5 +1,20 @@
 = Autobuild changelog
 
+== Version 0.6
+
+Use a Ruby-based DSL instead of YAML config files. It is waaaaaay more
+powerful and waaay cleaner
+
+* see demo.rb for an example
+
+== Version 0.5.1
+
+Fixes the release process, in which the bin/ directory was not distributed
+
+* 0.5 gem did not include bin/autobuild (which obviously was not good). Fix that
+
+
+
 == Version 0.5
 
 Fixes the mail default behaviour. Added the 'tar' importer.

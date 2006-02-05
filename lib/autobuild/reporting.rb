@@ -4,6 +4,7 @@ require 'net/smtp'
 require 'socket'
 require 'etc'
 
+require 'autobuild/config'
 require 'autobuild/exceptions'
 
 module Autobuild
@@ -46,7 +47,7 @@ module Autobuild
 
         ## Iterate on all log files
         def self.each_log(&iter)
-            Dir.glob("#{$LOGDIR}/*.log", &iter)
+            Dir.glob("#{Autobuild.logdir}/*.log", &iter)
         end
     end
 

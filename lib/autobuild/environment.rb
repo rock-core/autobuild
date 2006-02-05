@@ -3,7 +3,7 @@ module Autobuild
     def self.pathvar(path, varname)
         if File.directory?(path)
             oldpath = ENV[varname]
-            if oldpath.empty?
+            if oldpath.nil? || oldpath.empty?
                 ENV[varname] = path
             else
                 ENV[varname] = "#{path}:#{oldpath}"
