@@ -3,19 +3,11 @@ require 'autobuild/importer'
 
 module Autobuild
     class SVN < Importer
-        @config = {
-            :program => 'svn',
-            :up => '',
-            :co => ''
-        }
-
-        def initialize(source, options)
-            @source = source.to_a.join("/")
-
-            options = config(options)
-            @program = Autobuild.programs
-            @options_up = Array[*options[:svnup]]
-            @options_co = Array[*options[:svnco]]
+        def initialize(source, options = {})
+            @source = [*source].join("/")
+            @program    = Autobuild.tool('svn')
+            @options_up = [*options[:svnup]]
+            @options_co = [*options[:svnco]]
             super(options)
         end
 
@@ -33,10 +25,8 @@ module Autobuild
         end
     end
 
-    module Import
-        def self.svn(source, options)
-            SVN.new(source, options)
-        end
+    def self.svn(source, options = {})
+        SVN.new(source, options)
     end
 end
 
