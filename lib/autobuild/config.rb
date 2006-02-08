@@ -2,6 +2,10 @@ require 'optparse'
 require 'rake'
 require 'singleton'
 
+def Autobuild(&script)
+    Autobuild.send(:module_eval, &script)
+end
+
 module Autobuild
     class << self
         %w{ nice srcdir prefix
@@ -48,23 +52,23 @@ module Autobuild
         def commandline(args)
             parser = OptionParser.new do |opts|
                 opts.separator "Path specification"
-                opts.on("--srcdir PATH", "sources are installed in PATH") do |srcdir| end
-                opts.on("--prefix PATH", "built packages are installed in PATH") do |prefix|
+                opts.on("--srcdir PATH", "sources are installed in PATH") do |@srcdir| end
+                opts.on("--prefix PATH", "built packages are installed in PATH") do |@prefix|
                     logdir = "#{prefix}/autobuild"
                 end
-                opts.on("--logdir PATH", "logs are saved in PATH (default: <prefix>/autobuild)") do |logdir| end
+                opts.on("--logdir PATH", "logs are saved in PATH (default: <prefix>/autobuild)") do |@logdir| end
 
                 opts.separator ""
                 opts.separator "General behaviour"
-                opts.on('--nice NICE', Integer, 'nice the subprocesses to the given value') do |nice| end
-                opts.on("--[no-]daemon", "go into daemon mode") do |daemonize| end
-                opts.on("--[no-]update", "update already checked-out sources") do |do_update| end
-                opts.on("--[no-]build",  "only prepare packages, do not build them") do |do_build| end 
+                opts.on('--nice NICE', Integer, 'nice the subprocesses to the given value') do |@nice| end
+                opts.on("--[no-]daemon", "go into daemon mode") do |@daemonize| end
+                opts.on("--[no-]update", "update already checked-out sources") do |@do_update| end
+                opts.on("--[no-]build",  "only prepare packages, do not build them") do |@do_build| end 
 
                 opts.separator ""
                 opts.separator "Program output"
-                opts.on("--[no-]verbose", "display output of commands on stdout") do |verbose| end
-                opts.on("--[no-]debug", "verbose information (for debugging purposes)") do |debug| end
+                opts.on("--[no-]verbose", "display output of commands on stdout") do |@verbose| end
+                opts.on("--[no-]debug", "verbose information (for debugging purposes)") do |@debug| end
 
                 opts.on_tail("-h", "--help", "Show this message") do
                     puts opts
@@ -78,7 +82,7 @@ module Autobuild
                 exit
             end
 
-            Rake.application.options.trace = true
+            Rake.application.options.trace = debug
 
             args[0..-1]
         end
