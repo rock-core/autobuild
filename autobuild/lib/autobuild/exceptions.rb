@@ -5,7 +5,7 @@ module Autobuild
         def mail?;  false end
         ## If the error is fatal
         def fatal?; true end
-        attr_reader :target, :phase
+        attr_accessor :target, :phase
 
         ## Creates a new exception which occured while doing *phase* 
         # in *target*
