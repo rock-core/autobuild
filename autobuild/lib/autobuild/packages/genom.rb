@@ -7,9 +7,13 @@ module Autobuild
     end
 
     class GenomModule < Autotools
+        attr_accessor :genomflags
+
         # Called before running the rake tasks and
         # after all imports have been made
         def prepare
+            @genomflags = []
+
             super
             get_requires
             get_provides
@@ -20,7 +24,7 @@ module Autobuild
 
         # Extract the cpp options from the genom options
         def cpp_options
-            @options[:genomflags].to_a.find_all { |opt| opt =~ /^-D/ }
+            [*genomflags].find_all { |opt| opt =~ /^-D/ }
         end
 
         # Extracts dependencies using the requires: field in the .gen file
@@ -54,8 +58,8 @@ module Autobuild
             file genomstamp => packages
         end
 
-        def regen_targets
-            cmdline = [ 'genom', name ] | @options[:genomflags].to_a
+        def regen
+            cmdline = [ 'genom', name, *genomflags ]
 
             file buildstamp => genomstamp
             file genomstamp => [ "#{srcdir}/#{name}.gen" ] do
