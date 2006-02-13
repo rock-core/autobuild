@@ -5,19 +5,23 @@ module Autobuild
         def mail?;  false end
         ## If the error is fatal
         def fatal?; true end
-        attr_accessor :target, :phase
+        attr_reader :target, :phase
 
         ## Creates a new exception which occured while doing *phase* 
         # in *target*
         def initialize(target = nil, phase = nil)
-            @target = target
-            @phase = phase
+            @target, @phase = target, phase
         end
 
         alias :exception_message :to_s 
         def to_s
-            "#{target}: failed in #{phase} phase"
-            "   #{super}"
+            if target && phase
+                "#{target}: failed in #{phase} phase\n   #{super}"
+            elsif target
+                "#{target}: #{super}"
+            else
+                super
+            end
         end
     end
 
