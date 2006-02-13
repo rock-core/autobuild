@@ -22,22 +22,17 @@ end
 Reporting << StdoutReporter.new
 begin
     Reporting.report do
-        begin
-            load File.join('.', File.basename(conffile))
-            [ :import, :prepare, :build ].each do |target|
-                if !Config.respond_to?("do_#{target}") || Config.send("do_#{target}")
-                    if targets.empty?
-                        Rake::Task[target].invoke
-                    else
-                        targets.each do |pkg|
-                            Rake::Task["#{pkg}-#{target}"].invoke
-                        end
+        load File.join('.', File.basename(conffile))
+        [ :import, :prepare, :build ].each do |target|
+            if !Config.respond_to?("do_#{target}") || Config.send("do_#{target}")
+                if targets.empty?
+                    Rake::Task[target].invoke
+                else
+                    targets.each do |pkg|
+                        Rake::Task["#{pkg}-#{target}"].invoke
                     end
                 end
             end
-        rescue ConfigException => e
-            e.target = conffile
-            raise
         end
         Reporting.success
     end
