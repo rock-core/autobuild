@@ -88,7 +88,9 @@ class Autobuild::Package
         packages.each do |p|
             p = p.to_s
             next if p == name
-            raise "package #{p} not defined" unless Package[p]
+            unless Package[p]
+                raise ConfigException.new(name), "package #{p} not defined"
+            end
             file installstamp => Package[p].installstamp
             @dependencies << p
         end
