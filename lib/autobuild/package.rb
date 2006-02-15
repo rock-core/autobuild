@@ -73,9 +73,9 @@ class Autobuild::Package
         task :prepare => "#{name}-prepare"
 
         task(name) do
-            Rake::Task("#{name}-import").invoke
-            Rake::Task("#{name}-prepare").invoke
-            Rake::Task("#{name}-build").invoke
+            Rake::Task["#{name}-import"].invoke
+            Rake::Task["#{name}-prepare"].invoke
+            Rake::Task["#{name}-build"].invoke
         end
         task :default => name
     end
