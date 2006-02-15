@@ -9,10 +9,14 @@ module Autobuild
     class GenomModule < Autotools
         attr_accessor :genomflags
 
+        def initialize(*args, &config)
+            @genomflags = []
+            super
+        end
+
         # Called before running the rake tasks and
         # after all imports have been made
         def prepare
-            @genomflags = []
 
             super
             get_requires
@@ -59,10 +63,10 @@ module Autobuild
         end
 
         def regen
-            cmdline = [ 'genom', name, *genomflags ]
+            cmdline = [ 'genom', "#{name}.gen", *genomflags ]
 
             file buildstamp => genomstamp
-            file genomstamp => [ "#{srcdir}/#{name}.gen" ] do
+            file genomstamp => "#{srcdir}/#{name}.gen" do
                 Dir.chdir(srcdir) {
                     Subprocess.run(name, 'genom', *cmdline)
                 }
