@@ -1,8 +1,7 @@
 #! /usr/bin/ruby
 
 require 'daemons'
-require 'autobuild/config'
-require 'autobuild/reporting'
+require 'autobuild'
 
 include Autobuild
 
@@ -23,7 +22,7 @@ Reporting << StdoutReporter.new
 begin
     Reporting.report do
         load File.join('.', File.basename(conffile))
-        [ :import, :prepare, :build ].each do |target|
+        Autobuild::TARGETS.each do |target|
             if !Config.respond_to?("do_#{target}") || Config.send("do_#{target}")
                 if targets.empty?
                     Rake::Task[target].invoke
