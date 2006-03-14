@@ -2,6 +2,10 @@ require 'autobuild/timestamps'
 require 'autobuild/environment'
 require 'autobuild/subcommand'
 
+module Autobuild
+    TARGETS = %w{import prepare build}
+end
+
 # Basic block for the autobuilder
 #
 # The build is done in three phases:
@@ -117,6 +121,16 @@ class Autobuild::Package
     # Gets a package from its name
     def self.[](name)
         @@packages[name.to_s] || @@provides[name.to_s]
+    end
+end
+
+module Autobuild
+    def self.package_set(spec)
+	spec.each do |name, packages|
+	    Autobuild::TARGETS.each do |target|
+		task "#{name}-#{target}" => packages.map { |dep| "#{dep}-#{target}" }
+	    end
+	end
     end
 end
 
