@@ -8,7 +8,7 @@ include Autobuild
 DEFAULT_HTTP_PORT = 2000
 
 # Load the command line options
-conffile, *targets = Autobuild.commandline(ARGV)
+conffile, *packages = Autobuild.commandline(ARGV)
 
 # make conffile an absolute path since daemonize mode makes
 # / the current directory
@@ -22,17 +22,16 @@ Reporting << StdoutReporter.new
 begin
     Reporting.report do
         load File.join('.', File.basename(conffile))
-        Autobuild::TARGETS.each do |target|
-            if !Config.respond_to?("do_#{target}") || Config.send("do_#{target}")
-                if targets.empty?
-                    Rake::Task[target].invoke
-                else
-                    targets.each do |pkg|
-                        Rake::Task["#{pkg}-#{target}"].invoke
-                    end
+        ['import', 'prepare', 'build'].each do |phase|
+            if packages.empty?
+                Rake::Task[phase].invoke
+            else
+                packages.each do |pkg|
+                    Rake::Task["#{pkg}-#{phase}"].invoke
                 end
             end
         end
+
         Reporting.success
     end
 rescue Interrupt
