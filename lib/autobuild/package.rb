@@ -96,6 +96,8 @@ class Autobuild::Package
                 raise ConfigException.new(name), "package #{p} not defined"
             end
             file installstamp => Package[p].installstamp
+	    task "#{name}-import" => "#{p}-import"
+	    task "#{name}-prepare" => "#{p}-prepare"
             @dependencies << p
         end
     end
