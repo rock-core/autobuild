@@ -24,7 +24,7 @@ module Autobuild
         end
 
         # The file touched by genom on successful generation
-        def genomstamp; "#{srcdir}/.genom/genom-stamp" end
+	def genomstamp; "#{srcdir}/.genom/genom-stamp" end
 
         # Extract the cpp options from the genom options
         def cpp_options
@@ -70,6 +70,9 @@ module Autobuild
                 Dir.chdir(srcdir) {
                     Subprocess.run(name, 'genom', *cmdline)
                 }
+            end
+            if Package['genom']
+                file genomstamp => Package['genom'].installstamp
             end
 
             acuser = "#{srcdir}/configure.ac.user"
