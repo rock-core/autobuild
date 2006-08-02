@@ -1,11 +1,6 @@
 require 'autobuild/reporting'
 
 module Autobuild::Subprocess
-    @@nice = 0
-    def self.nice=(value)
-        @@nice = value
-    end
-
     class Failed < Exception
         attr_reader :status
         def initialize(status = 0)
@@ -35,7 +30,7 @@ module Autobuild::Subprocess
             pid = fork { 
                 cwrite.sync = true
                 begin
-                    Process.setpriority(Process::PRIO_PROCESS, 0, @@nice)
+                    Process.setpriority(Process::PRIO_PROCESS, 0, Autobuild.nice)
                     if Autobuild.verbose
                         $stderr.dup.reopen(logfile.dup)
                         $stdout.dup.reopen(logfile.dup)
