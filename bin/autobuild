@@ -21,7 +21,7 @@ end
 Reporting << StdoutReporter.new
 begin
     Reporting.report do
-        load File.join('.', File.basename(conffile))
+        load conffile
         ['import', 'prepare', 'build'].each do |phase|
             if packages.empty?
                 Rake::Task[phase].invoke
