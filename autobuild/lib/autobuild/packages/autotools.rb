@@ -136,7 +136,7 @@ module Autobuild
                         end
 
                         [ :aclocal, :autoconf, :autoheader, :automake ].each do |tool|
-                            if tool_flag = using[tool_name]
+                            if tool_flag = using[tool]
 				tool_program = if tool_flag.respond_to?(:to_str)
 						   tool_flag.to_str
 					       else; Autobuild.tool(tool)
