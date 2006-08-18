@@ -1,3 +1,4 @@
+require 'autobuild/exceptions'
 require 'autobuild/reporting'
 
 module Autobuild::Subprocess
@@ -89,7 +90,7 @@ module Autobuild::Subprocess
         end
 
     rescue Failed => e
-        error = SubcommandFailed.new(target, command.join(" "), logname, e.status)
+        error = Autobuild::SubcommandFailed.new(target, command.join(" "), logname, e.status)
         error.phase = phase
         raise error, e.message
     end
