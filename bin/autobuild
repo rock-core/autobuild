@@ -22,6 +22,11 @@ Reporting << StdoutReporter.new
 begin
     Reporting.report do
         load conffile
+
+	if Autobuild.mail[:to]
+	    Reporting << MailReporter.new(Autobuild.mail)
+	end
+
         ['import', 'prepare', 'build'].each do |phase|
             if packages.empty?
                 Rake::Task[phase].invoke
