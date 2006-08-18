@@ -1,3 +1,5 @@
-  * update documentation (!)
+TODO list for Autobuild
   * create HTML log pages
   * use Logger to be able to remove all non-error output
+  * test patch support (which has not been used for long) and document it in the README
+
