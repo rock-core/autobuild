@@ -42,7 +42,7 @@ module Autobuild
             tree_timestamp(name, "*CVS", *@exclude)
         end
     end
-    def source_tree(path, exclude, &block)
+    def source_tree(path, exclude = [], &block)
         task = SourceTreeTask.define_task(path, &block)
         task.exclude = exclude
     end
