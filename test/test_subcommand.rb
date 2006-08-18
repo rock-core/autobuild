@@ -1,10 +1,10 @@
-$LOAD_PATH.unshift File.expand_path('..', File.dirname(__FILE__))
-$LOAD_PATH << File.expand_path('../lib', File.dirname(__FILE__))
+$LOAD_PATH.unshift File.expand_path(File.join(File.dirname(__FILE__), '..', 'lib'))
+$LOAD_PATH.unshift File.expand_path(File.dirname(__FILE__))
 require 'test/unit'
-require 'test/tools'
-require 'autobuild/options'
-require 'autobuild/loaders/config'
+require 'tools'
 
+require 'autobuild/config'
+require 'autobuild/subcommand'
 require 'tmpdir'
 require 'fileutils'
 
@@ -24,14 +24,7 @@ EOF
     attr_reader :tmpdir
     attr_reader :source1, :source2
     def setup
-        conffile = TestTools.build_config(binding, 'dummy')
-        @tmpdir = File.dirname(conffile)
-
-        options = Options.default
-        options.logdir = tmpdir
-        File.open(conffile) do |confstream|
-            Autobuild::Config.load confstream, options
-        end
+        @tmpdir = Autobuild.logdir = TestTools.tempdir
 
         # Write example files
         @source1 = File.join(tmpdir, 'source1')
@@ -44,7 +37,7 @@ EOF
         TestTools.clean
     end
 
-    def test_subcommand
+    def test_logfiles
         assert_raise(SubcommandFailed) { || Subprocess.run('test', 'copy', 'cat', 'bla') }
         
         Subprocess.run('test', 'simple', 'cat', nil, '', source1)

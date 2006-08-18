@@ -11,13 +11,11 @@ include Autobuild
 
 class TC_TarImporter < Test::Unit::TestCase
     include WEBrick
-    Package = Struct.new :srcdir, :target
+    Package = Struct.new :srcdir, :name
 
     def setup
-        $PROGRAMS = {}
-        $UPDATE = true
-        $LOGDIR = "#{TestTools.tempdir}/log"
-        FileUtils.mkdir_p($LOGDIR)
+        Autobuild.logdir = "#{TestTools.tempdir}/log"
+        FileUtils.mkdir_p(Autobuild.logdir)
 
         @datadir = File.join(TestTools.tempdir, 'data')
         FileUtils.mkdir_p(@datadir)
@@ -28,9 +26,6 @@ class TC_TarImporter < Test::Unit::TestCase
     end
     
     def teardown
-        $PROGRAMS = nil
-        $UPDATE = true
-        $LOGDIR = nil
         TestTools.clean
     end
 

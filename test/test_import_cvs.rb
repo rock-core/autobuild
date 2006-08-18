@@ -2,37 +2,30 @@ $LOAD_PATH.unshift File.expand_path('..', File.dirname(__FILE__))
 $LOAD_PATH << File.expand_path('../lib', File.dirname(__FILE__))
 require 'test/unit'
 require 'test/tools'
+require 'autobuild/exceptions'
 require 'autobuild/import/cvs'
-require 'autobuild/import/svn'
-require 'autobuild/import/tar'
 
-include Autobuild
 
 class TC_CVSImport < Test::Unit::TestCase
-    Package = Struct.new :srcdir, :target
+    include Autobuild
+    Package = Struct.new :srcdir, :name
 
     def setup
-        $PROGRAMS = {}
-        $UPDATE = true
-        $LOGDIR = "#{TestTools.tempdir}/log"
-        FileUtils.mkdir_p($LOGDIR)
-
+        Autobuild.logdir = "#{TestTools.tempdir}/log"
+        FileUtils.mkdir_p(Autobuild.logdir)
     end
     
     def teardown
-        $PROGRAMS = nil
-        $UPDATE = true
-        $LOGDIR = nil
         TestTools.clean
     end
 
     def test_cvs
         TestTools.untar('cvsroot.tar')
         cvsroot = File.join(TestTools.tempdir, 'cvsroot')
-        pkg_cvs = Package.new File.join(TestTools.tempdir, 'cvs'), :cvs
+        pkg_cvs = Package.new File.join(TestTools.tempdir, 'cvs'), 'cvs'
 
         # Make a checkout
-        importer = Import.cvs [ cvsroot, 'cvs' ], {}
+        importer = Autobuild.cvs(cvsroot, 'cvs')
         importer.import(pkg_cvs)
         assert( File.exists?(File.join(pkg_cvs.srcdir, 'test')) )
 
