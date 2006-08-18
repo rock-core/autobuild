@@ -12,6 +12,8 @@ module Autobuild
         def initialize(*args, &config)
             @genomflags = []
             super
+
+	    use :autogen => 'autogen'
         end
 
         # Called before running the rake tasks and
@@ -24,7 +26,7 @@ module Autobuild
         end
 
         # The file touched by genom on successful generation
-	def genomstamp; "#{srcdir}/.genom/genom-stamp" end
+	def genomstamp; File.join(srcdir, '.genom', 'genom-stamp') end
 
         # Extract the cpp options from the genom options
         def cpp_options
@@ -48,7 +50,7 @@ module Autobuild
         # Alias this package to the ones defined in the EXTRA_PKGCONFIG 
         # flag in configure.ac.user
         def get_provides
-            File.open("#{srcdir}/configure.ac.user") do |f|
+            File.open(File.join(srcdir, 'configure.ac.user')) do |f|
                 f.each_line { |line|
                     if line =~ /^\s*EXTRA_PKGCONFIG\s*=\s*"?([\w\-]+(?:\s+[\w\-]+)*)"?/
                         $1.split(/\s+/).each { |pkg| provides pkg }
@@ -59,24 +61,24 @@ module Autobuild
             
         def depends_on(*packages)
             super
-            file genomstamp => packages
-        end
+	    file genomstamp => packages.map { |p| Package[p].installstamp }
+	end
 
         def regen
             cmdline = [ 'genom', "#{name}.gen", *genomflags ]
 
             file buildstamp => genomstamp
-            file genomstamp => "#{srcdir}/#{name}.gen" do
-                Dir.chdir(srcdir) {
+            file genomstamp => srcdir do
+                Dir.chdir(srcdir) do
                     Subprocess.run(name, 'genom', *cmdline)
-                }
+		end
             end
             if Package['genom']
                 file genomstamp => Package['genom'].installstamp
             end
 
-            acuser = "#{srcdir}/configure.ac.user"
-            file "#{srcdir}/configure" => acuser do
+            acuser = File.join(srcdir, "configure.ac.user")
+            file File.join(srcdir, 'configure') => acuser do
                 # configure does not depend on the .gen file
                 # since the generation takes care of rebuilding configure
                 # if .gen has changed
