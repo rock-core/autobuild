@@ -83,29 +83,36 @@ module Autobuild
             "#{pwent.name}@#{Socket.gethostname}"
         end
         
-	attr_reader :from_email, :to_email, :smtp_hostname, :smtp_port
+	attr_reader :from_email, :to_email, :smtp_hostname, :smtp_port, :subject, :only_errors
         def initialize(config)
             @from_email = (config[:from] || default_mail)
             @to_email   = (config[:to]   || default_mail)
+	    @subject = (config[:subject] || "Build %result% on #{Socket.gethostname} at %time%")
+	    @only_errors = config[:only_errors]
             @smtp_hostname = (config[:smtp] || "localhost" )
             @smtp_port = Integer(config[:port] || Socket.getservbyname('smtp'))
         end
 
         def error(error)
             if error.mail?
-                send_mail("Build failed", error.to_s)
+                send_mail("failed", error.to_s)
             end
         end
 
         def success
-            send_mail("Build success", "finished successfully at #{Time.now}")
+	    unless only_errors
+		send_mail("success")
+	    end
         end
 
-        def send_mail(subject, body)
+        def send_mail(result, body = "")
             mail = RMail::Message.new
             mail.header.date = Time.now
             mail.header.from = from_email
-            mail.header.subject = subject
+            mail.header.subject = subject.
+		gsub('%result%', result).
+		gsub('%time%', Time.now.to_s).
+		gsub('%hostname%', Socket.gethostname)
 
             part = RMail::Message.new
             part.header.set('Content-Type', 'text/plain')
