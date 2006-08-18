@@ -1,308 +1,137 @@
 = Introduction
 
-== WARNING: this documentation is outdated. Since 0.6, Autobuild uses Ruby for configuration (just like rake does)
+== WARNING for 0.5 users
+Old configuration files used with autobuild 0.5 aren't accepted by Autobuild 0.6. Since 0.6, Autobuild 
+uses Ruby for configuration (just like rake does)
 
 == What's autobuild ?
 Autobuild is a builder for a set of software packages. It takes as input a yaml config file as input and
 
 * imports the package from a SCM or (optionnaly) updates it
-* configures it (for instance for autoconf-based packages)
-* builds and installs it
+* configures it. This phase can handle code generation, configuration (for instance for autotools-based
+packages), ...
+* build
+* install
 
 It takes the dependencies between packages into account in its build process.
 
-== Example config explained
+== Available packages
+=== Common usage
+All package objects define the following attributes
+*importer*:: the importer object (see "Available importers" below)
+*srcdir*:: where the package sources are located. If it is a relative
+	   path, it is relative to the value of Autobuild.srcdir. The default is to
+	   use the package name. 
+*prefix*:: the directory where the package should be installed. If it is a relative
+	   path, it is relative to the value of Autobuild.prefix. The default is to
+	   use the package name. 
 
-1.  This section is not used at all by autobuild. It is only here to define references 
-    used in the reste of the config file
+Each package method (Autobuild.import, Autobuild.autotools, ...) takes either a package
+name for first argument, or a <tt>name => dependency_array</tt> hash, and take a block which
+can be used to configure the package. For instance
+    Autobuild.import :my_package do |pkg|
+	pkg.srcdir = 'my_package_dir'
+    end
 
-        defines:
-          openrobots: ':ext:sjoyeux@cvs.laas.fr/cvs/openrobots'
-          openprs_cvs: ':ext:sjoyeux@cvs.laas.fr:/usr/local/openprs/CVS-Repository'
-          global_prefix: /home/doudou/laas/openrobots
-          srcdir: ${global_prefix}/tools
-          prefix: ${global_prefix}/build/tools
+    Autobuild.import :my_package => [:depends, :depends_also] do |pkg|
+    end
 
-2.  <tt>autobuild</tt> holds the configuration of the build tool itself. See the
-    <b>Autobuild configuration</b> section for the available configuration options.
+=== Source only
+    package = Autobuild.import(dependencies) do |pkg|
+	<package configuration>
+    end
 
-        autobuild:
-          srcdir: $srcdir
-          prefix: $prefix
-          clean_log: true
-        
-          mail:
-            to: sjoyeux@laas.fr
-        
-          environment:
-            PATH: [ "/bin", "/usr/bin" ]
-            LD_LIBRARY_PATH:
-            PKG_CONFIG_PATH:
+Use +import+ if you need the package sources but don't need to build it. You just need
+to set +importer+ and +srcdir+. +prefix+ is ignored.
 
-3.  +programs+ defines the tools autobuild should use instead of the its default values.
-    See each the rest of the documentation to know what values are used.
+=== Autotools
+    package = Autobuild.autotools(name, dependencies) do |pkg|
+	<package configuration>
+    end
 
-        programs:
-           aclocal: "aclocal-1.9"
-           automake: "automake-1.9"
+Use this to build GNU autotools-based packages. This handles autoconf-only packages as 
+well as those using automake
 
- 
-4.  the +packages+ sections is where packages are defined
+Options to give the +configure+ script are given in the +configureflags+ array
+    pkg.configureflags = ['--with-blah', 'FOO=bar' ]
 
-        packages:
+If you want the files produced during the build to be separated from the source files, set the +builddir+ attribute.
+For now, it has to be a relative path, relative to the source directory.
+    pkg.builddir = 'build'
 
-5.  options in <tt>common</tt> are merged in each package configuration. See 
-    <b>Configuring packages</b> for the detailed merging rules.
+The generation of the configure script uses four programs: +autoheader+, +autoconf+, +aclocal+, 
++automake+. The default program path can be overriden in the Autotools.programs hash. For
+instance, to be sure that <tt>automake-1.9</tt> is used <bb>for all packages</bb>, you set
 
-            config:
-                prefix: ""
+    Autotools.programs['automake'] = 'automake-1.9'
 
-6.  Tell autobuild to build the pocolibs package. Two common options here: 
-    *type*::    the builder to use. Available package types are currently +autotools+,
-                +import+ and +genom+ (a tool used at my lab;)). See the <b>Available
-                package types</b> section for their configuration.
-    *import*::  the importer to use. Source definition for the importer is always in 
-                the +source+ option.
-    
-            pocolibs:
-                type: autotools
-                import: cvs
-                source: [ $openrobots, pocolibs ]
+Autobuild tries to detect what tools it should run, but you can override. Autodetection works
+as follows:
+* if a script named +autogen+ or +autogen.sh+ exists in the package source directory, it is run
+  and the other tools are not. The name of this kind of script can be set by calling Autotools#use
+    pkg.use :autogen => 'my_autogen_script'
+* +autoheader+ is never used by default
+* +autoconf+ is used if there is <tt>configure.ac</tt> or <tt>configure.in</tt> in the source dir
+* +aclocal+ is used if +autoconf+ is enabled (either explicitely or by autodetection)
+* +automake+ is used if there is a <tt>Makefile.am</tt> file in the source dir
+* you can force to enable or disable any of these steps by calling Autotools#use. Set it to +true+
+  to force its usage, +false+ to disable it or to a string to force the usage of a particular program
+    pkg.use :autogen => false
+    pkg.use :automake => false
+    pkg.use :autoheader => true
+    pkg.use :autoconf => 'my_autoconf_program'
 
-   
-7. Autobuild takes the dependencies between packages into account. Just list in +depends+ 
-   the packages which should be installed before this one is built.
+  The 'autogen' option cannot be set to +true+.
 
-            genom:
-                type: autotools
-                import: cvs
-                source: [ $openrobots, genom ]
-                depends: pocolibs
-
-
-
-
-
-= Configuration file
-
-The config file is {a Yaml file}[http://yaml4r.sourceforge.net/cookbook]. It is a hash where 
-each element is a section:
-
-  section1:
-    option1: value
-    option2: value
-  section2:
-
-In the documentation, I'll sometime use paths to reference the config options. For instance, 
-+option1+ is <tt>section1/option1</tt>. The +to+ option in the configuration example
-is <tt>autobuild/mail/to</tt>
-  
-Autobuild uses three sections:
-
-<b>autobuild</b>::   main autobuild configuration. See <b>Autobuild configuration</b> below
-*programs*::                the programs used by importers and builders. See each tool 
-                            documentation for the list of used options
-*packages*::                the list of packages to build. See <b>Package configuration</b> below
-*defines*::                 this is used for variable interpolation. Any key/value pair defined in
-                            this section can be used later in other parts of the config files using
-                            the $key or ${key} notation
-
-== Autobuild configuration (<tt>autobuild</tt>)
-=== Misc options
-*update*::    if false, do not update the packages that are already imported (default: true). You
-              can also use the <tt>--no-update</tt> on the command line
-
-
-=== Directories (<tt>autobuild/srcdir</tt>, <tt>autobuild/prefix</tt> and <tt>autobuild/logdir</tt>)
-*srcdir*::    the path where programs are to be imported. See <b>Packages configuration</b> for 
-              more information on how this option is used.
-*prefix*::    the path where programs are to be installed. See <b>Packages configuration</b> for more 
-              information on how this option is used.
-*logdir*::    by default, autobuild does not displays the output of each subcommand it launches. 
-              Insteads, it saves this output in log files. These log files are saved in +logdir+. 
-              The default value is <tt>prefix/autobuild</tt>
-<b>clean_log</b>:: if we must remove all logfiles before each autobuild run or if we should append to them. The
-                   default is +true+, that is log files are removed. Note that if mailing is active, all log 
-                   files are attached to notification mail.
-*nice*::      The priority at which autobuild should launch subprocesses
-
-
-=== Environment (<tt>autobuild/environment</tt>)
-The <tt>autobuild/environment</tt> section lists the initial values for 
-the environment variables. While packages builders shall update the environment 
-variables as needed, you can have to set up a proper initial environment. Arrays 
-are converted into strings by joining elements by ':'
-
-For instance
-    autobuild:
-          environment:
-            PATH: [ "/bin", "/usr/bin" ]
-            LD_LIBRARY_PATH:
-            PKG_CONFIG_PATH:
-
-sets
-
-    PATH="/bin:/usr/bin"
-    LD_LIBRARY_PATH=""
-    PKG_CONFIG_PATH=""
-
-
-=== Mail (<tt>autobuild/mail</tt>)
-Use this options if you want to receive a mail when the build has finished (on success and failures)
-
-    autobuild:
-        mail: true
-
-Valid options are:
-*to*::   the mail destination, default is <tt>user@hostname</tt> (for instance sylvain@localhost for a user 'sylvain')
-*from*:: the mail source, default is <tt>user@hostname</tt>
-*smtp*:: the stmp server to use. Default is +localhost+
-*port*:: the port the server is running on. Default is the smtp port (25)
-
-All log files relative to the current build are attached to the mail.
-
-
-== Configuring packages (<tt>packages/*</tt>)
-=== The <tt>packages/config</tt> section
-If you want to add common options in each package, just set it them here. Note that the options
-are /merged/ in the package config. It neither replaces the values in the package nor the package 
-options replaces them. The merging strategy depends on the way the option is specified in this common section:
-* if it is an array, the package option is converted to an array and the common options are appended
-* if it is a string, the package option is converted to a string and the common option are appended
-with a space inserted between the two
-* if it is a boolean value, it is <em>overriden</em> by the package value
-* any other values are forbidden
-
-To ease the config file writing, all options that accept arrays also accept a string when there 
-is only one element. <b>Do not</b> do that in the <tt>common</tt> option.
-
-=== Package definition
-All subsections of the <tt>packages/</tt> section but <tt>common</tt> are package definitions
-The section name is used as the package name. The package definition sets up the importer to get the
-source and the builder to build and install it.
-
-*type*::    the package type. See the <b>Available package types</b> sections
-
-*srcdir*::  where sources are to be imported. If this is a relative path, it is relative to the global
-            <tt>/autobuild/srcdir</tt> option. Otherwise, the absolute path is used. If no +srcdir+
-            is given, the package name is used, so that the default import dir is 
-            <em>global srcdir</em>/<em>package_name</em>.
-        
-            *Note* because of most SCM operations, it is forbidden that two packages have the same srcdir.
-            Empty srcdir are forbidden for the same reason.
-
-*importer*::    
-            the importer type. For now, only +cvs+ and +svn+ are available. See the <b>Available importers</b>
-            section.
-
-*patch*::   the list of patch we should apply. Patches are applied in order, with -p0. Autobuild
-            remembers the list of already applied patches, and will handle the changes to this list gracefully.
-            Since relative paths for patch files are relative to the autobuild working directory, I recommend 
-            you put absolute paths here.
-
-*source*::  where the importer should get the sources. The format of this options depends on
-            the importer used. See Available importers.
-
-*prefix*::  where the program is to be installed. If this is a relative path, it is relative to the global
-            <tt>/autobuild/prefix</tt> option. Otherwise, the absolute path is used. If no prefix
-            is given, the package name is used, so that the default install dir is 
-            <em>global prefix</em>/<em>package name</em>
-
-*depends*::     the array of packages that should be built and installed before this one is built. <tt>depends: [ foo ]</tt>
-                is equivalent to <tt>depends: foo</tt>. To make the use of +depends+ in the <tt>common</tt> 
-                section possible, this package name is automatically removed from the package +depends+ array.
-*provides*::    defines aliases for this package. As for +depends+, an array with only element can be replaced
-                by the simple value.
+The only program used during the build and install phases is +make+. Its path can be overriden 
+in the Autobuild.programs hash
+    Autobuild.programs['make'] = 'gnumake'
 
 == Available importers
-=== CVS (<tt>type: cvs</tt>)
-*source*::  the source specification is a [ repository, module ] array
-*cvsup*::   options to add to cvs up. Defaults to '-dP'
-*cvsco*::   options to add to cvs ci, Defaults to -P
+You must set an importer object for each package. The package importer is the +importer+ attribute
+and is set via <tt>package.importer = my_importer</tt>. An importer +foo+ is defined by the class
+Autobuild::FooImporter and defines a Autobuild.foo method which creates a new importer object.
+Importer classes files are in <tt>lib/autobuild/import/</tt>
 
-=== Subversion (<tt>type: svn</tt>)
-*source*::  the svn URL. To ease the Yaml nodes reference (the <tt>*ref</tt> form), it can be an array
-            which is then converted into a path by joining the elements with '/'. For instance:
-    
-                packages:
-                    foo:
-                        import: svn
-                        source: [ $my_home_repository, /trunk/foo ]
+=== CVS 
 
-*svnup*::   options to add to svn up. Defaults to ''
-*svnco*::   options to add to svn co. Defaults to ''
+    package.importer = cvs(cvsroot, module[, options])
 
-=== Tar (<tt>type: tar</tt>)
-This importer gets a tarball file, which may be on a remote server, and un-tars
-it. For now, it cannot determine itself what is the directory included in the tarball,
-so you should set the srcdir: appropriately.
+Where +options+ is an option hash. See also Autobuild::CVSImporter and Autobuild.cvs
 
-For instance, a tarball with one directory <tt>package-0.1</tt> in it will 
-need a <tt>srcdir</tt> option of <tt>package-0.1</tt>. If you do 
-not set +srcdir+, autobuild will untar the package in the global srcdir
-(as intended) but will search for <tt>$global_srcdir/package</tt>
+* the default CVS command is +cvs+. It can be changed by
+    Autobuild.programs['cvs'] = 'my_cvs_command'
+* the default checkout option is <tt>-P</tt>. You can change that by giving a +cvsco+ option
+    cvs cvsroot, module, :cvsco => ['--my', '--cvs', '--options']
+* the default update option is <tt>-dP</tt>. You can change that by giving a +cvsup+ option
+    cvs cvsroot, module, :cvsup => ['--my', '--cvs', '--options']
 
-*source*::   the source URL. For now, http, ftp and file URLs are supported
-*cachedir*:: the directory where the local copy of the file should be saved 
-             (for http and ftp URLs only)
+=== Subversion
+    package.importer = svn(url[, options])
 
+Where +options+ is an option hash. See also Autobuild::SVNImporter and Autobuild.svn
 
+* the default Subversion command is +svn+. It can be changed by
+    Autobuild.programs['svn'] = 'my_svn_command'
+* by default, no options are given to checkout. You add some by giving a +svnco+ option
+    svn url, :svnco => ['--my', '--svn', '--options']
+* by default, no options are given to update. You can add some by giving a +svnup+ option
+    svn url, :svnup => ['--my', '--svn', '--options']
 
-== Available package types (<tt>packages/</tt><em>name</em><tt>/type</tt>)
-=== Source only (<tt>type: import</tt>)
-Use +import+ if you need the package sources but don't need to build it. You just need
-to set up the importer and +srcdir+. +prefix+ is ignored.
+=== *Darcs*
+    package.importer = darcs(url[, options])
 
-    packages:
-        bar:
-            type: import
-            import: cvs
-            source: [ $my_repository, "bar" ]
-            srcdir: bar
+Where +options+ is a hash. See also Autobuild::DarcsImporter and Autobuild.darcs
 
-=== Autotools (<tt>type: autotools</tt>)
-Use this to build GNU autotools-based packages. This handles autoconf-only packages as 
-well as automake-based packages.
+* the default Darcs command is +darcs+. It can be changed by
+    Autobuild.programs['darcs'] = 'my_svn_command'
+* by default, no options are given to get. You add some by giving a +get+ option
+    darcs url, :get => ['--my', '--darcs', '--options']
+* by default, no options are given to pull. You can add some by giving a +pull+ option
+    darcs url, :pull => ['--my', '--darcs', '--options']
 
-==== Configuration programs
-The <tt>autotools</tt> packages use four programs: *autoheader*, *autoconf*, *aclocal*, 
-*automake*. The default values can be overriden in the <tt>/programs</tt> section. For 
-instance, to be sure that automake 1.9 is used, you set
-
-    programs:
-        automake: automake-1.9
-
-Autobuild tries to detect what tools it should run
-* +autoheader+ is never used by default
-* +autoconf+ is used if there is <tt>configure.ac</tt> or <tt>configure.in</tt> in the imported dir
-* +aclocal+ is used if +autoconf+ is enabled (either explicitely or by autodetection)
-* +automake+ is used if there is a <tt>Makefile.am</tt> file in the imported dir
-* you can force to enable or disable any of these four tools in each package config by setting the tool
-  flag to true or false. For instance, if you don't want package +foo+ to use automake, you say
-
-    packages:
-        foo:
-            automake: false
-
-==== Build programs
-The only program used during the build phase is +make+. The make command can too be overriden in the
-<tt>programs</tt> section.
-
-    programs:
-        make: gnumake
-
-==== Other options
-*builddir*::    the directory where the build takes place. For now, it has to be a relative path,
-                which will be considered relative to the source directory.
-*configureflags*::  array of options to add to the +configure+ command line
-                        configureflags: [ --with-bar-source=$srcdir/$bar_srcdir ]
-                        depends: bar
-
-= Running autobuild in daemon mode
-The <tt>--daemon</tt> command line options makes autobuild go into daemon mode.
- 
 = Copyright and license
 Author::    Sylvain Joyeux <sylvain.joyeux@m4x.org>
-Copyright:: Copyright (c) 2005 Sylvain Joyeux
+Copyright:: Copyright (c) 2005-2006 Sylvain Joyeux
 License::   GPL
 
