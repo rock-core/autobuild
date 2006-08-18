@@ -45,6 +45,10 @@ module Autobuild
             @@reporters << reporter
         end
 
+	def self.each_reporter(&iter)
+	    @@reporters.each(&iter)
+	end
+
         ## Iterate on all log files
         def self.each_log(&iter)
             Dir.glob("#{Autobuild.logdir}/*.log", &iter)
@@ -79,11 +83,12 @@ module Autobuild
             "#{pwent.name}@#{Socket.gethostname}"
         end
         
+	attr_reader :from_email, :to_email, :smtp_hostname, :smtp_port
         def initialize(config)
-            @from = (config[:from] || default_mail)
-            @to   = (config[:to]   || default_mail)
-            @smtp = (config[:smtp] || "localhost" )
-            @port = Integer(config[:port] || Socket.getservbyname('smtp'))
+            @from_email = (config[:from] || default_mail)
+            @to_email   = (config[:to]   || default_mail)
+            @smtp_hostname = (config[:smtp] || "localhost" )
+            @smtp_port = Integer(config[:port] || Socket.getservbyname('smtp'))
         end
 
         def error(error)
@@ -99,8 +104,7 @@ module Autobuild
         def send_mail(subject, body)
             mail = RMail::Message.new
             mail.header.date = Time.now
-            mail.header.from = @from
-            mail.header.to = @to
+            mail.header.from = from_email
             mail.header.subject = subject
 
             part = RMail::Message.new
@@ -113,15 +117,17 @@ module Autobuild
                 mail.add_file(file)
             end
 
-            # Send the mail
-            smtp = Net::SMTP.new(@smtp, @port)
-            smtp.start {
-                smtp.send_mail RMail::Serialize.write('', mail), @from, @to
-            }
+            # Send the mails
+	    smtp = Net::SMTP.new(smtp_hostname, smtp_port)
+	    smtp.start {
+		to_email.each do |email|
+		    mail.header.to = email
+		    smtp.send_mail RMail::Serialize.write('', mail), from_email, email
+		end
+	    }
 
             # Notify the sending
-            puts "Sent notification mail to #{@to} with source #{@from}"
-
+            puts "Sent notification mail to #{to_email} with source #{from_email}"
         end
     end
 end

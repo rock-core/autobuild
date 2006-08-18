@@ -27,13 +27,9 @@ module Autobuild
         send("#{name}=", value)
     end
 
+    @mail = Hash.new
     class << self
-        # Configuration for the mail reporter
-        def mail(config = nil)
-            @mail = config if config
-            @mail || {}
-        end
-
+	attr_reader :mail
         def logdir; @logdir || "#{prefix}/log" end
 
         def clean_log!
@@ -69,6 +65,10 @@ module Autobuild
                 opts.separator "Program output"
                 opts.on("--[no-]verbose", "display output of commands on stdout") do |@verbose| end
                 opts.on("--[no-]debug", "verbose information (for debugging purposes)") do |@debug| end
+		opts.on("--mailto EMAILS", String, "comma-separated list of emails to which the reports should be sent") do |emails| 
+		    mail[:to] ||= []
+		    mail[:to] += emails.split(',')
+		end
 
                 opts.on_tail("-h", "--help", "Show this message") do
                     puts opts
