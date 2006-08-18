@@ -136,8 +136,13 @@ module Autobuild
                         end
 
                         [ :aclocal, :autoconf, :autoheader, :automake ].each do |tool|
-                            if using[tool]
-                                Subprocess.run(name, 'configure', Autobuild.tool(tool))
+                            if tool_flag = using[tool_name]
+				tool_program = if tool_flag.respond_to?(:to_str)
+						   tool_flag.to_str
+					       else; Autobuild.tool(tool)
+					       end
+
+                                Subprocess.run(name, 'configure', tool_program)
                             end
                         end
                     end
