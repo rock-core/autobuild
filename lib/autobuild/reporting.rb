@@ -18,8 +18,6 @@ module Autobuild
 
         ## Run a block and report known exception
         # If an exception is fatal, the program is terminated using exit()
-        #
-        # :yield:
         def self.report
             begin
                 yield
