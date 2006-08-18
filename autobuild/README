@@ -13,7 +13,8 @@ packages), ...
 * build
 * install
 
-It takes the dependencies between packages into account in its build process.
+It takes the dependencies between packages into account in its build process, updates the needed environment
+variables (+PKG_CONFIG_PATH+, +PATH+, +LD_LIBRARY_PATH+, ...)
 
 == Available packages
 === Common usage
