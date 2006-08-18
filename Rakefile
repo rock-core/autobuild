@@ -1,7 +1,5 @@
 # Rakefile for Autobuild
-# Copyright 2005 by Sylvain Joyeux (sylvain.joyeux@m4x.org)
 
-# Based on the Rakefile for MetaProject
 # Copyright 2005 by Aslak Hellesoy (aslak.hellesoy@gmail.org)
 # All rights reserved.
 
@@ -26,6 +24,7 @@ require 'rake/rdoctask'
 #
 # REMEMBER TO KEEP PKG_VERSION IN SYNC WITH THE CHANGES FILE!
 PKG_NAME = "autobuild"
+UNIX_NAME = "autobuild"
 PKG_VERSION = "0.6"
 PKG_FILE_NAME = "#{PKG_NAME}-#{PKG_VERSION}"
 PKG_FILES = FileList[
@@ -58,11 +57,11 @@ spec = Gem::Specification.new do |s|
   s.name = PKG_NAME
   s.version = PKG_VERSION
   s.summary = 'Rake-based utility to build and install multiple packages with dependencies'
-  s.description = <<EOF
-Autobuild imports, configures, builds and installs various kinds of software packages.
-It can be used in software development to make sure that nothing is broken in the 
-build process of a set of packages, or can be used as an automated installation tool.
-EOF
+  s.description = <<-EOF
+    Autobuild imports, configures, builds and installs various kinds of software packages.
+    It can be used in software development to make sure that nothing is broken in the 
+    build process of a set of packages, or can be used as an automated installation tool.
+  EOF
 
   #### Documentation and testing.
 
@@ -122,7 +121,7 @@ task :verify_env_vars do
 end
 
 task :publish_doc do
-  publisher = Rake::RubyForgePublisher.new('xforge', ENV['RUBYFORGE_USER'])
+  publisher = Rake::RubyForgePublisher.new(UNIX_NAME, ENV['RUBYFORGE_USER'])
   publisher.upload
 end
 
@@ -132,7 +131,7 @@ task :release_files => [:gem] do
     "pkg/#{PKG_FILE_NAME}.gem"
   ]
 
-  Rake::XForge::Release.new(MetaProject::Project::XForge::RubyForge.new('xforge')) do |release|
+  Rake::XForge::Release.new(MetaProject::Project::XForge::RubyForge.new(UNIX_NAME)) do |release|
     # Never hardcode user name and password in the Rakefile!
     release.user_name = ENV['RUBYFORGE_USER']
     release.password = ENV['RUBYFORGE_PASSWORD']
@@ -148,7 +147,7 @@ task :publish_news => [:gem] do
     "pkg/#{PKG_FILE_NAME}.gem"
   ]
 
-  Rake::XForge::NewsPublisher.new(MetaProject::Project::XForge::RubyForge.new('xforge')) do |news|
+  Rake::XForge::NewsPublisher.new(MetaProject::Project::XForge::RubyForge.new(UNIX_NAME)) do |news|
     # Never hardcode user name and password in the Rakefile!
     news.user_name = ENV['RUBYFORGE_USER']
     news.password = ENV['RUBYFORGE_PASSWORD']

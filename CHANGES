@@ -1,9 +1,10 @@
-= Autobuild changelog
+= Autobuild ChangeLog
 
 == Version 0.6
 
-* Use a Ruby-based DSL instead of YAML config files. It is waaaaaay more
+Use a Ruby-based DSL instead of YAML config files. It is waaaaaay more
 powerful and waaay cleaner. See demo.rb for an example
+
 * Added the Darcs importer
 * Fixes in dependency handling
 * Uses Rake 0.7
