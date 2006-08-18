@@ -2,43 +2,29 @@ $LOAD_PATH.unshift File.expand_path('..', File.dirname(__FILE__))
 $LOAD_PATH << File.expand_path('../lib', File.dirname(__FILE__))
 require 'test/unit'
 require 'test/tools'
-require 'autobuild/import/cvs'
 require 'autobuild/import/svn'
-require 'autobuild/import/tar'
-include Autobuild
 
 class TC_SVNImport < Test::Unit::TestCase
-    Package = Struct.new :srcdir, :target
+    include Autobuild
+    Package = Struct.new :srcdir, :name
 
     def setup
-        $PROGRAMS = {}
-        $UPDATE = true
-        $LOGDIR = "#{TestTools.tempdir}/log"
-        FileUtils.mkdir_p($LOGDIR)
-
+        Autobuild.logdir = "#{TestTools.tempdir}/log"
+        FileUtils.mkdir_p(Autobuild.logdir)
     end
     
     def teardown
-        $PROGRAMS = nil
-        $UPDATE = true
-        $LOGDIR = nil
         TestTools.clean
     end
 
     def test_svn
         TestTools.untar('svnroot.tar')
         svnrepo = File.join(TestTools.tempdir, 'svnroot')
-        svnroot = "file:///#{svnrepo}"
+        svnroot = "file:///#{svnrepo}/svn"
         pkg_svn = Package.new File.join(TestTools.tempdir, 'svn'), :svn
 
         # Make a checkout with a splitted URL
-        importer = Import.svn [ svnroot, 'svn' ], {}
-        importer.import(pkg_svn)
-        assert( File.exists?(File.join(pkg_svn.srcdir, 'test')) )
-
-        # Make a checkout with an URL as a string
-        FileUtils.rm_rf pkg_svn.srcdir
-        importer = Import.svn File.join(svnroot, 'svn'), {}
+        importer = Autobuild.svn(svnroot)
         importer.import(pkg_svn)
         assert( File.exists?(File.join(pkg_svn.srcdir, 'test')) )
 

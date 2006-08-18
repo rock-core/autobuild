@@ -14,6 +14,11 @@ module TestTools
         FileUtils.rm_rf tempdir
     end
 
+    def self.build_dummy_config(basedir)
+	global_prefix = File.join(basedir, 'prefix')
+
+    end
+
     def self.build_config(bind, template)
         eval "basedir = '#{self.tempdir}'", bind
         ryml = File.open(File.join(DATADIR, "#{template}.ryml")) { |f| f.readlines }.join('')
