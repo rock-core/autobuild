@@ -8,18 +8,20 @@ module Autobuild
             @source   = source
             @program  = Autobuild.tool('darcs')
             super(options)
+	    @pull = [*options[:pull]]
+	    @get = [*options[:get]]
         end
         
         private
 
         def update(package)
 	    Subprocess.run(package.name, :import, @program, 
-	       'pull', '--all', "--repodir=#{package.srcdir}", '--set-scripts-executable', @source)
+	       'pull', '--all', "--repodir=#{package.srcdir}", '--set-scripts-executable', @source, *@pull)
         end
 
         def checkout(package)
 	    Subprocess.run(package.name, :import, @program, 
-	       'get', '--set-scripts-executable', @source, package.srcdir)
+	       'get', '--set-scripts-executable', @source, package.srcdir, *@get)
         end
     end
 
