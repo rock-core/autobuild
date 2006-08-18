@@ -40,12 +40,9 @@ task :default => [:gem]
 # Create a task to build the RDOC documentation tree.
 rd = Rake::RDocTask.new("rdoc") do |rdoc|
   rdoc.rdoc_dir = 'html'
-#  rdoc.template = 'kilmer'
-#  rdoc.template = 'css2'
-#  rdoc.template = 'doc/jamis.rb'
   rdoc.title    = "Autobuild"
   rdoc.options << '--main' << 'README'
-  rdoc.rdoc_files.include('README', 'CHANGES')
+  rdoc.rdoc_files.include('README', 'CHANGES', 'TODO')
   rdoc.rdoc_files.include('lib/**/*.rb', 'doc/**/*.rdoc')
   rdoc.rdoc_files.exclude('doc/**/*_attrs.rdoc')
 end
@@ -85,7 +82,7 @@ EOF
   #### Advanced project information
   s.platform = Gem::Platform::RUBY
   s.require_paths << "lib"
-  s.add_dependency('rake', '>= 0.6.0')
+  s.add_dependency('rake', '>= 0.7.0')
   s.add_dependency('rmail')
   s.add_dependency('daemons')
   s.files = PKG_FILES.to_a
