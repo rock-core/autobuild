@@ -25,6 +25,7 @@ module Autobuild::Subprocess
         command.reject! { |o| o =~ /^\<(.+)/ }
 
         status = File.open(logname, "a") do |logfile|
+	    logfile.puts command.join(" ")
             pread, pwrite = IO.pipe # to feed subprocess stdin 
             cread, cwrite = IO.pipe # to control that exec goes well
 
