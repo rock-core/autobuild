@@ -146,7 +146,7 @@ module RMail
             part.header.set('Content-Disposition', 'attachment', 'filename' => File.basename(path))
             part.body = ''
             File.open(path) do |file|
-                part.body << file.readlines.join("\n")
+                part.body << file.readlines.join("")
             end
             self.add_part(part)
         end
