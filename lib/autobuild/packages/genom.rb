@@ -1,5 +1,6 @@
 require 'autobuild/packages/autotools'
 require 'open3'
+require 'autobuild/pkgconfig'
 
 module Autobuild
     def self.genom(opts, &proc)
@@ -7,6 +8,9 @@ module Autobuild
     end
 
     class GenomModule < Autotools
+	# Get the genom pkg-config
+	@@genom = PkgConfig.new('genom')
+
         attr_accessor :genomflags
 
         def initialize(*args, &config)
@@ -64,17 +68,33 @@ module Autobuild
 	    file genomstamp => packages.map { |p| Package[p].installstamp }
 	end
 
+	# Make the genom-stamp file depend on
+	#   * genom includes
+	#   * genom canvas
+	#   * the genom binary itself
+	def genom_dependency
+	    includedir = @@genom.includedir
+	    source_tree includedir
+	    raise includedir unless File.directory?(includedir)
+
+	    canvasdir = File.join(@@genom.prefix, "share", "genom", @@genom.version);;
+	    source_tree canvasdir
+	    raise canvasdir unless File.directory?(canvasdir)
+
+	    binary = File.join(@@genom.exec_prefix, "bin", "genom")
+	    raise binary unless File.file?(binary)
+	    file genomstamp => [binary, includedir, canvasdir]
+	end
+
         def regen
             cmdline = [ 'genom', "#{name}.gen", *genomflags ]
 
             file buildstamp => genomstamp
+	    genom_dependency
             file genomstamp => srcdir do
                 Dir.chdir(srcdir) do
                     Subprocess.run(name, 'genom', *cmdline)
 		end
-            end
-            if Package['genom']
-                file genomstamp => Package['genom'].installstamp
             end
 
             acuser = File.join(srcdir, "configure.ac.user")
