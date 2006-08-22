@@ -53,6 +53,7 @@ module Autobuild
 
         def initialize(options)
             @using = Hash.new
+	    @configureflags = []
 
             super
 
