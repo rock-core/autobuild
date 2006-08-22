@@ -4,10 +4,12 @@
 
 Bugfixes
 
-* fix dependency handling for Genom modules
-* add dependency between the module generation and the installed
+* fix dependency handling for Genom modules. In particular, we add 
+  dependencies between the module generation and the installed
   genom files (includes, canvas, and the genom executable). Information
   is taken from the pkg-config file
+* new package types: InstalledPkgConfig, to reuse pkg-config based packages
+  installed by another autobuild script
 
 == Version 0.6
 
