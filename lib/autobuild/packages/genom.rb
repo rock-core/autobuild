@@ -42,9 +42,9 @@ module Autobuild
             cpp = Autobuild.tool(:cpp)
             Open3.popen3("#{cpp} #{cpp_options.join(" ")} #{srcdir}/#{name}.gen") do |cin, out, err|
                 out.each_line { |line|
-                    if line =~ /^\s*requires\s*:\s*([\w\-]+(?:\s*,\s*[\w\-]+)*);/
+                    if line =~ /^\s*(?:codel_)?requires\s*:\s*([\w\-]+(?:\s*,\s*[\w\-]+)*);/
                         $1.split(/, /).each { |name| depends_on name }
-                    elsif line =~ /^\s*requires/
+                    elsif line =~ /^\s*(?:codel_)?requires/
                         puts "failed to match #{line}"
                     end
                 }
@@ -72,25 +72,24 @@ module Autobuild
 	#   * genom includes
 	#   * genom canvas
 	#   * the genom binary itself
-	def genom_dependency
+	def genom_dependencies
 	    includedir = @@genom.includedir
 	    source_tree includedir
-	    raise includedir unless File.directory?(includedir)
 
 	    canvasdir = File.join(@@genom.prefix, "share", "genom", @@genom.version);;
 	    source_tree canvasdir
-	    raise canvasdir unless File.directory?(canvasdir)
 
 	    binary = File.join(@@genom.exec_prefix, "bin", "genom")
-	    raise binary unless File.file?(binary)
-	    file genomstamp => [binary, includedir, canvasdir]
+	    file binary
+
+	    [binary, includedir, canvasdir]
 	end
 
         def regen
             cmdline = [ 'genom', "#{name}.gen", *genomflags ]
 
             file buildstamp => genomstamp
-	    genom_dependency
+	    file genomstamp => genom_dependencies
             file genomstamp => srcdir do
                 Dir.chdir(srcdir) do
                     Subprocess.run(name, 'genom', *cmdline)
