@@ -39,13 +39,18 @@ module Autobuild
 
         # Extracts dependencies using the requires: field in the .gen file
         def get_requires
+	    apionly = genomflags.find { |f| f == '-a' }
             cpp = Autobuild.tool(:cpp)
             Open3.popen3("#{cpp} #{cpp_options.join(" ")} #{srcdir}/#{name}.gen") do |cin, out, err|
                 out.each_line { |line|
-                    if line =~ /^\s*(?:codel_)?requires\s*:\s*([\w\-]+(?:\s*,\s*[\w\-]+)*);/
-                        $1.split(/, /).each { |name| depends_on name }
-                    elsif line =~ /^\s*(?:codel_)?requires/
-                        puts "failed to match #{line}"
+                    if line =~ /^\s*(codels_)?requires\s*:\s*([\w\-]+(?:\s*,\s*[\w\-]+)*);/
+			# Remove the codels_requires lines if -a is given to genom
+			unless $1 == "codels_" && apionly
+			    $2.split(/, /).each { |name| depends_on name }
+			end
+                    elsif line =~ /^\s*(?:codels_)?requires/
+			# Check that the regexp is not too strict
+                        STDERR.puts "failed to match #{line}"
                     end
                 }
             end
@@ -73,7 +78,7 @@ module Autobuild
 	#   * genom canvas
 	#   * the genom binary itself
 	def genom_dependencies
-	    includedir = @@genom.includedir
+	    includedir = File.join(@@genom.includedir, 'genom')
 	    source_tree includedir
 
 	    canvasdir = File.join(@@genom.prefix, "share", "genom", @@genom.version);;
