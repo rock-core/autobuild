@@ -25,7 +25,7 @@ require 'rake/rdoctask'
 # REMEMBER TO KEEP PKG_VERSION IN SYNC WITH THE CHANGES FILE!
 PKG_NAME = "autobuild"
 UNIX_NAME = "autobuild"
-PKG_VERSION = "0.6"
+PKG_VERSION = "0.6.1"
 PKG_FILE_NAME = "#{PKG_NAME}-#{PKG_VERSION}"
 PKG_FILES = FileList[
   'bin/*',
