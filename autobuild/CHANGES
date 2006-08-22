@@ -1,5 +1,14 @@
 = Autobuild ChangeLog
 
+== Version 0.6.1
+
+Bugfixes
+
+* fix dependency handling for Genom modules
+* add dependency between the module generation and the installed
+  genom files (includes, canvas, and the genom executable). Information
+  is taken from the pkg-config file
+
 == Version 0.6
 
 Use a Ruby-based DSL instead of YAML config files. It is waaaaaay more
