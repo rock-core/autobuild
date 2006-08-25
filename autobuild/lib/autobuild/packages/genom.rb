@@ -8,9 +8,6 @@ module Autobuild
     end
 
     class GenomModule < Autotools
-	# Get the genom pkg-config
-	@@genom = PkgConfig.new('genom')
-
         attr_accessor :genomflags
 
         def initialize(*args, &config)
@@ -78,16 +75,23 @@ module Autobuild
 	#   * genom canvas
 	#   * the genom binary itself
 	def genom_dependencies
-	    includedir = File.join(@@genom.includedir, 'genom')
-	    source_tree includedir
+	    # Get the genom pkg-config
+	    if Packages['genom']
+		'genom'
+	    else
+		genom_pkg = PkgConfig.new('genom')
 
-	    canvasdir = File.join(@@genom.prefix, "share", "genom", @@genom.version);;
-	    source_tree canvasdir
+		includedir = File.join(genom_pkg.includedir, 'genom')
+		source_tree includedir
 
-	    binary = File.join(@@genom.exec_prefix, "bin", "genom")
-	    file binary
+		canvasdir = File.join(genom_pkg.prefix, "share", "genom", @@genom.version);;
+		source_tree canvasdir
 
-	    [binary, includedir, canvasdir]
+		binary = File.join(genom_pkg.exec_prefix, "bin", "genom")
+		file binary
+
+		[binary, includedir, canvasdir]
+	    end
 	end
 
         def regen
