@@ -27,7 +27,9 @@ begin
 	    Reporting << MailReporter.new(Autobuild.mail)
 	end
 
-        ['import', 'prepare', 'build'].each do |phase|
+	targets = ['import']
+	targets += ['prepare', 'build'] if Autobuild.do_build
+        targets.each do |phase|
             if packages.empty?
                 Rake::Task[phase].invoke
             else
