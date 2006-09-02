@@ -76,7 +76,7 @@ module Autobuild
 	#   * the genom binary itself
 	def genom_dependencies
 	    # Get the genom pkg-config
-	    if Packages['genom']
+	    if Package['genom']
 		'genom'
 	    else
 		genom_pkg = PkgConfig.new('genom')
@@ -84,7 +84,7 @@ module Autobuild
 		includedir = File.join(genom_pkg.includedir, 'genom')
 		source_tree includedir
 
-		canvasdir = File.join(genom_pkg.prefix, "share", "genom", @@genom.version);;
+		canvasdir = File.join(genom_pkg.prefix, "share", "genom", genom_pkg.version);;
 		source_tree canvasdir
 
 		binary = File.join(genom_pkg.exec_prefix, "bin", "genom")
