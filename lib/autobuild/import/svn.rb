@@ -15,6 +15,14 @@ module Autobuild
 
         def update(package)
             Dir.chdir(package.srcdir) {
+		url = File.open(".svn/entries") { |io| io.readlines }.grep(/^\s*url=/).first
+		if url !~ /^\s*url="([^"]+)"/
+		    raise
+		end
+		source = $1
+		if source != @source
+		    raise ArgumentError, "current checkout found at #{package.srcdir} is from #{source}, was expecting #{@source}"
+		end
                 Subprocess.run(package.name, :import, @program, 'up', *@options_up)
             }
         end
