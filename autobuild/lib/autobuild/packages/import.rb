@@ -12,12 +12,11 @@ module Autobuild
         end
         def initialize(target)
             super
-            source_tree srcdir, installstamp
+            source_tree srcdir, /^#{Regexp.quote(installstamp)}/
             file installstamp => srcdir do 
                 touch_stamp installstamp
             end
         end
-        def prepare; end
     end
 end
 
