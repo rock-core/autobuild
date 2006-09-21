@@ -8,17 +8,17 @@ STAMPFILE = "autobuild-stamp"
 module Autobuild
     def tree_timestamp(path, *exclude)
         # Exclude autobuild timestamps
-        exclude << "*-#{STAMPFILE}"
+	exclude.each { |rx| raise unless Regexp === rx }
+        exclude << (/#{Regexp.quote(STAMPFILE)}$/)
 
         puts "getting tree timestamp for #{path}" if Autobuild.debug
         latest = Time.at(0)
         latest_file = ""
 
-        exclude.collect! { |e| File.expand_path(e, path) }
         Find.find(path) { |p|
             Find.prune if File.basename(p) =~ /^\./
             exclude.each { |pattern| 
-                if File.fnmatch?(pattern, p) 
+                if p =~ pattern
                     puts "  excluding #{p}" if Autobuild.debug
                     Find.prune
                 end
@@ -39,7 +39,7 @@ module Autobuild
     class SourceTreeTask < Rake::Task
         attr_accessor :exclude
         def timestamp
-            tree_timestamp(name, "*CVS", *@exclude)
+            tree_timestamp(name, %r#(?:^|/)CVS$#, *@exclude)
         end
     end
     def source_tree(path, exclude = [], &block)
