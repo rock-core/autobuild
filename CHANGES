@@ -1,5 +1,13 @@
 = Autobuild ChangeLog
 
+== Version 0.6.2
+
+Small changes
+
+* added the Ruby package, which does an import and builds all C extensions
+* added the pkgconfig package, which 
+* check that we are in the right CVS and Subversion repositories
+
 == Version 0.6.1
 
 Bugfixes
