@@ -23,9 +23,15 @@ module Autobuild
         private
 
         def update(package)
-            Dir.chdir(package.srcdir) {
+            Dir.chdir(package.srcdir) do
+		root = File.open("#{package.srcdir}/CVS/Root") { |io| io.read }.chomp
+		mod  = File.open("#{package.srcdir}/CVS/Repository") { |io| io.read }.chomp
+
+		if root != @root || mod != @module
+		    raise ArgumentError, "checkout in #{package.srcdir} is from #{root}:#{mod}, was expecting #{@root}:#{@mod}"
+		end
                 Subprocess.run(package.name, :import, @program, 'up', *@options_up)
-            }
+	    end
         end
 
         def checkout(package)
