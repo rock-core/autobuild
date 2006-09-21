@@ -94,7 +94,7 @@ module Autobuild
                 configure
             end
 
-            source_tree srcdir, builddir
+            source_tree srcdir, /^#{Regexp.quote(builddir)}/
             file buildstamp => [ srcdir, "#{builddir}/config.status" ] do 
                 ensure_dependencies_installed
                 build
