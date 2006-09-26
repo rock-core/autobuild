@@ -5,8 +5,10 @@
 Small changes
 
 * added the Ruby package, which does an import and builds all C extensions
-* added the pkgconfig package, which 
-* check that we are in the right CVS and Subversion repositories
+* added the pkgconfig package, which allows to use an already-installed package
+  if this packages can be found through pkg-config
+* check that working copies that are already checked out are from the right
+  source (for CVS and Subversion)
 
 == Version 0.6.1
 
