@@ -21,7 +21,7 @@ lib/autobuild/subcommand.rb
 lib/autobuild/timestamps.rb
 Manifest.txt
 Rakefile
-README
+README.txt
 samples/demo.rb
 test/data/cvsroot.tar
 test/data/svnroot.tar
