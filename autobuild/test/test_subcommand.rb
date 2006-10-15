@@ -41,16 +41,19 @@ EOF
         assert_raise(SubcommandFailed) { || Subprocess.run('test', 'copy', 'cat', 'bla') }
         
         Subprocess.run('test', 'simple', 'cat', nil, '', source1)
-        assert( FileUtils.identical?(source1, File.join(tmpdir, 'test-simple.log')) )
+	result_content = File.readlines(File.join(tmpdir, 'test-simple.log'))[1..-1].join
+        assert_equal(EXAMPLE_1, result_content)
 
         Subprocess.run('test', 'use-lt', 'cat', "<#{source1}")
-        assert( FileUtils.identical?(source1, File.join(tmpdir, 'test-use-lt.log')) )
+	result_content = File.readlines(File.join(tmpdir, 'test-use-lt.log'))[1..-1].join
+        assert_equal(EXAMPLE_1, result_content)
 
         Subprocess.run('test', 'use-both', 'cat', source1, '-', "<#{source2}")
         result = File.open( File.join(tmpdir, 'test-use-both.log') ) do |f|
             f.readlines
         end
-        assert_equal(EXAMPLE_1 + EXAMPLE_2, result.join(""))
+	result = result[1..-1].join
+        assert_equal(EXAMPLE_1 + EXAMPLE_2, result)
     end
 end
 

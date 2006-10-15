@@ -20,7 +20,7 @@ class TC_SVNImport < Test::Unit::TestCase
     def test_svn
         TestTools.untar('svnroot.tar')
         svnrepo = File.join(TestTools.tempdir, 'svnroot')
-        svnroot = "file:///#{svnrepo}/svn"
+        svnroot = "file://#{svnrepo}/svn"
         pkg_svn = Package.new File.join(TestTools.tempdir, 'svn'), :svn
 
         # Make a checkout with a splitted URL
