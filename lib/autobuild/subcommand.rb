@@ -26,6 +26,8 @@ module Autobuild::Subprocess
 
         status = File.open(logname, "a") do |logfile|
 	    logfile.puts command.join(" ")
+	    logfile.flush
+
             pread, pwrite = IO.pipe # to feed subprocess stdin 
             cread, cwrite = IO.pipe # to control that exec goes well
 
