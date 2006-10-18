@@ -22,7 +22,6 @@ module Autobuild
             begin
                 yield
             rescue Autobuild::Exception => e
-                raise unless e.kind_of?(Autobuild::Exception)
                 error(e)
                 exit(1) if e.fatal?
             end
