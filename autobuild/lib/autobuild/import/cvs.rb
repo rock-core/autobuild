@@ -28,7 +28,7 @@ module Autobuild
 		mod  = File.open("#{package.srcdir}/CVS/Repository") { |io| io.read }.chomp
 
 		if root != @root || mod != @module
-		    raise ArgumentError, "checkout in #{package.srcdir} is from #{root}:#{mod}, was expecting #{@root}:#{@mod}"
+		    raise ArgumentError, "checkout in #{package.srcdir} is from #{root}:#{mod}, was expecting #{@root}:#{@module}"
 		end
                 Subprocess.run(package.name, :import, @program, 'up', *@options_up)
 	    end
