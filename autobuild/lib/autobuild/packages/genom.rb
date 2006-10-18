@@ -17,13 +17,16 @@ module Autobuild
 	    use :autogen => 'autogen'
         end
 
+	def import
+	    super
+	    get_provides
+	end
+
         # Called before running the rake tasks and
         # after all imports have been made
         def prepare
-
             super
-            get_requires
-            get_provides
+	    get_requires
         end
 
         # The file touched by genom on successful generation
