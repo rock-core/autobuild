@@ -19,7 +19,7 @@ module Autobuild
 		url =~ /URL: (.+)/
 		source = $1
 		if source != @source
-		    raise ArgumentError, "current checkout found at #{package.srcdir} is from #{source}, was expecting #{@source}"
+		    raise ConfigException, "current checkout found at #{package.srcdir} is from #{source}, was expecting #{@source}"
 		end
                 Subprocess.run(package.name, :import, @program, 'up', *@options_up)
             }

@@ -24,11 +24,15 @@ module Autobuild
 
         def update(package)
             Dir.chdir(package.srcdir) do
+		if !File.exists?("#{package.srcdir}/CVS/Root")
+		    raise ConfigException, "#{package.srcdir} does not look like a CVS checkout"
+		end
+
 		root = File.open("#{package.srcdir}/CVS/Root") { |io| io.read }.chomp
 		mod  = File.open("#{package.srcdir}/CVS/Repository") { |io| io.read }.chomp
 
 		if root != @root || mod != @module
-		    raise ArgumentError, "checkout in #{package.srcdir} is from #{root}:#{mod}, was expecting #{@root}:#{@module}"
+		    raise ConfigException, "checkout in #{package.srcdir} is from #{root}:#{mod}, was expecting #{@root}:#{@module}"
 		end
                 Subprocess.run(package.name, :import, @program, 'up', *@options_up)
 	    end
