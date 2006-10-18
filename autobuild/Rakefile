@@ -3,7 +3,7 @@ require 'hoe'
 
 $:.unshift('lib')
 
-Hoe.new('autobuild', "0.6.2") do |p|
+Hoe.new('autobuild', "0.6.3") do |p|
     p.author = "Sylvain Joyeux"
     p.email = "sylvain.joyeux@m4x.org"
     p.summary = 'Rake-based utility to build and install multiple packages with dependencies'
