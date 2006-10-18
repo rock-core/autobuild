@@ -1,5 +1,10 @@
 = Autobuild ChangeLog
 
+== Version 0.6.3
+
+* the autotols and genom package are now reconfiguring if the flags
+  (configureflags and/or genomflags) changed
+
 == Version 0.6.2
 
 Small changes
