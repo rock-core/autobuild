@@ -3,6 +3,7 @@ require 'autobuild/timestamps'
 require 'autobuild/environment'
 require 'autobuild/package'
 require 'autobuild/subcommand'
+require 'shellwords'
 
 module Autobuild
     def self.autotools(opts, &proc)
@@ -89,7 +90,26 @@ module Autobuild
         end
 
         def prepare
-            file "#{builddir}/config.status" => regen do
+	    # Check if config.status has been generated with the
+	    # same options than the ones in configureflags
+	    config_status = "#{builddir}/config.status"
+
+	    force_reconfigure = false
+	    if File.exists?(config_status)
+		output = IO.popen("#{config_status} --version").readlines.grep(/with options/).first.chomp
+		raise "invalid output of config.status --version" unless output =~ /with options "(.*)"$/
+		options = Shellwords.shellwords($1)
+
+		# Add the --prefix option to the configureflags array
+		testflags = ["--prefix=#{prefix}"] + configureflags
+		old_opt = options.find { |o| !testflags.include?(o) }
+		new_opt = testflags.find { |o| !options.include?(o) }
+		if old_opt || new_opt
+		    File.rm_f config_status # to force reconfiguration
+		end
+	    end
+
+            file config_status => regen do
                 ensure_dependencies_installed
                 configure
             end
@@ -109,13 +129,15 @@ module Autobuild
 
     private
         # Adds a target to rebuild the autotools environment
-        def regen
-            conffile = "#{srcdir}/configure"
-            if confext = %w{.ac .in}.find { |ext| File.exists?("#{conffile}#{ext}") }
-                file conffile => "#{conffile}#{confext}"
-            else
-                raise PackageException.new(name), "neither configure.ac nor configure.in present in #{srcdir}"
-            end
+        def regen(confsource = nil)
+	    conffile = "#{srcdir}/configure"
+	    if confsource
+		file conffile => confsource
+	    elsif confext = %w{.ac .in}.find { |ext| File.exists?("#{conffile}#{ext}") }
+		file conffile => "#{conffile}#{confext}"
+	    else
+		raise PackageException.new(name), "neither configure.ac nor configure.in present in #{srcdir}"
+	    end
 
             file conffile do
                 Dir.chdir(srcdir) {
