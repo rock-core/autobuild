@@ -97,6 +97,19 @@ module Autobuild
         def regen
             cmdline = [ 'genom', "#{name}.gen", *genomflags ]
 
+	    # Check that the module has been generated with the same flags
+	    genom_mk = "#{srcdir}/autoconf/genom.mk"
+	    if File.exists?(genom_mk)
+		contents = File.open(genom_mk).readlines
+		old_file = contents.find { |l| l =~ /^GENFILE/ }.gsub('GENFILE=', '').strip
+		old_flags = Shellwords.shellwords(
+			    contents.find { |l| l =~ /^GENFLAGS/ }.gsub('GENFLAGS=', ''))
+
+		if old_file != "#{name}.gen" || !(old_flags - genomflags).empty? || !(genomflags - old_flags).empty?
+		    File.rm_f genomstamp
+		end
+	    end
+
             file buildstamp => genomstamp
 	    file genomstamp => genom_dependencies
             file genomstamp => srcdir do
@@ -112,6 +125,8 @@ module Autobuild
                 # if .gen has changed
                 Dir.chdir(srcdir) { Subprocess.run(name, 'genom', File.expand_path('autogen')) }
             end
+
+	    super("#{srcdir}/autoconf/configure.ac")
         end
     end
 end
