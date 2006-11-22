@@ -1,3 +1,6 @@
+Autobuild
+    http://autobuild.rubyforge.org
+
 = Introduction
 
 == WARNING for 0.5 users
@@ -5,9 +8,12 @@ Old configuration files used with autobuild 0.5 aren't accepted by Autobuild 0.6
 uses Ruby for configuration (just like rake does)
 
 == What's autobuild ?
-Autobuild is a builder for a set of software packages. It takes as input a yaml config file as input and
+Autobuild imports, configures, builds and installs various kinds of software packages.
+It can be used in software development to make sure that nothing is broken in the 
+build process of a set of packages, or can be used as an automated installation tool.
 
-* imports the package from a SCM or (optionnaly) updates it
+Autobuild config files are Ruby scripts which configure rake to
+* import the package from a SCM or (optionnaly) updates it
 * configures it. This phase can handle code generation, configuration (for instance for autotools-based
 packages), ...
 * build
@@ -119,7 +125,7 @@ Where +options+ is an option hash. See also Autobuild::SVNImporter and Autobuild
 * by default, no options are given to update. You can add some by giving a +svnup+ option
     svn url, :svnup => ['--my', '--svn', '--options']
 
-=== *Darcs*
+=== Darcs
     package.importer = darcs(url[, options])
 
 Where +options+ is a hash. See also Autobuild::DarcsImporter and Autobuild.darcs

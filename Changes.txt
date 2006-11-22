@@ -1,9 +1,10 @@
-= Autobuild ChangeLog
-
 == Version 0.6.3
 
-* the autotols and genom package are now reconfiguring if the flags
+* CVS and SVN importing plugins check that the current working copy comes from
+  the right source
+* the autotools and genom package are now reconfiguring if the flags
   (configureflags and/or genomflags) changed
+* bugfixes
 
 == Version 0.6.2
 
