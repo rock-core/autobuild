@@ -9,7 +9,7 @@ Hoe.new('autobuild', Autobuild::VERSION) do |p|
     p.url	  = p.paragraphs_of('README.txt', 0).first.split(/\n/)[1..-1]
     p.description = p.paragraphs_of('README.txt', 3..5).join("\n\n")
     p.changes     = p.paragraphs_of("Changes.txt", 1).join("\n\n")
-    p.extra_deps << ['rake', '>= 0.7.0']
+    p.extra_deps = [['rake', '>= 0.7.0']]
     p.extra_deps << ['rmail']
     p.extra_deps << ['daemons']
 end
