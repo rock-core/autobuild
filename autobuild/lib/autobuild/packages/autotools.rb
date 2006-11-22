@@ -101,7 +101,7 @@ module Autobuild
 		options = Shellwords.shellwords($1)
 
 		# Add the --prefix option to the configureflags array
-		testflags = ["--prefix=#{prefix}"] + configureflags
+		testflags = ["--prefix=#{prefix}"] + Array[*configureflags]
 		old_opt = options.find { |o| !testflags.include?(o) }
 		new_opt = testflags.find { |o| !options.include?(o) }
 		if old_opt || new_opt
@@ -184,7 +184,7 @@ module Autobuild
             FileUtils.mkdir_p builddir if !File.directory?(builddir)
             Dir.chdir(builddir) {
                 command = [ "#{srcdir}/configure", "--no-create", "--prefix=#{prefix}" ]
-                command |= Array[*configureflags]
+                command += Array[*configureflags]
                 
                 Subprocess.run(name, 'configure', *command)
             }
