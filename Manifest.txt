@@ -1,5 +1,5 @@
 bin/autobuild
-CHANGES
+Changes.txt
 lib/autobuild/config.rb
 lib/autobuild/environment.rb
 lib/autobuild/exceptions.rb
