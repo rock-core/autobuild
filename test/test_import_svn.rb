@@ -31,13 +31,25 @@ class TC_SVNImport < Test::Unit::TestCase
         # Make an update
         importer.import(pkg_svn)
 
-        # Make an update fail
+        # Make an update fail because the repository does not exist
         FileUtils.rm_rf svnrepo
         assert_raise(SubcommandFailed) { importer.import(pkg_svn) }
 
-        # Make a checkout fail
+        # Make a checkout fail because the repository does not exist
         FileUtils.rm_rf pkg_svn.srcdir
         assert_raise(SubcommandFailed) { importer.import(pkg_svn) }
+
+	# Recreate the repository and try to update a non-svn directory
+        TestTools.untar('svnroot.tar')
+	FileUtils.mkdir pkg_svn.srcdir
+        assert_raise(ConfigException) { importer.import(pkg_svn) }
+
+	# Try to update a WC which is of a different repository
+	FileUtils.rmdir pkg_svn.srcdir
+	importer.import(pkg_svn)
+	FileUtils.mv svnrepo, "#{svnrepo}.2"
+        importer = Autobuild.svn("file://#{svnrepo}.2/svn")
+        assert_raise(ConfigException) { importer.import(pkg_svn) }
     end
 
 end

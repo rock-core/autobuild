@@ -15,8 +15,15 @@ module Autobuild
 
         def update(package)
             Dir.chdir(package.srcdir) {
-		url = IO.popen("svn info") { |io| io.readlines }.grep(/^URL: /).first.chomp
-		url =~ /URL: (.+)/
+		svninfo = IO.popen("svn info") { |io| io.readlines }
+		unless url = svninfo.grep(/^URL: /).first
+		    if svninfo.grep(/is not a working copy/).empty?
+			raise ConfigException, "#{package.srcdir} is not a Subversion working copy"
+		    else
+			raise ConfigException, "Bug: cannot get SVN information for #{package.srcdir}"
+		    end
+		end
+		url.chomp =~ /URL: (.+)/
 		source = $1
 		if source != @source
 		    raise ConfigException, "current checkout found at #{package.srcdir} is from #{source}, was expecting #{@source}"

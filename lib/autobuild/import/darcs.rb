@@ -15,6 +15,10 @@ module Autobuild
         private
 
         def update(package)
+	    if !File.directory?( File.join(package.srcdir, '_darcs') )
+		raise ConfigException, "#{package.srcdir} is not a Darcs repository"
+	    end
+
 	    Subprocess.run(package.name, :import, @program, 
 	       'pull', '--all', "--repodir=#{package.srcdir}", '--set-scripts-executable', @source, *@pull)
         end
