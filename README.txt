@@ -1,11 +1,10 @@
 Autobuild
     http://autobuild.rubyforge.org
 
-= Introduction
+Copyright (c) 2006-2007
+    Sylvain Joyeux <sylvain.joyeux@m4x.org>
 
-== WARNING for 0.5 users
-Old configuration files used with autobuild 0.5 aren't accepted by Autobuild 0.6. Since 0.6, Autobuild 
-uses Ruby for configuration (just like rake does)
+This work is licensed under the GPLv2 license. See License.txt for details
 
 == What's autobuild ?
 Autobuild imports, configures, builds and installs various kinds of software packages.
@@ -13,14 +12,20 @@ It can be used in software development to make sure that nothing is broken in th
 build process of a set of packages, or can be used as an automated installation tool.
 
 Autobuild config files are Ruby scripts which configure rake to
-* import the package from a SCM or (optionnaly) updates it
-* configures it. This phase can handle code generation, configuration (for instance for autotools-based
-packages), ...
+* imports the package from a SCM or (optionnaly) updates it
+* configures it. This phase can handle code generation, configuration (for
+  instance for autotools-based packages), ...
 * build
 * install
 
-It takes the dependencies between packages into account in its build process, updates the needed environment
-variables (+PKG_CONFIG_PATH+, +PATH+, +LD_LIBRARY_PATH+, ...)
+It takes the dependencies between packages into account in its build process,
+updates the needed environment variables (+PKG_CONFIG_PATH+, +PATH+,
++LD_LIBRARY_PATH+, ...)
+
+
+== WARNING for 0.5 users
+Old configuration files used with autobuild 0.5 aren't accepted by Autobuild
+0.6. Since 0.6, Autobuild uses Ruby for configuration (just like rake does)
 
 == Available packages
 === Common usage
