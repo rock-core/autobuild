@@ -1,3 +1,11 @@
+== Version 0.6.4
+
+This is a bugfix release
+
+* More checks for working copy sanity: check that the target working copy
+  has been created by the right tools before doing anything. Update test
+  suite so that these parts of the importers is tested
+
 == Version 0.6.3
 
 * CVS and SVN importing plugins check that the current working copy comes from
