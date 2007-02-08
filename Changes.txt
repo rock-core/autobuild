@@ -5,6 +5,8 @@ This is a bugfix release
 * More checks for working copy sanity: check that the target working copy
   has been created by the right tools before doing anything. Update test
   suite so that these parts of the importers is tested
+* Since we grep 'svn info' output, make sure that LANG is set to C before
+  calling it
 
 == Version 0.6.3
 
