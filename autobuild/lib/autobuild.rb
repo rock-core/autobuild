@@ -1,12 +1,8 @@
-module Autobuild
-    VERSION = "0.6.3"
-end
-
 require 'autobuild/config'
 require 'autobuild/reporting'
 require 'autobuild/package'
 
 module Autobuild
-    VERSION = "0.6.4"
+    VERSION = "0.6.4" unless defined? Autobuild::VERSION
 end
 

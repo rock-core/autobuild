@@ -1,6 +1,5 @@
-require 'lib/autobuild'
 require 'hoe'
-require './lib/autobuild'
+require 'lib/autobuild'
 
 Hoe.new('autobuild', Autobuild::VERSION) do |p|
     p.author = "Sylvain Joyeux"
