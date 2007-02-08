@@ -25,7 +25,7 @@ module Autobuild
         def update(package)
             Dir.chdir(package.srcdir) do
 		if !File.exists?("#{package.srcdir}/CVS/Root")
-		    raise ConfigException, "#{package.srcdir} does not look like a CVS checkout"
+		    raise ConfigException, "#{package.srcdir} is not a CVS working copy"
 		end
 
 		root = File.open("#{package.srcdir}/CVS/Root") { |io| io.read }.chomp
