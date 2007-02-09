@@ -17,7 +17,7 @@ module Autobuild
             Dir.chdir(package.srcdir) {
 		old_lang, ENV['LC_ALL'] = ENV['LC_ALL'], 'C'
 		svninfo = IO.popen("svn info") { |io| io.readlines }
-		ENV['LANG'] = old_lang
+		ENV['LC_ALL'] = old_lang
 		unless url = svninfo.grep(/^URL: /).first
 		    if svninfo.grep(/is not a working copy/).empty?
 			raise ConfigException, "#{package.srcdir} is not a Subversion working copy"
