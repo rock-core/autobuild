@@ -15,7 +15,7 @@ module Autobuild
 
         def update(package)
             Dir.chdir(package.srcdir) {
-		old_lang, ENV['LANG'] = ENV['LANG'], 'C'
+		old_lang, ENV['LC_ALL'] = ENV['LC_ALL'], 'C'
 		svninfo = IO.popen("svn info") { |io| io.readlines }
 		ENV['LANG'] = old_lang
 		unless url = svninfo.grep(/^URL: /).first
