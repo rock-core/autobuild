@@ -3,6 +3,14 @@ require 'autobuild/importer'
 
 module Autobuild
     class SVN < Importer
+	# Creates an importer which gets the source for the Subversion URL +source+.
+	# The following options are allowed:
+	# [:svnup] options to give to 'svn up'
+	# [:svnco] options to give to 'svn co'
+	#
+	# This importer uses the 'svn' tool to perform the import. It defaults
+	# to 'svn' and can be configured by doing 
+	#   Autobuild.programs['svn'] = 'my_svn_tool'
         def initialize(source, options = {})
             @source = [*source].join("/")
             @program    = Autobuild.tool('svn')
@@ -13,7 +21,7 @@ module Autobuild
 
         private
 
-        def update(package)
+        def update(package) # :nodoc:
             Dir.chdir(package.srcdir) {
 		old_lang, ENV['LC_ALL'] = ENV['LC_ALL'], 'C'
 		svninfo = IO.popen("svn info") { |io| io.readlines }
@@ -34,12 +42,14 @@ module Autobuild
             }
         end
 
-        def checkout(package)
+        def checkout(package) # :nodoc:
             options = [ @program, 'co' ] + @options_co + [ @source, package.srcdir ]
             Subprocess.run(package.name, :import, *options)
         end
     end
 
+    # Creates a subversion importer which import the source for the Subversion
+    # URL +source+. The allowed values in +options+ are described in SVN.new.
     def self.svn(source, options = {})
         SVN.new(source, options)
     end

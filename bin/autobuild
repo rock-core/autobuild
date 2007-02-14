@@ -9,6 +9,7 @@ DEFAULT_HTTP_PORT = 2000
 
 # Load the command line options
 conffile, *packages = Autobuild.commandline(ARGV)
+Autobuild.packages = packages
 
 # make conffile an absolute path since daemonize mode makes
 # / the current directory
@@ -30,6 +31,9 @@ begin
 	targets = ['import']
 	targets += ['prepare', 'build'] if Autobuild.do_build
         targets.each do |phase|
+	    packages = Autobuild.packages
+	    packages = Autobuild.default_packages if packages.empty?
+
             if packages.empty?
                 Rake::Task[phase].invoke
             else

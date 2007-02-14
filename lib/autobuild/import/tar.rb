@@ -2,8 +2,11 @@ require 'open-uri'
 
 module Autobuild
     class TarImporter < Importer
+	# The tarball is not compressed
         Plain = 0
+	# The tarball is compressed with gzip
         Gzip  = 1
+	# The tarball is compressed using bzip
         Bzip  = 2
 
         TAR_OPTION = {
@@ -12,22 +15,25 @@ module Autobuild
             Bzip => 'j'
         }
 
+	# Known URI schemes for +url+
         VALID_URI_SCHEMES = [ 'file', 'http', 'ftp' ]
 
+	# Returns the unpack mode from the file name
         def self.url_to_mode(url)
             ext = File.extname(url)
+            unless ext == '.tar'
+                raise "Invalid file type in #{url}" unless File.basename(url, ext) != '.tar'
+            end
             mode =  case ext
                         when '.tar'; Plain
                         when '.gz'; Gzip
                         when '.bz2'; Bzip
                     end
 
-            unless ext == '.tar'
-                raise "Invalid file type in #{url}" unless File.basename(url, ext) != '.tar'
-            end
             mode
         end
 
+	# Updates the downloaded file in cache only if it is needed
         def update_cache
             do_update = true
 
@@ -67,6 +73,7 @@ module Autobuild
             end
         end
 
+	# Sets the source URL and update +cachefile+ and +mode+ attributes accordingly.
         def url=(url)
             @url = URI.parse(url)
             raise ConfigException, "invalid URL #{url}" unless VALID_URI_SCHEMES.include?(@url.scheme)
@@ -79,22 +86,31 @@ module Autobuild
             end
         end
 
-        attr_reader :url, :cachefile, :mode
+	# The source URL
+        attr_reader :url
+	# The local file (either a downloaded file if +url+ is not local, or +url+ itself)
+	attr_reader :cachefile
+	# The unpack mode. One of Bzip, Gzip or Plain
+	attr_reader :mode
+	# The directory in which remote files are cached
         def cachedir; @options[:cachedir] end
 
+	# Creates a new importer which downloads +url+ in +cachedir+ and unpacks it. The following options
+	# are allowed:
+	# [:cachedir] the cache directory. Defaults to "#{Autobuild.prefix}/cache"
         def initialize(url, options)
             @options = options.dup
-            @options[:cachedir] ||= $CACHEDIR
+            @options[:cachedir] ||= "#{Autobuild.prefix}/cache"
             self.url = url
         end
 
-        def update(package)
+        def update(package) # :nodoc:
             checkout if update_cache
         rescue OpenURI::HTTPError
             raise Autobuild::Exception.new(package.name, :import)
         end
 
-        def checkout(package)
+        def checkout(package) # :nodoc:
             update_cache
 
             base_dir = File.dirname(package.srcdir)
@@ -111,10 +127,10 @@ module Autobuild
         end
     end
 
-    module Import
-        def self.tar(source, package_options)
-            TarImporter.new(source, package_options)
-        end
+    # Creates an importer which downloads a tarball from +source+ and unpacks
+    # it. The allowed values in +options+ are described in TarImporter.new.
+    def self.tar(source, options)
+	TarImporter.new(source, options)
     end
 end
 
