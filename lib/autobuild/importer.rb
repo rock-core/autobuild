@@ -1,11 +1,17 @@
 require 'autobuild/config'
 require 'autobuild/exceptions'
 
+# This class is the base class for objects that are used to get the source from
+# various RCS into the package source directory. A list of patches to apply
+# after the import can be given in the +:patches+ option.
 class Autobuild::Importer
-    def initialize(options)
-        @options = options
-    end
+    # Creates a new Importer object. The options known to Importer are:
+    # [:patches] a list of patch to apply after import
+    #
+    # More options are specific to each importer type.
+    def initialize(options); @options = options end
 
+    # Performs the import of +package+
     def import(package)
         srcdir = package.srcdir
         if File.directory?(srcdir)
@@ -32,8 +38,8 @@ class Autobuild::Importer
 
     private
     
-    # We assume that package.srcdir already exists (checkout 
-    # is supposed to have been called)
+    # We assume that package.srcdir already exists (checkout is supposed to
+    # have been called)
     def patchlist(package)
         "#{package.srcdir}/patches-autobuild-stamp"
     end
