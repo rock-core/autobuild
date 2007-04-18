@@ -2,19 +2,24 @@ require 'autobuild/pkgconfig'
 
 module Autobuild
     class InstalledPkgConfig < Package
+	attr_reader :pkgconfig
+	attr_reader :prefix
+
 	def initialize(name)
 	    @pkgconfig = PkgConfig.new(name)
-	    @prefix = @pkgconfig.prefix
+	    @prefix    = @pkgconfig.prefix
 	    super
 	end
 
 	def installstamp
 	    std_stamp = super
-	    if File.file?(std_stamp)
-		std_stamp
-	    else
-		raise "#{name} is either not installed or has not been built by autobuild (#{std_stamp} not found)"
+	    return std_stamp if File.file?(std_stamp)
+
+	    pcfile = File.join(pkgconfig.prefix, "lib", "pkgconfig", "opencv.pc")
+	    if !File.file?(pcfile)
+		raise "cannot find the .pc file for #{name}, tried #{pcfile}"
 	    end
+	    pcfile
 	end
     end
     def installed_pkgconfig(name, &block)
