@@ -59,7 +59,9 @@ module Autobuild
         # Alias this package to the ones defined in the EXTRA_PKGCONFIG 
         # flag in configure.ac.user
         def get_provides
-            File.open(File.join(srcdir, 'configure.ac.user')) do |f|
+	    configure_ac_user = File.join(srcdir, 'configure.ac.user')
+	    return unless File.readable?(configure_ac_user)
+            File.open(configure_ac_user) do |f|
                 f.each_line { |line|
                     if line =~ /^\s*EXTRA_PKGCONFIG\s*=\s*"?([\w\-]+(?:\s+[\w\-]+)*)"?/
                         $1.split(/\s+/).each { |pkg| provides pkg }
