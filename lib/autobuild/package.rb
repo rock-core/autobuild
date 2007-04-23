@@ -61,7 +61,19 @@ class Autobuild::Package
         yield(self) if block_given?
         
         # Declare the installation stampfile
-        file installstamp
+        file installstamp do
+	    Dir.chdir(srcdir) do
+		case @post_install
+		when Array
+		    args = @post_install.dup
+		    tool = Autobuild.tool(args.shift)
+
+		    Autobuild::Subprocess.run name, 'post-install', tool, *args
+		when Proc
+		    @post_install.call
+		end
+	    end
+	end
         task "#{name}-build" => installstamp
         task :build => "#{name}-build"
 
@@ -87,6 +99,16 @@ class Autobuild::Package
     def import; @import.import(self) if @import end
     def prepare; end
 
+    def post_install(*args, &block)
+	if args.empty?
+	    @post_install = block
+	elsif !block
+	    @post_install = args
+	else
+	    raise ArgumentError, "cannot set both arguments and block"
+	end
+    end
+
     # This package depends on +packages+
     def depends_on(*packages)
         packages.each do |p|
@@ -96,7 +118,7 @@ class Autobuild::Package
                 raise ConfigException.new(name), "package #{p} not defined"
             end
             file installstamp => Package[p].installstamp
-	    task "#{name}-import" => "#{p}-import"
+	    task "#{name}-import"  => "#{p}-import"
 	    task "#{name}-prepare" => "#{p}-prepare"
             @dependencies << p
         end

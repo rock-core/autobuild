@@ -1,9 +1,11 @@
 == Version 0.6.5
 
 * add Autobuild.default_packages
+* add Package#post_install
 * big rdoc update
 * allow to reference pkg-config packages not built by autobuild.
   The .pc file is used as installation stamp file
+
 
 == Version 0.6.4
 
