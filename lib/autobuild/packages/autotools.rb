@@ -90,6 +90,8 @@ module Autobuild
         end
 
         def prepare
+	    configureflags.flatten!
+
 	    # Check if config.status has been generated with the
 	    # same options than the ones in configureflags
 	    config_status = "#{builddir}/config.status"
@@ -102,7 +104,7 @@ module Autobuild
 
 		# Add the --prefix option to the configureflags array
 		testflags = ["--prefix=#{prefix}"] + Array[*configureflags]
-		old_opt = options.find { |o| !testflags.include?(o) }
+		old_opt = options.find   { |o| !testflags.include?(o) }
 		new_opt = testflags.find { |o| !options.include?(o) }
 		if old_opt || new_opt
 		    File.rm_f config_status # to force reconfiguration

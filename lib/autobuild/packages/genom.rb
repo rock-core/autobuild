@@ -25,6 +25,8 @@ module Autobuild
         # Called before running the rake tasks and
         # after all imports have been made
         def prepare
+	    genomflags.flatten!
+
             super
 	    get_requires
         end
