@@ -23,6 +23,11 @@ module Autobuild
             @options_co = Array[*@options_co]
             super(options)
         end
+
+	# Array of options to give to 'cvs checkout'
+	attr_reader :options_co
+	# Array of options to give to 'cvs update'
+	attr_reader :options_up
         
 	# Returns the module to get
         def modulename; @module end
