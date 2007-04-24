@@ -25,8 +25,13 @@ class Autobuild::Package
     # it is relative to Autobuild.prefix. Defaults to ''
     attr_writer :prefix
     
-    # The importer object for this package
-    attr_accessor :import
+    # Sets importer object for this package. Defined for backwards compatibility.
+    # Use the #importer attribute instead
+    def import=(value)
+	@importer = value
+    end
+    # Sets an importer object for this package
+    attr_accessor :importer
 
     # The list of packages this one depends upon
     attr_reader :dependencies
@@ -96,7 +101,7 @@ class Autobuild::Package
         task :default => name
     end
 
-    def import; @import.import(self) if @import end
+    def import; @importer.import(self) if @importer end
     def prepare; end
 
     def post_install(*args, &block)
