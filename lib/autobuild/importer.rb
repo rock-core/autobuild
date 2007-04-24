@@ -11,6 +11,10 @@ class Autobuild::Importer
     # More options are specific to each importer type.
     def initialize(options); @options = options end
 
+    def patches
+	@options[:patches] ||= []
+    end
+
     # Performs the import of +package+
     def import(package)
         srcdir = package.srcdir
@@ -71,10 +75,10 @@ class Autobuild::Importer
                 unapply(package, p) 
             end
 
-            @options[:patch].to_a.each { |p| 
+            patches.to_a.each do |p| 
                 apply(package, p) 
                 cur_patches << p
-            }
+	    end
         ensure
             File.open(patchlist(package), 'w+') do |f|
                 f.write(cur_patches.join("\n"))
