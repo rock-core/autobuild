@@ -1,3 +1,9 @@
+== Version 0.6.7
+
+* put install-stamp files into logdir, to clean up the installation prefix
+* added Autobuild.post_install: run an external program or call a block after
+  all packages have been successfully built
+
 == Version 0.6.6
 
 * add Package#post_install: executes either a block or an external
