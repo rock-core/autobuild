@@ -39,7 +39,7 @@ module Autobuild
     class SourceTreeTask < Rake::Task
         attr_accessor :exclude
         def timestamp
-            tree_timestamp(name, %r#(?:^|/)CVS$#, *@exclude)
+            tree_timestamp(name, %r#(?:^|/)(?:CVS|_darcs|\.svn)$#, *@exclude)
         end
     end
     def source_tree(path, exclude = [], &block)
