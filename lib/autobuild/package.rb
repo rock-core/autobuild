@@ -45,7 +45,7 @@ class Autobuild::Package
     # has finished. The path is absolute
     #
     # A package is sucessfully built when it is installed
-    def installstamp; "#{prefix}/#{name}-#{STAMPFILE}" end
+    def installstamp; "#{Autobuild.logdir}/#{name}-#{STAMPFILE}" end
 
     def initialize(spec)
         @dependencies   = Array.new
