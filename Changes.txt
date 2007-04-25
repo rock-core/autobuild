@@ -3,6 +3,10 @@
 * put install-stamp files into logdir, to clean up the installation prefix
 * added Autobuild.post_install: run an external program or call a block after
   all packages have been successfully built
+* bugfix: darcs get expects that the path to the destination directory already
+  exists. Create it ourselves if it does not exist.
+* bugfix: when computing the timestamp of a source tree, exclude .svn and _darcs
+  directories
 
 == Version 0.6.6
 
