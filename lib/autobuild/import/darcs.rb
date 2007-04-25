@@ -32,6 +32,11 @@ module Autobuild
         end
 
         def checkout(package) # :nodoc:
+	    basedir = File.dirname(package.srcdir)
+	    unless File.directory?(basedir)
+		FileUtils.mkdir_p(basedir)
+	    end
+
 	    Subprocess.run(package.name, :import, @program, 
 	       'get', '--set-scripts-executable', @source, package.srcdir, *@get)
         end
