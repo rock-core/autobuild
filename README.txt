@@ -1,8 +1,6 @@
-Autobuild
-    http://autobuild.rubyforge.org
-
-Copyright (c) 2006-2007
-    Sylvain Joyeux <sylvain.joyeux@m4x.org>
+Copyright (c) 2006-2007 Sylvain Joyeux <sylvain.joyeux@m4x.org>
+* http://www.rubyforge.org/projects/autobuild [project page]
+* http://autobuild.rubyforge.org/autobuild [API documentation]
 
 This work is licensed under the GPLv2 license. See License.txt for details
 
