@@ -68,15 +68,7 @@ class Autobuild::Package
         # Declare the installation stampfile
         file installstamp do
 	    Dir.chdir(srcdir) do
-		case @post_install
-		when Array
-		    args = @post_install.dup
-		    tool = Autobuild.tool(args.shift)
-
-		    Autobuild::Subprocess.run name, 'post-install', tool, *args
-		when Proc
-		    @post_install.call
-		end
+		Autobuild.apply_post_install(@post_install)
 	    end
 	end
         task "#{name}-build" => installstamp

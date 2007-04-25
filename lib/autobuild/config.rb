@@ -46,6 +46,31 @@ module Autobuild
         send("#{name}=", value)
     end
 
+    def self.post_install(*args, &block)
+	if args.empty?
+	    @post_install_handler = block
+	elsif !block
+	    @post_install_handler = args
+	else
+	    raise ArgumentError, "cannot set both arguments and block"
+	end
+    end
+    attr_reader :post_install_handler
+
+    def self.apply_post_install(info)
+	return unless info
+
+	case info
+	when Array
+	    args = info.dup
+	    tool = Autobuild.tool(args.shift)
+
+	    Autobuild::Subprocess.run name, 'post-install', tool, *args
+	when Proc
+	    info.call
+	end
+    end
+
     @mail = Hash.new
     class << self
 	# Mailing configuration. It is a hash with the following keys (as symbols)
