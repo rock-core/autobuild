@@ -7,6 +7,7 @@
   exists. Create it ourselves if it does not exist.
 * bugfix: when computing the timestamp of a source tree, exclude .svn and _darcs
   directories
+* bugfix: 'opencv.pc' were always searched in PkgConfig packages ...
 
 == Version 0.6.6
 
