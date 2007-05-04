@@ -22,7 +22,7 @@ module Autobuild
 	    pcfile
 	end
     end
-    def installed_pkgconfig(name, &block)
+    def self.installed_pkgconfig(name, &block)
         InstalledPkgConfig.new(name, &block)
     end
 end
