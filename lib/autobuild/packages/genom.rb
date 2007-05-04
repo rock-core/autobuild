@@ -48,7 +48,7 @@ module Autobuild
                     if line =~ /^\s*(codels_)?requires\s*:\s*([\w\-]+(?:\s*,\s*[\w\-]+)*);/
 			# Remove the codels_requires lines if -a is given to genom
 			unless $1 == "codels_" && apionly
-			    $2.split(/, /).each { |name| depends_on name }
+			    $2.split(/,/).each { |name| depends_on name.strip }
 			end
                     elsif line =~ /^\s*(?:codels_)?requires/
 			# Check that the regexp is not too strict
