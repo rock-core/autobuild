@@ -3,6 +3,6 @@ require 'autobuild/reporting'
 require 'autobuild/package'
 
 module Autobuild
-    VERSION = "0.6.7" unless defined? Autobuild::VERSION
+    VERSION = "1.0" unless defined? Autobuild::VERSION
 end
 
