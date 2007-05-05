@@ -7,7 +7,13 @@
   exists. Create it ourselves if it does not exist.
 * bugfix: when computing the timestamp of a source tree, exclude .svn and _darcs
   directories
-* bugfix: 'opencv.pc' were always searched in PkgConfig packages ...
+* bugfix: 'opencv.pc' were searched in PkgConfig packages instead of the
+  actual .pc file ...
+* bugfix: installed_pkgconfig is supposed to be a singleton method of Autobuild
+* bugfix: "darcs get" expects that the path leading to the destination
+  directory exists. Create it.
+* bugfix: fix handling of Genom's requires lists: we were previously expecting
+  packages to be exactly separated by ', '
 
 == Version 0.6.6
 
