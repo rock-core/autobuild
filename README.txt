@@ -103,8 +103,19 @@ and is set via <tt>package.importer = my_importer</tt>. An importer +foo+ is def
 Autobuild::FooImporter and defines a Autobuild.foo method which creates a new importer object.
 Importer classes files are in <tt>lib/autobuild/import/</tt>
 
-=== CVS 
+=== Tar
+    package.importer = tar(uri[, options])
+    
+Downloads a tarfile at +uri+ and saves it into a local cache directory.
+The cache directory can be set in the +options+ hash
+    package.importer = tar(uri, :cachedir = '/tmp')
 
+It is "#{Autobuild.prefix}/cache" by default. The known URI schemes are file://
+for local files and http:// or ftp:// for remote files.  There is currently no
+way to set passive mode on FTP, since the standard open-uri library does not
+allow that.
+
+=== CVS 
     package.importer = cvs(cvsroot, module[, options])
 
 Where +options+ is an option hash. See also Autobuild::CVSImporter and Autobuild.cvs
