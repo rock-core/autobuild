@@ -16,7 +16,7 @@ module Autobuild
         }
 
 	# Known URI schemes for +url+
-        VALID_URI_SCHEMES = [ 'file', 'http', 'ftp' ]
+        VALID_URI_SCHEMES = [ 'file', 'http', 'https', 'ftp' ]
 
 	# Returns the unpack mode from the file name
         def self.url_to_mode(url)
@@ -76,13 +76,13 @@ module Autobuild
 	# Sets the source URL and update +cachefile+ and +mode+ attributes accordingly.
         def url=(url)
             @url = URI.parse(url)
-            raise ConfigException, "invalid URL #{url}" unless VALID_URI_SCHEMES.include?(@url.scheme)
+            raise ConfigException, "invalid URL #{url}" unless VALID_URI_SCHEMES.include?(url.scheme)
 
             @mode = TarImporter.url_to_mode(url)
-            if @url.scheme == 'file'
-                @cachefile = @url
+            if url.scheme == 'file'
+                @cachefile = url
             else
-                @cachefile = File.join(cachedir, File.basename(@url.path))
+                @cachefile = File.join(cachedir, File.basename(url.path))
             end
         end
 
@@ -105,7 +105,7 @@ module Autobuild
         end
 
         def update(package) # :nodoc:
-            checkout if update_cache
+            checkout(package) if update_cache
         rescue OpenURI::HTTPError
             raise Autobuild::Exception.new(package.name, :import)
         end
