@@ -14,18 +14,12 @@ module Autobuild
     # ==== Handles autotools-based packages
     #
     # == Used programs (see <tt>Autobuild.programs</tt>)
-    # * aclocal
-    # * autoheader
-    # * autoconf
-    # * automake
+    # Autotools will use the 'aclocal', 'autoheader', 'autoconf' and 'automake'
+    # programs defined on Autobuild.programs. autoheader is disabled by default,
+    # aclocal, autoconf and automake use are autodetected.
     #
-    # == Available options
-    # * aclocal     (default: true if autoconf is enabled, false otherwise) run aclocal
-    # * autoconf    (default: true)
-    # * autoheader  (default: false) run autoheader
-    # * automake    (default: autodetect) run automake. Will run automake if there is a 
-    #               +Makefile.am+ in the source directory
-    # 
+    # To override this default behaviour on a per-package basis, use Autotools#use
+    #
     class Autotools < Package
         attr_accessor   :using
         attr_accessor   :configureflags
@@ -61,6 +55,29 @@ module Autobuild
             Autobuild.update_environment(prefix)
         end
 
+	# Overrides the default behaviour w.r.t. autotools script generation
+	#
+	# Use it like that:
+	# * to force a generation step (skipping autodetection), do
+	#     pkg.use <program> => true
+	#   For instance, for aclocal
+	#     pkg.use :aclocal => true
+	#
+	# * to force a generation step, overriding the program defined on Autobuild
+	#     pkg.use <program> => true
+	#   For instance, for autoconf
+	#     pkg.use :autoconf => 'my_autoconf_program'
+	#
+	# * to disable a generation step, do
+	#     pkg.use <program> => false
+	#   For instance, for automake
+	#     pkg.use :automake => false
+	#
+	# * to restore autodetection, do
+	#     pkg.use <program> => nil
+	#   For instance, for automake
+	#     pkg.use :automake => nil
+	#
         def use(*programs)
             programs = *programs
             if !programs.kind_of?(Hash)
