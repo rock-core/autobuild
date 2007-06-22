@@ -1,3 +1,4 @@
+require 'autobuild/importer'
 require 'open-uri'
 
 module Autobuild
@@ -77,13 +78,13 @@ module Autobuild
 	# Sets the source URL and update +cachefile+ and +mode+ attributes accordingly.
         def url=(url)
             @url = URI.parse(url)
-            raise ConfigException, "invalid URL #{url}" unless VALID_URI_SCHEMES.include?(url.scheme)
+            raise ConfigException, "invalid URL #{@url}" unless VALID_URI_SCHEMES.include?(@url.scheme)
 
             @mode = TarImporter.url_to_mode(url)
-            if url.scheme == 'file'
-                @cachefile = url
+            if @url.scheme == 'file'
+                @cachefile = @url.path
             else
-                @cachefile = File.join(cachedir, File.basename(url.path))
+                @cachefile = File.join(cachedir, File.basename(@url.path))
             end
         end
 
@@ -130,7 +131,7 @@ module Autobuild
 
     # Creates an importer which downloads a tarball from +source+ and unpacks
     # it. The allowed values in +options+ are described in TarImporter.new.
-    def self.tar(source, options)
+    def self.tar(source, options = {})
 	TarImporter.new(source, options)
     end
 end
