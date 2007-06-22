@@ -96,6 +96,8 @@ module Autobuild
 	attr_reader :mode
 	# The directory in which remote files are cached
         def cachedir; @options[:cachedir] end
+	# The directory contained in the tar file
+	def tardir; @options[:tardir] end
 
 	# Creates a new importer which downloads +url+ in +cachedir+ and unpacks it. The following options
 	# are allowed:
@@ -118,8 +120,11 @@ module Autobuild
             base_dir = File.dirname(package.srcdir)
             FileUtils.mkdir_p base_dir
             cmd = [ 'tar', "x#{TAR_OPTION[mode]}f", cachefile, '-C', base_dir ]
-            
+
             Subprocess.run(package.name, :import, *cmd)
+	    if tardir
+		File.mv File.join(base_dir, tardir), package.srcdir
+	    end
 
         rescue OpenURI::HTTPError
             raise Autobuild::Exception.new(package.name, :import)
