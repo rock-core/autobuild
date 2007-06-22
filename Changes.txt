@@ -1,6 +1,6 @@
 == Version 1.0
 
-* Releasing 1.0. Autobuild is stable, and a few peopls already use it daily at work
+* Releasing 1.0. Autobuild is stable, and is in daily use at my work
 * Handle .tgz as valid tar extension (Closes #11722)
 * Fix bug in the tar importer, which made checkout fail (Closes #11716)
 
