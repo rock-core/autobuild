@@ -102,6 +102,8 @@ module Autobuild
 	# Creates a new importer which downloads +url+ in +cachedir+ and unpacks it. The following options
 	# are allowed:
 	# [:cachedir] the cache directory. Defaults to "#{Autobuild.prefix}/cache"
+	# [:tardir]   the directory contained in the tar file. If set, the importer will rename that directory
+	#             to make it match Package#srcdir
         def initialize(url, options)
             @options = options.dup
             @options[:cachedir] ||= "#{Autobuild.prefix}/cache"
