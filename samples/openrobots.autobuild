@@ -1,6 +1,11 @@
 # This sample file installs a set of autotools packages from
 # the OpenRobots suite of tools (http://softs.laas.fr/openrobots)
 #
+# The user (you) is asked about the installation directory (prefix). Then, the various packages
+# are installed the following way:
+# * sources are in prefix/src
+# * installed packages are in prefix/bin, prefix/lib, prefix/include, ...
+#
 # This version uses the Tar importer to get the latest release
 require 'autobuild'
 require 'autobuild/packages/autotools'
