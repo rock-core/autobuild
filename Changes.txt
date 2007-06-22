@@ -1,3 +1,8 @@
+== Version 1.0.1
+* The "test suites are there for something" release
+* Fixes bugs introduced in the last version
+* Added a real example in samples/openrobots.rb
+
 == Version 1.0
 
 * Releasing 1.0. Autobuild is stable, and is in daily use at my work
