@@ -45,6 +45,10 @@ begin
 
         Reporting.success
     end
+rescue ThreadError
+    STDERR.puts "Rake failed with a ThreadError"
+    STDERR.puts "You may have a circular dependency in your packages"
 rescue Interrupt
+    STDERR.puts "interrupted"
 end
  
