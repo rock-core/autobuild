@@ -2,6 +2,8 @@
 * The "test suites are there for something" release
 * Fixes bugs introduced in the last version
 * Added a real example in samples/openrobots.rb
+* Fixed documentation in various places
+* Fail more gracefully on circular dependencies
 
 == Version 1.0
 
