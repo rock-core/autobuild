@@ -22,7 +22,7 @@ lib/autobuild/pkgconfig.rb
 lib/autobuild/reporting.rb
 lib/autobuild/subcommand.rb
 lib/autobuild/timestamps.rb
-samples/demo.rb
+samples/openrobots.autobuild
 test/data/cvsroot.tar
 test/data/svnroot.tar
 test/data/tarimport.tar.gz
