@@ -26,7 +26,8 @@ module Autobuild
             end
             mode =  case ext
                         when '.tar'; Plain
-                        when '.gz'; Gzip
+                        when '.gz';  Gzip
+			when '.tgz'; Gzip
                         when '.bz2'; Bzip
                     end
 
