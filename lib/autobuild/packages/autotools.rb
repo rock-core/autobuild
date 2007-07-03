@@ -96,8 +96,7 @@ module Autobuild
         def depends_on(*packages)
             super
             stamps = packages.collect { |p| Package[p.to_s].installstamp }
-            #file "#{builddir}/config.status" => stamps
-            file buildstamp => stamps
+            file "#{builddir}/config.status" => stamps
         end
 
         def ensure_dependencies_installed
@@ -133,7 +132,9 @@ module Autobuild
                 configure
             end
 
-            source_tree srcdir, /^#{Regexp.quote(builddir)}/
+            source_tree srcdir do |pkg|
+		pkg.exclude << Regexp.new("^#{Regexp.quote(builddir)}")
+	    end
             file buildstamp => [ srcdir, "#{builddir}/config.status" ] do 
                 ensure_dependencies_installed
                 build

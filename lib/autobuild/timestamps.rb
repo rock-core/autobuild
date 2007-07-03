@@ -32,19 +32,23 @@ module Autobuild
             end
         }
 
-        puts "  #{latest}" if Autobuild.debug
+        puts "  newest file: #{latest_file} at #{latest}" if Autobuild.debug
         return latest
     end
 
     class SourceTreeTask < Rake::Task
         attr_accessor :exclude
+	def initialize(*args, &block)
+	    @exclude = []
+	    super
+	end
+	    
         def timestamp
             tree_timestamp(name, %r#(?:^|/)(?:CVS|_darcs|\.svn)$#, *@exclude)
         end
     end
-    def source_tree(path, exclude = [], &block)
-        task = SourceTreeTask.define_task(path, &block)
-        task.exclude = exclude
+    def source_tree(path, &block)
+        SourceTreeTask.define_task(path, &block)
     end
             
     def get_stamp(stampfile)

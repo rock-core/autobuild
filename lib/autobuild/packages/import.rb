@@ -10,9 +10,19 @@ module Autobuild
         def installstamp
             "#{srcdir}/#{STAMPFILE}"
         end
-        def initialize(target)
+	
+	attr_reader :exclude
+
+        def initialize(*args)
+	    @exclude = []
             super
-            source_tree srcdir, /^#{Regexp.quote(installstamp)}/
+	    exclude << Regexp.new("^#{Regexp.quote(installstamp)}")
+
+            source_tree(srcdir) do |pkg|
+		pkg.exclude.concat exclude
+		exclude.freeze
+	    end
+
             file installstamp => srcdir do 
                 touch_stamp installstamp
             end
