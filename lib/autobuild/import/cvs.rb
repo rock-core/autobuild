@@ -43,8 +43,15 @@ module Autobuild
 		root = File.open("#{package.srcdir}/CVS/Root") { |io| io.read }.chomp
 		mod  = File.open("#{package.srcdir}/CVS/Repository") { |io| io.read }.chomp
 
-		if root != @root || mod != @module
-		    raise ConfigException, "checkout in #{package.srcdir} is from #{root}:#{mod}, was expecting #{@root}:#{@module}"
+		# Remove any :ext: in front of the root
+		root = root.gsub /^:ext:/, ''
+		expected_root = @root.gsub /^:ext:/, ''
+		# Remove the optional ':' between the host and the path
+		root = root.gsub /:/, ''
+		expected_root = expected_root.gsub /:/, ''
+
+		if root != expected_root || mod != @module
+		    raise ConfigException, "checkout in #{package.srcdir} is from #{root}:#{mod}, was expecting #{expected_root}:#{@module}"
 		end
                 Subprocess.run(package.name, :import, @program, 'up', *@options_up)
 	    end
