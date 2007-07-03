@@ -18,7 +18,7 @@ end
 # debug:: more verbose than 'verbose': displays Rake's debugging output
 # do_update:: if we should update the packages
 # do_build:: if we should build the packages
-# daemonize:: if the build should go into daemon mode
+# daemonize:: if the build should go into daemon mode (only if the daemons gem is available)
 # clean_log:: remove all logs before starting the build
 # packages:: a list of packages to build specifically
 # default_packages:: the list of packages to build if Autobuild.packages is empty.
@@ -118,7 +118,9 @@ module Autobuild
                     puts opts
                     exit
                 end
-                opts.on("--[no-]daemon", "go into daemon mode") do |@daemonize| end
+		if defined? Daemons
+		    opts.on("--[no-]daemon", "go into daemon mode") do |@daemonize| end
+		end
                 opts.on("--[no-]update", "update already checked-out sources") do |@do_update| end
                 opts.on("--[no-]build",  "only prepare packages, do not build them") do |@do_build| end 
 

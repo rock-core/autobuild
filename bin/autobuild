@@ -1,6 +1,10 @@
 #! /usr/bin/env ruby
 
-require 'daemons'
+begin
+    require 'daemons'
+rescue LoadError
+end
+
 require 'autobuild'
 
 include Autobuild
