@@ -126,6 +126,10 @@ module Autobuild
 		p = p.to_s
 		@@provides[p] = self 
 		task p => name
+		task "#{p}-import" => "#{name}-import"
+		task "#{p}-prepare" => "#{name}-prepare"
+		task "#{p}-build" => "#{name}-build"
+		task "#{p}-install" => "#{name}-install"
 		@provides << p
 	    end
 	end
