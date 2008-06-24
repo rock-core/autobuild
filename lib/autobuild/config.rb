@@ -11,7 +11,7 @@ end
 # (see Autobuild::DEFAULT_OPTIONS) for the default values)
 # nice:: the nice value at which we should spawn subprocesses
 # srcdir:: the base source directory. If a package defines a relative srcdir, then
-#          it is defined relatively to Autobuild.srcdir
+#          it is defined relatively to Autobuild.srcdir. Defaults to the current directory.
 # prefix:: the base install directory. If a package defines a relative prefix, then
 #          it is defined relatively to Autobuild.prefix.
 # verbose:: if true, displays all subprocesses output
@@ -37,7 +37,7 @@ module Autobuild
         attr_writer :logdir
     end
     DEFAULT_OPTIONS = { :nice => 0,
-        :srcdir => nil, :prefix => nil, :logdir => nil,
+        :srcdir => Dir.pwd, :prefix => Dir.pwd, :logdir => File.join(Dir.pwd, 'log'),
         :verbose => false, :debug => false, :do_build => true, :do_update => true, 
         :daemonize => false, :packages => [], :default_packages => [] }
 
