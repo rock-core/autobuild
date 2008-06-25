@@ -37,7 +37,7 @@ module Autobuild
         attr_writer :logdir
     end
     DEFAULT_OPTIONS = { :nice => 0,
-        :srcdir => Dir.pwd, :prefix => Dir.pwd, :logdir => File.join(Dir.pwd, 'log'),
+        :srcdir => Dir.pwd, :prefix => Dir.pwd, :logdir => nil,
         :verbose => false, :debug => false, :do_build => true, :do_update => true, 
         :daemonize => false, :packages => [], :default_packages => [] }
 
