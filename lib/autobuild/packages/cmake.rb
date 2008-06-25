@@ -38,7 +38,7 @@ module Autobuild
             Dir.chdir(builddir) do
                 command = [ "cmake", "-DCMAKE_INSTALL_PREFIX=#{prefix}" ]
                 defines.each do |name, value|
-                    command << "-D\"#{name}=#{value}\""
+                    command << "-D#{name}=#{value}"
                 end
                 command << srcdir
                 
