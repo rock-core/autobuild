@@ -17,8 +17,8 @@ module Autobuild
             super(options)
         end
 
-        attr_reader :repository
-        attr_reader :branch
+        attr_accessor :repository
+        attr_accessor :branch
 
         def update(package)
             Dir.chdir(package.srcdir) do
