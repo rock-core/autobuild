@@ -1,3 +1,4 @@
+require 'fileutils'
 require 'autobuild/subcommand'
 require 'autobuild/importer'
 
@@ -27,9 +28,15 @@ module Autobuild
         end
 
         def checkout(package)
+            base_dir = File.expand_path('..', package.srcdir)
+            if !File.directory?(base_dir)
+                FileUtils.mkdir_p base_dir
+            end
+
             Subprocess.run(package.name, :import,
                 Autobuild.tool('git'), 'clone', '-o', 'autobuild',
                 repository, package.srcdir)
+
             Dir.chdir(package.srcdir) do
                 Subprocess.run(package.name, :import, Autobuild.tool('git'),
                     'reset', '--hard', "autobuild/#{branch}")
