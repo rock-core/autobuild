@@ -67,7 +67,7 @@ module Autobuild
 	    # Declare the installation stampfile
 	    file installstamp do
 		Dir.chdir(srcdir) do
-		    Autobuild.apply_post_install(@post_install)
+		    Autobuild.apply_post_install(name, @post_install)
 		end
 	    end
 	    task "#{name}-build" => installstamp

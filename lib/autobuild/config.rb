@@ -57,7 +57,7 @@ module Autobuild
     end
     attr_reader :post_install_handler
 
-    def self.apply_post_install(info)
+    def self.apply_post_install(name, info)
 	return unless info
 
 	case info
