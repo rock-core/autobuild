@@ -28,6 +28,28 @@ module Autobuild
             @defines[name] = value
         end
 
+        def prepare
+            super
+
+            all_defines = defines.dup
+            all_defines['CMAKE_INSTALL_PREFIX'] = prefix
+
+            if File.exists?(configurestamp)
+                cache = File.read(configurestamp)
+                did_change = all_defines.any? do |name, value|
+                    cache_line = cache.find do |line|
+                        line =~ /^#{name}:/
+                    end
+                    if !cache_line || (cache_line.split("=")[1].chomp != value)
+                        true
+                    end
+                end
+                if did_change
+                    FileUtils.rm configurestamp
+                end
+            end
+        end
+
         # Configure the builddir directory before starting make
         def configure
             if File.exists?(builddir) && !File.directory?(builddir)
