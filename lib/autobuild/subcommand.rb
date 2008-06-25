@@ -18,6 +18,9 @@ module Autobuild::Subprocess
 
         FileUtils.mkdir_p Autobuild.logdir unless File.directory?(Autobuild.logdir)
         logname = "#{Autobuild.logdir}/#{target}-#{phase}.log"
+        if !File.directory?(File.dirname(logname))
+            FileUtils.mkdir_p File.dirname(logname)
+        end
 
         puts "#{target}: running #{command.join(" ")}\n    (output goes to #{logname})"
 
