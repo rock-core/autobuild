@@ -27,7 +27,7 @@ module Autobuild
                 end
 
                 Subprocess.run(package.name, :import, Autobuild.tool('git'), 'fetch', repository, "#{branch}:master")
-                Subprocess.run(package.name, :import, Autobuild.tool('git'), 'checkout', branch)
+                Subprocess.run(package.name, :import, Autobuild.tool('git'), 'checkout', 'master')
             end
         end
 
