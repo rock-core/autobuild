@@ -48,7 +48,9 @@ module Autobuild
         end
     end
     def source_tree(path, &block)
-        SourceTreeTask.define_task(path, &block)
+        task = SourceTreeTask.define_task(path)
+        block.call(task)
+        task
     end
             
     def get_stamp(stampfile)
