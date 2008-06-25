@@ -22,6 +22,10 @@ module Autobuild
 
         def update(package)
             Dir.chdir(package.srcdir) do
+                if !File.directory?('.git')
+                    raise "#{package.srcdir} is not a git repository"
+                end
+
                 Subprocess.run(package.name, :import, Autobuild.tool('git'), 'fetch', repository, "#{branch}:")
                 Subprocess.run(package.name, :import, Autobuild.tool('git'), 'checkout', branch)
             end
