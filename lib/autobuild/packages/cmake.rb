@@ -65,6 +65,7 @@ module Autobuild
                 command << srcdir
                 
                 Subprocess.run(name, 'configure', *command)
+                touch_stamp configurestamp
             end
         end
 
