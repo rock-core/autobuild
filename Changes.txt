@@ -8,6 +8,7 @@
 * added the cmake package
 * set the current repository as default global prefix and srcdir
 * misc fixes w.r.t. handling dependencies
+* added Autobuild.post_success_message
 
 == Version 1.0.1
 * The "test suites are there for something" release
