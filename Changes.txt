@@ -4,6 +4,10 @@
 * Allow to specify exclusions in the importer package, which are used to
   ignore some changes in the source tree. Useful if some packages are built
   inside the imported source tree
+* added the git importer
+* added the cmake package
+* set the current repository as default global prefix and srcdir
+* misc fixes w.r.t. handling dependencies
 
 == Version 1.0.1
 * The "test suites are there for something" release

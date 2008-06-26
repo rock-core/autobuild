@@ -1,6 +1,7 @@
-Copyright (c) 2006-2007 Sylvain Joyeux <sylvain.joyeux@m4x.org>
-http://www.rubyforge.org/projects/autobuild
-http://autobuild.rubyforge.org/autobuild
+Copyright (c) 2006-2008 Sylvain Joyeux <sylvain.joyeux@m4x.org>
+
+* http://www.rubyforge.org/projects/autobuild
+* http://autobuild.rubyforge.org/autobuild
 
 This work is licensed under the GPLv2 license. See License.txt for details
 
@@ -97,6 +98,22 @@ The only program used during the build and install phases is +make+. Its path ca
 in the Autobuild.programs hash
     Autobuild.programs['make'] = 'gnumake'
 
+=== CMake
+
+A cmake package is defined with
+ 
+  require 'autobuild/packages/cmake'
+  Autobuild.cmake :package_name do |pkg|
+    <package configuration> ...
+  end
+
+The only configuration attribute available for CMake package is:
++builddir+ 
+  the directory in which to configure and build the package. It is relative to
+  the package sources. A global value can be defined through Autobuild::CMake.builddir
+
+Additionally, the #define(name, value) method allows to define configuration variables.
+
 == Available importers
 You must set an importer object for each package. The package importer is the +importer+ attribute
 and is set via <tt>package.importer = my_importer</tt>. An importer +foo+ is defined by the class
@@ -151,8 +168,15 @@ Where +options+ is a hash. See also Autobuild::DarcsImporter and Autobuild.darcs
 * by default, no options are given to pull. You can add some by giving a +pull+ option
     darcs url, :pull => ['--my', '--darcs', '--options']
 
+=== Git
+    package.importer = git(url[, branch])
+
+Imports the given branch (or master if none is given) of the repository at the
+given URL. The branch is imported as the 'autobuild' remote and fetched into
+the master local branch.
+
 = Copyright and license
 Author::    Sylvain Joyeux <sylvain.joyeux@m4x.org>
-Copyright:: Copyright (c) 2005-2006 Sylvain Joyeux
+Copyright:: Copyright (c) 2005-2008 Sylvain Joyeux
 License::   GPL
 
