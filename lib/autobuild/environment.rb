@@ -5,7 +5,7 @@ module Autobuild
             oldpath = ENV[varname]
             if oldpath.nil? || oldpath.empty?
                 ENV[varname] = path
-            else
+            elsif ENV[varname] !~ /(^|:)#{Regexp.quote(path)}($|:)/
                 ENV[varname] = "#{path}:#{oldpath}"
             end
         end
