@@ -65,6 +65,9 @@ module Autobuild
         end
         def success
             puts "Build finished successfully at #{Time.now}"
+            if Autobuild.post_success_message
+                puts Autobuild.post_success_message
+            end
         end
     end
 
@@ -98,7 +101,7 @@ module Autobuild
 
         def success
 	    unless only_errors
-		send_mail("success")
+		send_mail("success", Autobuild.post_success_message || "")
 	    end
         end
 

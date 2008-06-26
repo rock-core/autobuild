@@ -81,6 +81,28 @@ module Autobuild
 	# [:port] the port of the SMTP server, defauts to 22
 	# [:only_errors] mail only on errors. Defaults to false.
 	attr_reader :mail
+        
+        # call-seq:
+        #   post_success_message => string
+        #   post_success_message "msg" => "msg"
+        #   post_success_message { } => block
+        #
+        # Gets or updates a message to be displayed on success. Can either be
+        # a string or a block, in which case the block must return the message
+        # string.
+        def post_success_message(*args, &block)
+            if args.empty? && !block
+                if @post_success_message.respond_to?(:to_str)
+                    @post_success_message.to_str
+                elsif @post_success_message
+                    @post_success_message.call
+                end
+            elsif block
+                @post_success_message = block
+            else
+                @post_success_message = args.first.to_str
+            end
+        end
 
 	# The directory in which logs are saved
         def logdir; @logdir || "#{prefix}/log" end
