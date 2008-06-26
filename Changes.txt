@@ -1,4 +1,4 @@
-== Version 1.0.2
+== Version 1.1
 * Make the CVS importer discard differences on method and username between the
   current root and the configured root
 * Allow to specify exclusions in the importer package, which are used to
