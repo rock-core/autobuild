@@ -16,6 +16,11 @@ module Autobuild
     def self.update_environment(newprefix)
         pathvar("#{newprefix}/bin", 'PATH')
         pathvar("#{newprefix}/lib/pkgconfig", 'PKG_CONFIG_PATH')
+        pathvar("#{newprefix}/lib/ruby/1.8", 'RUBYLIB')
+
+        require 'rbconfig'
+        ruby_arch = File.basename(Config::CONFIG['archdir'])
+        pathvar("#{newprefix}/lib/ruby/1.8/#{ruby_arch}", 'RUBYLIB')
     end
 end
 
