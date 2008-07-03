@@ -113,7 +113,7 @@ module Autobuild
 			    contents.find { |l| l =~ /^GENFLAGS/ }.gsub('GENFLAGS=', ''))
 
 		if old_file != "#{name}.gen" || !(old_flags - genomflags).empty? || !(genomflags - old_flags).empty?
-		    File.rm_f genomstamp
+		    FileUtils.rm_f genomstamp
 		end
 	    end
 
