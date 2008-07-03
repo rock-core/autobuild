@@ -124,6 +124,7 @@ module Autobuild
 	def provides(*packages)
 	    packages.each do |p|
 		p = p.to_s
+		next if p == name
 		@@provides[p] = self 
 		task p => name
 		task "#{p}-import" => "#{name}-import"
