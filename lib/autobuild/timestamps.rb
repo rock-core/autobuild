@@ -49,7 +49,7 @@ module Autobuild
     end
     def source_tree(path, &block)
         task = SourceTreeTask.define_task(path)
-        block.call(task)
+        block.call(task) unless !block
         task
     end
             
