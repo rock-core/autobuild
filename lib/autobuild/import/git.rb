@@ -1,6 +1,7 @@
 require 'fileutils'
 require 'autobuild/subcommand'
 require 'autobuild/importer'
+require 'utilrb/module/attr_predicate'
 
 module Autobuild
     class Git < Importer
@@ -19,6 +20,7 @@ module Autobuild
 
         attr_accessor :repository
         attr_accessor :branch
+        attr_predicate :merge?
 
         def update(package)
             Dir.chdir(package.srcdir) do
@@ -26,8 +28,19 @@ module Autobuild
                     raise "#{package.srcdir} is not a git repository"
                 end
 
-                Subprocess.run(package.name, :import, Autobuild.tool('git'), 'fetch', repository, "#{branch}:master")
-                Subprocess.run(package.name, :import, Autobuild.tool('git'), 'checkout', 'master')
+                # Fetch and merge if the merge leads to a fast-forward
+                Subprocess.run(package.name, :import, Autobuild.tool('git'), 'fetch')
+                common_commit = `git merge-base HEAD FETCH_HEAD`.chomp
+                head_commit   = `git rev-parse HEAD`.chomp
+                fetch_commit  = `git rev-parse FETCH_HEAD`.chomp
+
+                if common_commit != fetch_commit
+                    if merge? || common_commit == head_commit
+                        Subprocess.run(package.name, :import, Autobuild.tool('git'), 'merge', 'FETCH_HEAD')
+                    else
+                        raise "importing the current version would lead to a non fast-forward"
+                    end
+                end
             end
         end
 
