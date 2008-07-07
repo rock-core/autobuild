@@ -15,7 +15,10 @@ module Autobuild
             end
         end
 
+        # a key => value association of defines for CMake
         attr_reader :defines
+        # If true, always run cmake before make during the build
+        attr_accessor :always_reconfigure
 
         def configurestamp; File.join(builddir, "CMakeCache.txt") end
 
@@ -72,6 +75,9 @@ module Autobuild
         # Do the build in builddir
         def build
             Dir.chdir(builddir) do
+                if always_reconfigure
+                    Subprocess.run(name, 'build', Autobuild.tool(:cmake), '.')
+                end
                 Subprocess.run(name, 'build', Autobuild.tool(:make))
             end
             touch_stamp(buildstamp)
