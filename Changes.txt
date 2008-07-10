@@ -1,3 +1,9 @@
+== Version 1.2
+* Fix git update
+* Fix cmake dependency handling. Give a way to always run cmake before running
+  make (needed sometime)
+* Fix the genom package handling
+
 == Version 1.1
 * Make the CVS importer discard differences on method and username between the
   current root and the configured root
