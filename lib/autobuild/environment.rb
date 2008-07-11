@@ -2,6 +2,10 @@ module Autobuild
     ## Adds an element to a path-like variable
     def self.pathvar(path, varname)
         if File.directory?(path)
+            if block_given?
+                return unless yield(path)
+            end
+
             oldpath = ENV[varname]
             if oldpath.nil? || oldpath.empty?
                 ENV[varname] = path
@@ -17,6 +21,13 @@ module Autobuild
         pathvar("#{newprefix}/bin", 'PATH')
         pathvar("#{newprefix}/lib/pkgconfig", 'PKG_CONFIG_PATH')
         pathvar("#{newprefix}/lib/ruby/1.8", 'RUBYLIB')
+        pathvar("#{newprefix}/lib", 'RUBYLIB') do |path|
+            if File.directory?("#{path}/ruby")
+                false
+            else
+                !Dir["#{path}/**/*.rb"].empty?
+            end
+        end
 
         require 'rbconfig'
         ruby_arch = File.basename(Config::CONFIG['archdir'])
