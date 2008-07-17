@@ -1,7 +1,6 @@
 require 'fileutils'
 require 'autobuild/subcommand'
 require 'autobuild/importer'
-require 'utilrb/module/attr_predicate'
 
 module Autobuild
     class Git < Importer
@@ -20,7 +19,14 @@ module Autobuild
 
         attr_accessor :repository
         attr_accessor :branch
-        attr_predicate :merge?
+
+        # True if it is allowed to merge remote updates automatically. If false
+        # (the default), the import will fail if the updates do not resolve as
+        # a fast-forward
+        def merge?; !!@merge end
+
+        # Set the merge flag. See #merge?
+        def merge=(flag); @merge = flag end
 
         def update(package)
             Dir.chdir(package.srcdir) do
