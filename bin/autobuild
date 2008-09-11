@@ -29,10 +29,14 @@ begin
         load conffile
 
 	if Autobuild.mail[:to]
-	    Reporting << MailReporter.new(Autobuild.mail)
+            if !Autobuild::HAS_RMAIL
+                STDERR.puts "RMail is not available. Mail notification is disabled"
+            else
+                Reporting << MailReporter.new(Autobuild.mail)
+            end
 	end
 
-	targets = ['import']
+	targets  = ['import']
 	targets += ['prepare', 'build'] if Autobuild.do_build
         targets.each do |phase|
 	    packages = Autobuild.packages

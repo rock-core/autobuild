@@ -1,5 +1,11 @@
-require 'rmail'
-require 'rmail/serialize'
+begin
+    require 'rmail'
+    require 'rmail/serialize'
+    Autobuild::HAS_RMAIL = true
+rescue LoadError
+    Autobuild::HAS_RMAIL = false
+end
+
 require 'net/smtp'
 require 'socket'
 require 'etc'
@@ -70,8 +76,11 @@ module Autobuild
             end
         end
     end
+end
 
-    ## Report by mail
+## Report by mail
+if Autobuild::HAS_RMAIL
+module Autobuild
     class MailReporter < Reporter
         def default_mail
             Etc::endpwent
@@ -154,5 +163,6 @@ module RMail
         end
     end
 end
+end # if Autobuild::HAS_RMAIL
 
 
