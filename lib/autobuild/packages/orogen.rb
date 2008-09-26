@@ -23,6 +23,14 @@ module Autobuild
             end
         end
 
+        def depends_on(*packages)
+            super
+
+            packages.each do |p|
+                file genstamp => Package[p].installstamp
+            end
+        end
+
         def genstamp; File.join(srcdir, '.orogen', 'orogen-stamp') end
 
         def regen
