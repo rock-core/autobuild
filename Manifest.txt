@@ -20,6 +20,7 @@ lib/autobuild/packages/autotools.rb
 lib/autobuild/packages/cmake.rb
 lib/autobuild/packages/genom.rb
 lib/autobuild/packages/import.rb
+lib/autobuild/packages/orogen.rb
 lib/autobuild/packages/pkgconfig.rb
 lib/autobuild/pkgconfig.rb
 lib/autobuild/reporting.rb
