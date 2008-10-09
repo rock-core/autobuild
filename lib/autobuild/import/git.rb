@@ -31,18 +31,26 @@ module Autobuild
         def update(package)
             Dir.chdir(package.srcdir) do
                 if !File.directory?('.git')
-                    raise "#{package.srcdir} is not a git repository"
+                    raise ConfigException, "#{package.srcdir} is not a git repository"
                 end
 
                 # Fetch and merge if the merge leads to a fast-forward
                 Subprocess.run(package.name, :import, Autobuild.tool('git'), 'fetch')
-                common_commit = `git merge-base HEAD FETCH_HEAD`.chomp
+                if !File.readable?( File.join('.git', 'FETCH_HEAD') )
+                    return
+                end
+
+                fetch_commit = File.readlines( File.join('.git', 'FETCH_HEAD') ).
+                    delete_if { |l| l =~ /not-for-merge/ }
+                return if fetch_commit.empty?
+                fetch_commit = fetch_commit.first.split(/\s+/).first
+
+                common_commit = `git merge-base HEAD #{fetch_commit}`.chomp
                 head_commit   = `git rev-parse HEAD`.chomp
-                fetch_commit  = `git rev-parse FETCH_HEAD`.chomp
 
                 if common_commit != fetch_commit
                     if merge? || common_commit == head_commit
-                        Subprocess.run(package.name, :import, Autobuild.tool('git'), 'merge', 'FETCH_HEAD')
+                        Subprocess.run(package.name, :import, Autobuild.tool('git'), 'merge', fetch_commit)
                     else
                         raise "importing the current version would lead to a non fast-forward"
                     end
