@@ -35,7 +35,7 @@ module Autobuild
                 end
 
                 # Fetch and merge if the merge leads to a fast-forward
-                Subprocess.run(package.name, :import, Autobuild.tool('git'), 'fetch')
+                Subprocess.run(package.name, :import, Autobuild.tool('git'), 'fetch', repository)
                 if !File.readable?( File.join('.git', 'FETCH_HEAD') )
                     return
                 end
