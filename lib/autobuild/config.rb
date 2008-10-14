@@ -36,6 +36,11 @@ module Autobuild
         attr_reader :programs
 	# The directory in which logs are saved. Defaults to PREFIX/log.
         attr_writer :logdir
+
+        # True if we build and if the build is applied on all packages
+        def full_build?
+            do_build && !only_doc && packages.empty?
+        end
     end
     DEFAULT_OPTIONS = { :nice => 0,
         :srcdir => Dir.pwd, :prefix => Dir.pwd, :logdir => nil,
