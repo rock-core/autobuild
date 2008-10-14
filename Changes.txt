@@ -1,3 +1,9 @@
+== Version 1.2.3
+* Fix git update again. FETCH_HEAD may resolve as an ID which is not the one
+  to be selected for merge
+* Make the dependency on RMail optional
+* added the orogen package type
+
 == Version 1.2
 * Fix git update
 * Fix cmake dependency handling. Give a way to always run cmake before running
