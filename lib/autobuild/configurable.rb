@@ -46,6 +46,27 @@ module Autobuild
 
         def initialize(options)
             super
+
+            file configurestamp do
+                ensure_dependencies_installed
+                configure
+            end
+
+            source_tree srcdir do |pkg|
+		pkg.exclude << Regexp.new("^#{Regexp.quote(builddir)}")
+	    end
+
+            file buildstamp => [ srcdir, configurestamp ] do 
+                ensure_dependencies_installed
+                build
+            end
+            task "#{name}-build" => buildstamp
+
+            file installstamp => buildstamp do 
+                install
+                Autobuild.update_environment(prefix)
+            end
+
             Autobuild.update_environment(prefix)
         end
 
@@ -62,24 +83,6 @@ module Autobuild
         end
 
         def prepare
-            file configurestamp do
-                ensure_dependencies_installed
-                configure
-            end
-
-            source_tree srcdir do |pkg|
-		pkg.exclude << Regexp.new("^#{Regexp.quote(builddir)}")
-	    end
-
-            file buildstamp => [ srcdir, configurestamp ] do 
-                ensure_dependencies_installed
-                build
-            end
-
-            file installstamp => buildstamp do 
-                install
-                Autobuild.update_environment(prefix)
-            end
         end
 
         # Configure the builddir directory before starting make
