@@ -130,7 +130,6 @@ module Autobuild
 		task "#{p}-import" => "#{name}-import"
 		task "#{p}-prepare" => "#{name}-prepare"
 		task "#{p}-build" => "#{name}-build"
-		task "#{p}-install" => "#{name}-install"
 		@provides << p
 	    end
 	end
