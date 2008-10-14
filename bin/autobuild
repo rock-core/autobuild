@@ -36,8 +36,13 @@ begin
             end
 	end
 
-	targets  = ['import']
-	targets += ['prepare', 'build'] if Autobuild.do_build
+        if Autobuild.only_doc
+            targets  = ['doc']
+        else
+            targets  = ['import']
+            targets << 'doc' if Autobuild.do_doc
+            targets += ['prepare', 'build'] if Autobuild.do_build
+        end
         targets.each do |phase|
 	    packages = Autobuild.packages
 	    packages = Autobuild.default_packages if packages.empty?

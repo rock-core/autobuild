@@ -31,6 +31,20 @@ module Autobuild
             @defines[name] = value
         end
 
+        def install_doc
+            super(builddir)
+        end
+
+        # Declare that the given target can be used to generate documentation
+        def with_doc(target = 'doc')
+            doc_task do
+                Dir.chdir(builddir) do
+                    Subprocess.run(name, 'doc', Autobuild.tool(:make), target)
+                    yield if block_given?
+                end
+            end
+        end
+
         def prepare
             super
 
@@ -68,7 +82,7 @@ module Autobuild
                 command << srcdir
                 
                 Subprocess.run(name, 'configure', *command)
-                touch_stamp configurestamp
+                super
             end
         end
 
@@ -88,7 +102,7 @@ module Autobuild
             Dir.chdir(builddir) do
                 Subprocess.run(name, 'install', Autobuild.tool(:make), 'install')
             end
-            touch_stamp(installstamp)
+            super
         end
     end
 end

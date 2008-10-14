@@ -26,8 +26,9 @@ end
 module Autobuild
     class << self
         %w{ nice srcdir prefix
-            verbose debug do_update do_build
-            daemonize clean_log packages default_packages }.each do |name|
+            verbose debug do_update do_build only_doc do_doc
+            daemonize clean_log packages default_packages
+            doc_prefix }.each do |name|
             attr_accessor name
         end
 
@@ -39,7 +40,9 @@ module Autobuild
     DEFAULT_OPTIONS = { :nice => 0,
         :srcdir => Dir.pwd, :prefix => Dir.pwd, :logdir => nil,
         :verbose => false, :debug => false, :do_build => true, :do_update => true, 
-        :daemonize => false, :packages => [], :default_packages => [] }
+        :daemonize => false, :packages => [], :default_packages => [],
+        :only_doc => false, :do_doc => true,
+        :doc_prefix => 'doc' }
 
     @programs = Hash.new
     DEFAULT_OPTIONS.each do |name, value|
@@ -143,8 +146,10 @@ module Autobuild
 		if defined? Daemons
 		    opts.on("--[no-]daemon", "go into daemon mode") do |@daemonize| end
 		end
-                opts.on("--[no-]update", "update already checked-out sources") do |@do_update| end
-                opts.on("--[no-]build",  "only prepare packages, do not build them") do |@do_build| end 
+                opts.on("--no-update", "update already checked-out sources") do |@do_update| end
+                opts.on("--no-build",  "only prepare packages, do not build them") do |@do_build| end 
+                opts.on("--only-doc", "only generate documentation") do |@only_doc| end
+                opts.on("--no-doc", "don't generate documentation") do |@doc_doc| end
 
                 opts.separator ""
                 opts.separator "Program output"
