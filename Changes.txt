@@ -1,3 +1,12 @@
+== Version 1.2.4
+* git update phase now fetches the repository and branch specified by the
+  autobuild script. It previously was using remote tracking branches. This
+  will allow to detect branch changes in the autobuild specification.
+* documentation support. Packages can now declare that they can generate
+  documentation (see Package#doc_task and CMake#with_doc). That documentation
+  is generated post-build and installed.
+* fix build updates in the CMake package class.
+
 == Version 1.2.3
 * Fix git update again. FETCH_HEAD may resolve as an ID which is not the one
   to be selected for merge
