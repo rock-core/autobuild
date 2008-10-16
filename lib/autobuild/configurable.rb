@@ -51,6 +51,7 @@ module Autobuild
                 ensure_dependencies_installed
                 configure
             end
+            task "#{name}-prepare" => configurestamp
 
             source_tree srcdir do |pkg|
 		pkg.exclude << Regexp.new("^#{Regexp.quote(builddir)}")

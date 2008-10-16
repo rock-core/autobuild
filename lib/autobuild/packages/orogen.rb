@@ -17,7 +17,7 @@ module Autobuild
 
             @orogen_file ||= "#{File.basename(name)}.orogen"
 
-            task "#{name}-prepare" => genstamp
+            file configurestamp => genstamp
             file genstamp => File.join(srcdir, orogen_file) do
                 regen
             end

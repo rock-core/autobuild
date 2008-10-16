@@ -1,3 +1,8 @@
+== Version 1.2.5
+* really fix the git fetch phase
+* fix a dependency issue between code generation and CMake configuration
+  in the orogen package type
+
 == Version 1.2.4
 * git update phase now fetches the repository and branch specified by the
   autobuild script. It previously was using remote tracking branches. This
