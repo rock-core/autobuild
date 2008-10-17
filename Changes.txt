@@ -1,3 +1,7 @@
+== Version 1.2.6
+* really fix the dependency problem
+* add documentation support in autotools
+
 == Version 1.2.5
 * really fix the git fetch phase
 * fix a dependency issue between code generation and CMake configuration
