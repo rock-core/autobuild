@@ -44,7 +44,7 @@ module Autobuild
         # Build stamp
         # This returns the name of the file which marks when the package has been
         # successfully built for the last time. The path is absolute
-        def buildstamp; "#{builddir}/#{name}-#{STAMPFILE}" end
+        def buildstamp; "#{builddir}/#{STAMPFILE}" end
 
         def initialize(options)
             @using = Hash.new
