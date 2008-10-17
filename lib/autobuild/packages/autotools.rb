@@ -54,6 +54,20 @@ module Autobuild
 
             Autobuild.update_environment(prefix)
         end
+        
+        def install_doc(relative_to = builddir)
+            super(relative_to)
+        end
+
+        # Declare that the given target can be used to generate documentation
+        def with_doc(target = 'doc')
+            doc_task do
+                Dir.chdir(builddir) do
+                    Subprocess.run(name, 'doc', Autobuild.tool(:make), target)
+                    yield if block_given?
+                end
+            end
+        end
 
 	# Overrides the default behaviour w.r.t. autotools script generation
 	#
