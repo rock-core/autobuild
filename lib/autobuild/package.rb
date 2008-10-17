@@ -73,9 +73,6 @@ module Autobuild
 		    Autobuild.apply_post_install(name, @post_install)
 		end
 	    end
-	    task "#{name}-build" => installstamp
-	    task :build => "#{name}-build"
-
 	    # Add dependencies declared in spec
 	    depends_on *depends if depends
 
@@ -84,8 +81,11 @@ module Autobuild
 	    task :import => "#{name}-import"
 
 	    # Define the prepare task
-	    task "#{name}-prepare" do prepare end
+	    task "#{name}-prepare" => "#{name}-import" do prepare end
 	    task :prepare => "#{name}-prepare"
+
+	    task "#{name}-build" => ["#{name}-prepare", installstamp]
+	    task :build => "#{name}-build"
 
 	    task(name) do
 		Rake::Task["#{name}-import"].invoke

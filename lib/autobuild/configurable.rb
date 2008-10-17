@@ -47,6 +47,22 @@ module Autobuild
         def initialize(options)
             super
 
+            Autobuild.update_environment(prefix)
+        end
+
+        def depends_on(*packages)
+            super
+            stamps = packages.collect { |p| Package[p.to_s].installstamp }
+            file configurestamp => stamps
+        end
+
+        def ensure_dependencies_installed
+            dependencies.each do |pkg|
+                Rake::Task[Package[pkg].installstamp].invoke
+            end
+        end
+
+        def prepare
             file configurestamp do
                 ensure_dependencies_installed
                 configure
@@ -67,23 +83,6 @@ module Autobuild
                 install
                 Autobuild.update_environment(prefix)
             end
-
-            Autobuild.update_environment(prefix)
-        end
-
-        def depends_on(*packages)
-            super
-            stamps = packages.collect { |p| Package[p.to_s].installstamp }
-            file configurestamp => stamps
-        end
-
-        def ensure_dependencies_installed
-            dependencies.each do |pkg|
-                Rake::Task[Package[pkg].installstamp].invoke
-            end
-        end
-
-        def prepare
         end
 
         # Configure the builddir directory before starting make

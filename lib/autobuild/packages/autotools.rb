@@ -153,6 +153,7 @@ module Autobuild
                 ensure_dependencies_installed
                 build
             end
+            task "#{name}-build" => installstamp
 
             file installstamp => buildstamp do 
                 install

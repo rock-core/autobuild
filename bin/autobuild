@@ -40,8 +40,8 @@ begin
             targets  = ['doc']
         else
             targets  = ['import']
-            targets << 'doc' if Autobuild.do_doc
             targets += ['prepare', 'build'] if Autobuild.do_build
+            targets << 'doc' if Autobuild.do_doc
         end
         targets.each do |phase|
 	    packages = Autobuild.packages
