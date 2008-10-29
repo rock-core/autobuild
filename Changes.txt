@@ -1,3 +1,9 @@
+== Version 1.2.7
+* fixes to documentation support
+  - '--no-doc' now works
+  - failures to generate documentation are now simple warnings, an error can be obtained
+    by setting Autobuild.doc_errors or by using the --doc-errors command line flag
+
 == Version 1.2.6
 * really fix the dependency problem
 * add documentation support in autotools
