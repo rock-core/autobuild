@@ -18,6 +18,7 @@ end
 # debug:: more verbose than 'verbose': displays Rake's debugging output
 # do_update:: if we should update the packages
 # do_build:: if we should build the packages
+# do_doc:: if we should produce the documentation
 # daemonize:: if the build should go into daemon mode (only if the daemons gem is available)
 # clean_log:: remove all logs before starting the build
 # packages:: a list of packages to build specifically
@@ -154,7 +155,7 @@ module Autobuild
                 opts.on("--no-update", "update already checked-out sources") do |@do_update| end
                 opts.on("--no-build",  "only prepare packages, do not build them") do |@do_build| end 
                 opts.on("--only-doc", "only generate documentation") do |@only_doc| end
-                opts.on("--no-doc", "don't generate documentation") do |@doc_doc| end
+                opts.on("--no-doc", "don't generate documentation") do |@do_doc| end
 
                 opts.separator ""
                 opts.separator "Program output"
