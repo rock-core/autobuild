@@ -19,6 +19,7 @@ end
 # do_update:: if we should update the packages
 # do_build:: if we should build the packages
 # do_doc:: if we should produce the documentation
+# doc_errors:: if errors during the documentation generation are treated as errors
 # daemonize:: if the build should go into daemon mode (only if the daemons gem is available)
 # clean_log:: remove all logs before starting the build
 # packages:: a list of packages to build specifically
@@ -27,7 +28,7 @@ end
 module Autobuild
     class << self
         %w{ nice srcdir prefix
-            verbose debug do_update do_build only_doc do_doc
+            verbose debug do_update do_build only_doc do_doc doc_errors
             daemonize clean_log packages default_packages
             doc_prefix }.each do |name|
             attr_accessor name
@@ -47,7 +48,7 @@ module Autobuild
         :srcdir => Dir.pwd, :prefix => Dir.pwd, :logdir => nil,
         :verbose => false, :debug => false, :do_build => true, :do_update => true, 
         :daemonize => false, :packages => [], :default_packages => [],
-        :only_doc => false, :do_doc => true,
+        :only_doc => false, :do_doc => true, :doc_errors => false,
         :doc_prefix => 'doc' }
 
     @programs = Hash.new
@@ -156,6 +157,7 @@ module Autobuild
                 opts.on("--no-build",  "only prepare packages, do not build them") do |@do_build| end 
                 opts.on("--only-doc", "only generate documentation") do |@only_doc| end
                 opts.on("--no-doc", "don't generate documentation") do |@do_doc| end
+                opts.on("--doc-errors", "treat documentation failure as error") do |@doc_errors| end
 
                 opts.separator ""
                 opts.separator "Program output"

@@ -127,12 +127,21 @@ module Autobuild
             task "#{name}-doc" => "#{name}-build" do
                 @installed_doc = false
                 catch(:doc_disabled) do
-                    Dir.chdir(srcdir) do
-                        yield if block_given?
-                    end
+                    begin
+                        Dir.chdir(srcdir) do
+                            yield if block_given?
+                        end
 
-                    unless @installed_doc
-                        install_doc
+                        unless @installed_doc
+                            install_doc
+                        end
+
+                    rescue Exception => e
+                        if Autobuild.doc_errors
+                            raise
+                        else
+                            STDERR.puts "W: failed to generate documentation for #{name}"
+                        end
                     end
                 end
             end
