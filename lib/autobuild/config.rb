@@ -179,7 +179,7 @@ module Autobuild
 		opts.on("--mail-smtp HOSTNAME", String, " address of the mail server written as hostname[:port]") do |smtp|
 		    raise "invalid SMTP specification #{smtp}" unless smtp =~ /^([^:]+)(?::(\d+))?$/
 		    mail[:smtp] = $1
-		    mail[:port] = Integer($2) unless $2.empty?
+		    mail[:port] = Integer($2) if $2 && !$2.empty?
 		end
 		opts.on("--mail-only-errors", "send mail only on errors") do
 		    mail[:only_errors] = true

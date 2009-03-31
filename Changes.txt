@@ -1,3 +1,7 @@
+== Version 1.2.8
+* small fix
+  - fixes --mail-smtp. This now works even without port specification.
+
 == Version 1.2.7
 * fixes to documentation support
   - '--no-doc' now works
