@@ -1,3 +1,10 @@
+== Version 1.2.9
+* small usability issue
+  - provide the --keep-oldlogs command line option and the
+    Autobuild.erase_oldlogs configuration flag to configure whether old logs
+    should be kept (new data being appended to them), or erased
+  - change the default behaviour from keeping old logs to erasing them
+
 == Version 1.2.8
 * small fix
   - fixes --mail-smtp. This now works even without port specification.

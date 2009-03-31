@@ -11,9 +11,9 @@ end
 # (see Autobuild::DEFAULT_OPTIONS) for the default values)
 # nice:: the nice value at which we should spawn subprocesses
 # srcdir:: the base source directory. If a package defines a relative srcdir, then
-#          it is defined relatively to Autobuild.srcdir. Defaults to the current directory.
+#   it is defined relatively to Autobuild.srcdir. Defaults to the current directory.
 # prefix:: the base install directory. If a package defines a relative prefix, then
-#          it is defined relatively to Autobuild.prefix.
+#   it is defined relatively to Autobuild.prefix.
 # verbose:: if true, displays all subprocesses output
 # debug:: more verbose than 'verbose': displays Rake's debugging output
 # do_update:: if we should update the packages
@@ -24,13 +24,15 @@ end
 # clean_log:: remove all logs before starting the build
 # packages:: a list of packages to build specifically
 # default_packages:: the list of packages to build if Autobuild.packages is empty.
-#                    It this array is empty too, build all defined packages.
+#   It this array is empty too, build all defined packages.
+# keep_oldlogs:: if true, new runs will be appended to existing logfiles.
+#   Otherwise, the existing logfile contents is erased.
 module Autobuild
     class << self
         %w{ nice srcdir prefix
             verbose debug do_update do_build only_doc do_doc doc_errors
             daemonize clean_log packages default_packages
-            doc_prefix }.each do |name|
+            doc_prefix keep_oldlogs}.each do |name|
             attr_accessor name
         end
 
@@ -49,7 +51,7 @@ module Autobuild
         :verbose => false, :debug => false, :do_build => true, :do_update => true, 
         :daemonize => false, :packages => [], :default_packages => [],
         :only_doc => false, :do_doc => true, :doc_errors => false,
-        :doc_prefix => 'doc' }
+        :doc_prefix => 'doc', :keep_oldlogs => false }
 
     @programs = Hash.new
     DEFAULT_OPTIONS.each do |name, value|
@@ -163,6 +165,7 @@ module Autobuild
                 opts.separator "Program output"
                 opts.on("--[no-]verbose", "display output of commands on stdout") do |@verbose| end
                 opts.on("--[no-]debug", "debug information (for debugging purposes)") do |@debug| end
+                opts.on("--keep-oldlogs", "old logs will be kept, new program output being appended") do |@keep_oldlogs| end
 
                 opts.separator ""
 		opts.separator "Mail reports"

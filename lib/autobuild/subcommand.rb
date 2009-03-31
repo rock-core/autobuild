@@ -27,8 +27,17 @@ module Autobuild::Subprocess
         input_streams = command.collect { |o| $1 if o =~ /^\<(.+)/ }.compact
         command.reject! { |o| o =~ /^\<(.+)/ }
 
-        status = File.open(logname, "a") do |logfile|
-	    logfile.puts command.join(" ")
+        open_flag = if Autobuild.keep_oldlogs then 'a'
+                    else 'w'
+                    end
+
+        status = File.open(logname, open_flag) do |logfile|
+            if Autobuild.keep_oldlogs
+                logfile.puts
+            end
+            logfile.puts "#{Time.now}: running"
+            logfile.puts "    #{command.join(" ")}"
+	    logfile.puts
 	    logfile.flush
 
             pread, pwrite = IO.pipe # to feed subprocess stdin 
