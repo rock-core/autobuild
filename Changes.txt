@@ -1,3 +1,9 @@
+== Version 1.2.10
+* small fix
+  logs are sorted into subdirectories, following the structure of the
+  packages. Up until now, the mailing code was not searching for logfiles in the
+  subdirectories. This commit fixes this.
+
 == Version 1.2.9
 * small usability issue
   - provide the --keep-oldlogs command line option and the

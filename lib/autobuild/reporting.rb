@@ -9,6 +9,7 @@ end
 require 'net/smtp'
 require 'socket'
 require 'etc'
+require 'find'
 
 require 'autobuild/config'
 require 'autobuild/exceptions'
@@ -53,8 +54,12 @@ module Autobuild
 	end
 
         ## Iterate on all log files
-        def self.each_log(&iter)
-            Dir.glob("#{Autobuild.logdir}/*.log", &iter)
+        def self.each_log
+            Find.find(Autobuild.logdir) do |path|
+                if File.file?(path) && path =~ /\.log$/
+                    yield(path)
+                end
+            end
         end
     end
 
@@ -130,7 +135,8 @@ module Autobuild
 
             # Attach log files
             Reporting.each_log do |file|
-                mail.add_file(file)
+                name = file[Autobuild.logdir.size..-1]
+                mail.add_file(name, file)
             end
 
             # Send the mails
@@ -151,10 +157,10 @@ end
 module RMail
     class Message
         ## Attachs a file to a message
-        def add_file(path, content_type='text/plain')
+        def add_file(name, path, content_type='text/plain')
             part = RMail::Message.new
             part.header.set('Content-Type', content_type)
-            part.header.set('Content-Disposition', 'attachment', 'filename' => File.basename(path))
+            part.header.set('Content-Disposition', 'attachment', 'filename' => name)
             part.body = ''
             File.open(path) do |file|
                 part.body << file.readlines.join("")
