@@ -45,6 +45,26 @@ module Autobuild
             end
         end
 
+        CMAKE_EQVS = {
+            'ON' => 'ON',
+            'YES' => 'ON',
+            'OFF' => 'OFF',
+            'NO' => 'OFF'
+        }
+        def equivalent_option_value?(old, new)
+            if old == new
+                true
+            else
+                old = CMAKE_EQVS[old]
+                new = CMAKE_EQVS[new]
+                if old && new
+                    old == new
+                else
+                    false
+                end
+            end
+        end
+
         def prepare
             super
 
@@ -57,11 +77,21 @@ module Autobuild
                     cache_line = cache.find do |line|
                         line =~ /^#{name}:/
                     end
-                    if !cache_line || (cache_line.split("=")[1].chomp != value)
+
+                    value = value.to_s
+                    old_value = cache_line.split("=")[1].chomp if cache_line
+                    if !old_value || !equivalent_option_value?(old_value, value)
+                        if Autobuild.debug
+                            puts "option '#{name}' changed value: '#{old_value}' => '#{value}'"
+                        end
+                        
                         true
                     end
                 end
                 if did_change
+                    if Autobuild.debug
+                        puts "CMake configuration changed, forcing a reconfigure"
+                    end
                     FileUtils.rm configurestamp
                 end
             end
@@ -89,7 +119,7 @@ module Autobuild
         # Do the build in builddir
         def build
             Dir.chdir(builddir) do
-                if always_reconfigure
+                if always_reconfigure || !File.file?('Makefile')
                     Subprocess.run(name, 'build', Autobuild.tool(:cmake), '.')
                 end
                 Subprocess.run(name, 'build', Autobuild.tool(:make))
