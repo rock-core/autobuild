@@ -72,7 +72,7 @@ module Autobuild
             all_defines['CMAKE_INSTALL_PREFIX'] = prefix
 
             if !File.exists?( File.join(builddir, 'Makefile') )
-                FileUtils.rm configurestamp
+                FileUtils.rm_f configurestamp
             end
 
             if File.exists?(configurestamp)
@@ -96,7 +96,7 @@ module Autobuild
                     if Autobuild.debug
                         puts "CMake configuration changed, forcing a reconfigure"
                     end
-                    FileUtils.rm configurestamp
+                    FileUtils.rm_f configurestamp
                 end
             end
         end
