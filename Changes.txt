@@ -1,3 +1,11 @@
+== Version 1.2.11
+* fix small issues with CMake
+  - CMake 2.6 can convert option values between what the user provides (for
+    instance YES) and what is written in the cache (ON). Take that into account
+  - if the first configuration fails, no Makefile is generated but
+    a CMakeCache.txt is there. Autobuild was failing in that situation and will
+    now handle it gracefully.
+
 == Version 1.2.10
 * small fix
   logs are sorted into subdirectories, following the structure of the
