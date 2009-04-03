@@ -17,6 +17,10 @@ module Autobuild
 
             @orogen_file ||= "#{File.basename(name)}.orogen"
 
+            # Find out where orogen is, and make sure the configurestamp depend
+            # on it
+            orogen_root = File.join(`orogen --base-dir`.chomp, 'orogen')
+            file genstamp => Autobuild.source_tree(orogen_root)
             file configurestamp => genstamp
             file genstamp => File.join(srcdir, orogen_file) do
                 regen

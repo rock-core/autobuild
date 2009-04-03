@@ -1,3 +1,6 @@
+== Version 1.2.12
+* reconfigure orogen packages if orogen itself is newer
+
 == Version 1.2.11
 * fix small issues with CMake
   - CMake 2.6 can convert option values between what the user provides (for
