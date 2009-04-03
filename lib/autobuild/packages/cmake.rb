@@ -71,6 +71,10 @@ module Autobuild
             all_defines = defines.dup
             all_defines['CMAKE_INSTALL_PREFIX'] = prefix
 
+            if !File.exists?( File.join(builddir, 'Makefile') )
+                FileUtils.rm configurestamp
+            end
+
             if File.exists?(configurestamp)
                 cache = File.read(configurestamp)
                 did_change = all_defines.any? do |name, value|
