@@ -1,5 +1,9 @@
+== Version 1.2.14
+* fix git importer's handling of branch names: the importer now always works on
+  a local branch that has the same name than the remote branch.
+
 == Version 1.2.12
-* reconfigure orogen packages if orogen itself is newer
+* reconfigure orogen packages if orogen itself has been updated
 
 == Version 1.2.11
 * fix small issues with CMake

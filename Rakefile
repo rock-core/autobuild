@@ -7,7 +7,7 @@ Hoe.new('autobuild', Autobuild::VERSION) do |p|
 
     p.summary = 'Rake-based utility to build and install multiple packages with dependencies'
     p.description = p.paragraphs_of('README.txt', 2..5).join("\n\n")
-    p.url         = p.paragraphs_of('README.txt', 1).first.split(/\n/)[1..-1]
+    p.url         = p.paragraphs_of('README.txt', 1).first.split(/\n/)[1..-1].map { |s| s.gsub('* ', '') }
     p.changes     = p.paragraphs_of('Changes.txt', 0).join("\n\n")
 
     p.extra_deps << ['rake', '>= 0.7.0']
