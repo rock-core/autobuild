@@ -34,25 +34,33 @@ module Autobuild
                     raise ConfigException, "#{package.srcdir} is not a git repository"
                 end
 
-                # Fetch and merge if the merge leads to a fast-forward
+                # Fetch the remote reference
                 Subprocess.run(package.name, :import, Autobuild.tool('git'), 'fetch', repository, branch)
                 if !File.readable?( File.join('.git', 'FETCH_HEAD') )
                     return
                 end
 
-                fetch_commit = File.readlines( File.join('.git', 'FETCH_HEAD') ).
-                    delete_if { |l| l =~ /not-for-merge/ }
-                return if fetch_commit.empty?
-                fetch_commit = fetch_commit.first.split(/\s+/).first
+                # Check that we are on the right branch, and if not simply
+                # create it from FETCH_HEAD
+                current_branch = `git symbolic-ref HEAD`.chomp
+                if current_branch != "refs/heads/#{branch}"
+                    Subprocess.run(package.name, :import, Autobuild.tool('git'), 'checkout', '-b', branch, "FETCH_HEAD")
+                else
+                    # Otherwise, check that the merge is a fast-forward
+                    fetch_commit = File.readlines( File.join('.git', 'FETCH_HEAD') ).
+                        delete_if { |l| l =~ /not-for-merge/ }
+                    return if fetch_commit.empty?
+                    fetch_commit = fetch_commit.first.split(/\s+/).first
 
-                common_commit = `git merge-base HEAD #{fetch_commit}`.chomp
-                head_commit   = `git rev-parse HEAD`.chomp
+                    common_commit = `git merge-base HEAD #{fetch_commit}`.chomp
+                    head_commit   = `git rev-parse #{current_branch}`.chomp
 
-                if common_commit != fetch_commit
-                    if merge? || common_commit == head_commit
-                        Subprocess.run(package.name, :import, Autobuild.tool('git'), 'merge', fetch_commit)
-                    else
-                        raise "importing the current version would lead to a non fast-forward"
+                    if common_commit != fetch_commit
+                        if merge? || common_commit == head_commit
+                            Subprocess.run(package.name, :import, Autobuild.tool('git'), 'merge', fetch_commit)
+                        else
+                            raise "importing the current version would lead to a non fast-forward"
+                        end
                     end
                 end
             end
@@ -69,8 +77,14 @@ module Autobuild
                 repository, package.srcdir)
 
             Dir.chdir(package.srcdir) do
-                Subprocess.run(package.name, :import, Autobuild.tool('git'),
-                    'reset', '--hard', "autobuild/#{branch}")
+                current_branch = `git symbolic-ref HEAD`.chomp
+                if current_branch == "refs/heads/#{branch}"
+                    Subprocess.run(package.name, :import, Autobuild.tool('git'),
+                        'reset', '--hard', "autobuild/#{branch}")
+                else
+                    Subprocess.run(package.name, :import, Autobuild.tool('git'),
+                        'checkout', '-b', branch, "autobuild/#{branch}")
+                end
             end
         end
     end
