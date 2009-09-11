@@ -1,3 +1,7 @@
+== Version 1.2.15
+* fix branch switching in the git importer: the build will not fail anymore if
+  autobuild has to switch to an already existing branch
+
 == Version 1.2.14
 * fix git importer's handling of branch names: the importer now always works on
   a local branch that has the same name than the remote branch.
