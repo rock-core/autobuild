@@ -15,6 +15,10 @@ require 'autobuild/config'
 require 'autobuild/exceptions'
 
 module Autobuild
+    def self.progress(msg)
+	puts "  #{msg}"
+    end
+
     ## The reporting module provides the framework
     # to run commands in autobuild and report errors 
     # to the user

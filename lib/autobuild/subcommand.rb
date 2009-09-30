@@ -22,7 +22,9 @@ module Autobuild::Subprocess
             FileUtils.mkdir_p File.dirname(logname)
         end
 
-        puts "#{target}: running #{command.join(" ")}\n    (output goes to #{logname})"
+	if Autobuild.verbose
+	    puts "#{target}: running #{command.join(" ")}\n    (output goes to #{logname})"
+	end
 
         input_streams = command.collect { |o| $1 if o =~ /^\<(.+)/ }.compact
         command.reject! { |o| o =~ /^\<(.+)/ }
@@ -101,7 +103,7 @@ module Autobuild::Subprocess
         end
 
         if status.exitstatus > 0
-            raise Failed.new(status.exitstatus), "command returned with status #{status.exitstatus}"
+            raise Failed.new(status.exitstatus), "'#{command.join(' ')}' returned status #{status.exitstatus}"
         end
 
     rescue Failed => e

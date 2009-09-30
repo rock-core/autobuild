@@ -56,10 +56,23 @@ module Autobuild
             @status  = status
         end
 
+        ERROR_LINES = 10
+
         def to_s
-            prefix = "#{super}\n    command '#{command}' failed"
-            prefix << ": " + @orig_message if @orig_message
-            prefix << "\n    see #{File.basename(logfile)} for details\n"
+            prefix = super
+            if @orig_message
+                prefix << "\n    #{@orig_message}"
+            end
+            prefix << "\n    see #{logfile} for details"
+            lines = File.readlines(logfile)
+            if lines.size > ERROR_LINES
+                lines = lines[-ERROR_LINES, ERROR_LINES]
+            end
+            prefix << "\n    last #{lines.size} lines are:\n\n"
+            lines.each do |l|
+                prefix << "    #{l}"
+            end
+            prefix
         end
     end
 end

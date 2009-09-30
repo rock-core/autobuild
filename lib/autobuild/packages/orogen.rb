@@ -45,6 +45,7 @@ module Autobuild
             cmdline << '--corba' if corba
             cmdline << orogen_file
 
+            Autobuild.progress "generating oroGen files #{package.name}"
             Dir.chdir(srcdir) do
                 Subprocess.run name, 'orogen', *cmdline
                 Autobuild.touch_stamp genstamp

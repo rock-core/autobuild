@@ -63,6 +63,7 @@ module Autobuild
         def with_doc(target = 'doc')
             doc_task do
                 Dir.chdir(builddir) do
+                    Autobuild.progress "generating documentation for #{name}"
                     Subprocess.run(name, 'doc', Autobuild.tool(:make), target)
                     yield if block_given?
                 end
@@ -180,6 +181,7 @@ module Autobuild
                         using[:autogen] = %w{autogen autogen.sh}.find { |f| File.exists?(f) }
                     end
 
+                    Autobuild.progress "generating build system for #{name}"
                     if using[:autogen]
                         Subprocess.run(name, 'configure', File.expand_path(using[:autogen]))
                     else
@@ -221,6 +223,7 @@ module Autobuild
                 command = [ "#{srcdir}/configure", "--no-create", "--prefix=#{prefix}" ]
                 command += Array[*configureflags]
                 
+                Autobuild.progress "configuring build system for #{name}"
                 Subprocess.run(name, 'configure', *command)
             }
         end
@@ -228,6 +231,7 @@ module Autobuild
         # Do the build in builddir
         def build
             Dir.chdir(builddir) {
+                Autobuild.progress "building #{name}"
                 Subprocess.run(name, 'build', './config.status')
                 Subprocess.run(name, 'build', Autobuild.tool(:make))
             }
@@ -237,6 +241,7 @@ module Autobuild
         # Install the result in prefix
         def install
             Dir.chdir(builddir) {
+                Autobuild.progress "installing #{name}"
                 Subprocess.run(name, 'install', Autobuild.tool(:make), 'install')
             }
             Autobuild.touch_stamp(installstamp)
