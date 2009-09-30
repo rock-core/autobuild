@@ -28,34 +28,10 @@ begin
     Reporting.report do
         load conffile
 
-	if Autobuild.mail[:to]
-            if !Autobuild::HAS_RMAIL
-                STDERR.puts "RMail is not available. Mail notification is disabled"
-            else
-                Reporting << MailReporter.new(Autobuild.mail)
-            end
-	end
+        packages = Autobuild.packages
+        packages = Autobuild.default_packages if packages.empty?
 
-        if Autobuild.only_doc
-            targets  = ['doc']
-        else
-            targets  = ['import']
-            targets += ['prepare', 'build'] if Autobuild.do_build
-            targets << 'doc' if Autobuild.do_doc
-        end
-        targets.each do |phase|
-	    packages = Autobuild.packages
-	    packages = Autobuild.default_packages if packages.empty?
-
-            if packages.empty?
-                Rake::Task[phase].invoke
-            else
-                packages.each do |pkg|
-                    Rake::Task["#{pkg}-#{phase}"].invoke
-                end
-            end
-        end
-
+        Autobuild.apply(packages)
         Reporting.success
     end
 rescue ThreadError

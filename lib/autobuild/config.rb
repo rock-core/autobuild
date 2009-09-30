@@ -201,5 +201,37 @@ module Autobuild
             args[0..-1]
         end
     end
+
+    def self.apply(packages)
+        if Autobuild.mail[:to]
+            if !Autobuild::HAS_RMAIL
+                STDERR.puts "RMail is not available. Mail notification is disabled"
+            else
+                Reporting << MailReporter.new(Autobuild.mail)
+            end
+        end
+
+        if Autobuild.only_doc
+            phases  = ['doc']
+        else
+            phases  = ['import']
+            phases += ['prepare', 'build'] if Autobuild.do_build
+            phases << 'doc' if Autobuild.do_doc
+        end
+        phases.each do |phase|
+            # We create a dummy task listing what needs to be done, and then we
+            # call it
+            targets = if packages.empty?
+                          phase
+                      else
+                          packages.map { |pkg| "#{pkg}-#{phase}" }
+                      end
+
+            task "autobuild-#{phase}" => targets
+        end
+        phases.each do |phase|
+            Rake::Task["autobuild-#{phase}"].invoke
+        end
+    end
 end
 
