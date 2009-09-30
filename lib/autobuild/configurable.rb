@@ -69,7 +69,7 @@ module Autobuild
             end
             task "#{name}-prepare" => configurestamp
 
-            source_tree srcdir do |pkg|
+            Autobuild.source_tree srcdir do |pkg|
 		pkg.exclude << Regexp.new("^#{Regexp.quote(builddir)}")
 	    end
 
@@ -87,7 +87,7 @@ module Autobuild
 
         # Configure the builddir directory before starting make
         def configure
-            touch_stamp(configurestamp)
+            Autobuild.touch_stamp(configurestamp)
         end
 
         # Do the build in builddir
@@ -96,7 +96,7 @@ module Autobuild
 
         # Install the result in prefix
         def install
-            touch_stamp(installstamp)
+            Autobuild.touch_stamp(installstamp)
         end
     end
 end

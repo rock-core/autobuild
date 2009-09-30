@@ -6,7 +6,7 @@ require 'fileutils'
 STAMPFILE = "autobuild-stamp"
 
 module Autobuild
-    def tree_timestamp(path, *exclude)
+    def self.tree_timestamp(path, *exclude)
         # Exclude autobuild timestamps
 	exclude.each { |rx| raise unless Regexp === rx }
         exclude << (/#{Regexp.quote(STAMPFILE)}$/)
@@ -44,23 +44,27 @@ module Autobuild
 	end
 	    
         def timestamp
-            tree_timestamp(name, %r#(?:^|/)(?:CVS|_darcs|\.svn)$#, *@exclude)
+            Autobuild.tree_timestamp(name, %r#(?:^|/)(?:CVS|_darcs|\.svn)$#, *@exclude)
         end
     end
-    def source_tree(path, &block)
+    def self.source_tree(path, &block)
         task = SourceTreeTask.define_task(path)
         block.call(task) unless !block
         task
     end
             
-    def get_stamp(stampfile)
+    def self.get_stamp(stampfile)
         return Time.at(0) if !File.exists?(stampfile)
         return File.mtime(stampfile)
     end
 
-    def touch_stamp(stampfile)
+    def self.touch_stamp(stampfile)
         puts "Touching #{stampfile}" if Autobuild.debug
         FileUtils.touch(stampfile)
+
+        # File modification times on most Unix filesystems have a granularity of
+        # one second, so we (unfortunately) have to sleep 1s to make sure that
+        # time comparisons will work as expected.
         sleep(1)
     end
 end

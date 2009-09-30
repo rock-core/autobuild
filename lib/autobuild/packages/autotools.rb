@@ -146,7 +146,7 @@ module Autobuild
                 configure
             end
 
-            source_tree srcdir do |pkg|
+            Autobuild.source_tree srcdir do |pkg|
 		pkg.exclude << Regexp.new("^#{Regexp.quote(builddir)}")
 	    end
             file buildstamp => [ srcdir, "#{builddir}/config.status" ] do 
@@ -231,7 +231,7 @@ module Autobuild
                 Subprocess.run(name, 'build', './config.status')
                 Subprocess.run(name, 'build', Autobuild.tool(:make))
             }
-            touch_stamp(buildstamp)
+            Autobuild.touch_stamp(buildstamp)
         end
 
         # Install the result in prefix
@@ -239,7 +239,7 @@ module Autobuild
             Dir.chdir(builddir) {
                 Subprocess.run(name, 'install', Autobuild.tool(:make), 'install')
             }
-            touch_stamp(installstamp)
+            Autobuild.touch_stamp(installstamp)
         end
     end
 end

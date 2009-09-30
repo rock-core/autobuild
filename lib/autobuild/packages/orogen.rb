@@ -47,7 +47,7 @@ module Autobuild
 
             Dir.chdir(srcdir) do
                 Subprocess.run name, 'orogen', *cmdline
-                touch_stamp genstamp
+                Autobuild.touch_stamp genstamp
             end
         end
     end

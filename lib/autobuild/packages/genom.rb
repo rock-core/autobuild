@@ -89,10 +89,10 @@ module Autobuild
 		genom_pkg = PkgConfig.new('genom')
 
 		includedir = File.join(genom_pkg.includedir, 'genom')
-		source_tree includedir
+		Autobuild.source_tree includedir
 
 		canvasdir = File.join(genom_pkg.prefix, "share", "genom", genom_pkg.version);;
-		source_tree canvasdir
+		Autobuild.source_tree canvasdir
 
 		binary = File.join(genom_pkg.exec_prefix, "bin", "genom")
 		file binary

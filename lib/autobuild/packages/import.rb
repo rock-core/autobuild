@@ -18,13 +18,13 @@ module Autobuild
             super
 	    exclude << Regexp.new("^#{Regexp.quote(installstamp)}")
 
-            source_tree(srcdir) do |pkg|
+            Autobuild.source_tree(srcdir) do |pkg|
 		pkg.exclude.concat exclude
 		exclude.freeze
 	    end
 
             file installstamp => srcdir do 
-                touch_stamp installstamp
+                Autobuild.touch_stamp installstamp
             end
         end
     end

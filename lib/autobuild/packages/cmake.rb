@@ -128,7 +128,7 @@ module Autobuild
                 end
                 Subprocess.run(name, 'build', Autobuild.tool(:make))
             end
-            touch_stamp(buildstamp)
+            Autobuild.touch_stamp(buildstamp)
         end
 
         # Install the result in prefix
