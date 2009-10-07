@@ -29,14 +29,14 @@ module Autobuild
 
             gitopts, common = Kernel.filter_options options, :branch => 'master', :tag => nil, :commit => nil
             if gitopts[:branch] && branch
-                raise ConfigError, "git branch specified with both the option hash and the explicit parameter"
+                raise ConfigException, "git branch specified with both the option hash and the explicit parameter"
             end
             branch = gitopts[:branch] || branch
             tag    = gitopts[:tag]
             commit = gitopts[:commit]
 
             if (branch && commit) || (branch && commit) || (tag && commit)
-                raise ConfigError, "you can specify only a branch, tag or commit but not two or three at the same time"
+                raise ConfigException, "you can specify only a branch, tag or commit but not two or three at the same time"
             end
             @branch = branch
             @commit = tag || commit

@@ -16,7 +16,7 @@ module Autobuild
         alias :exception_message :to_s 
         def to_s
             if target && phase
-                "#{target}: failed in #{phase} phase\n   #{super}"
+                "#{target}: failed in #{phase} phase\n    #{super}"
             elsif target
                 "#{target}: #{super}"
             else
@@ -61,16 +61,22 @@ module Autobuild
         def to_s
             prefix = super
             if @orig_message
-                prefix << "\n    #{@orig_message}"
+                prefix << "\n     #{@orig_message}"
             end
             prefix << "\n    see #{logfile} for details"
-            lines = File.readlines(logfile)
-            if lines.size > ERROR_LINES
-                lines = lines[-ERROR_LINES, ERROR_LINES]
-            end
-            prefix << "\n    last #{lines.size} lines are:\n\n"
-            lines.each do |l|
-                prefix << "    #{l}"
+
+            # If we do not have a status, it means an error occured in the
+            # launching process. More importantly, it means we already have a
+            # proper explanation for it. Don't display the logfile at all.
+            if status
+                lines = File.readlines(logfile)
+                if lines.size > ERROR_LINES
+                    lines = lines[-ERROR_LINES, ERROR_LINES]
+                end
+                prefix << "\n    last #{lines.size} lines are:\n\n"
+                lines.each do |l|
+                    prefix << "    #{l}"
+                end
             end
             prefix
         end

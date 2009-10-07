@@ -141,6 +141,9 @@ module Autobuild
                             raise
                         else
                             STDERR.puts "W: failed to generate documentation for #{name}"
+                            if e.kind_of?(SubcommandFailed)
+                                STDERR.puts "W: see #{e.logfile} for more details"
+                            end
                         end
                     end
                 end

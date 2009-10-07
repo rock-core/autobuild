@@ -4,7 +4,7 @@ require 'autobuild/reporting'
 module Autobuild::Subprocess
     class Failed < Exception
         attr_reader :status
-        def initialize(status = 0)
+        def initialize(status = nil)
             @status = status
         end
     end
@@ -92,7 +92,7 @@ module Autobuild::Subprocess
                 # An error occured
                 value = value.unpack('I').first
                 if value == CONTROL_COMMAND_NOT_FOUND
-                    raise Failed.new, "file not found"
+                    raise Failed.new, "command '#{command.first}' not found"
                 else
                     raise Failed.new, "something unexpected happened"
                 end
