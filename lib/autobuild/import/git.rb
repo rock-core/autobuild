@@ -1,6 +1,7 @@
 require 'fileutils'
 require 'autobuild/subcommand'
 require 'autobuild/importer'
+require 'utilrb/kernel/options'
 
 module Autobuild
     class Git < Importer
