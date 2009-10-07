@@ -62,10 +62,10 @@ module Autobuild
             cvsroot = @root
                
             FileUtils.mkdir_p(head) if !File.directory?(head)
-            Dir.chdir(head) {
+            Dir.chdir(head) do
                 options = [ @program, '-d', cvsroot, 'co', '-d', tail ] + @options_co + [ modulename ]
                 Subprocess.run(package.name, :import, *options)
-            }
+	    end
         end
     end
 

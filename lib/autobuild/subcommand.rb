@@ -45,7 +45,7 @@ module Autobuild::Subprocess
             pread, pwrite = IO.pipe # to feed subprocess stdin 
             cread, cwrite = IO.pipe # to control that exec goes well
 
-            pid = fork { 
+            pid = fork do
                 cwrite.sync = true
                 begin
                     Process.setpriority(Process::PRIO_PROCESS, 0, Autobuild.nice)
@@ -70,7 +70,7 @@ module Autobuild::Subprocess
                     cwrite.write([CONTROL_UNEXPECTED].pack('I'))
                     raise
                 end
-            }
+            end
 
             # Feed the input
             pread.close
