@@ -27,11 +27,11 @@ module Autobuild
                 STDERR.puts "WARN:    Autobuild.git 'git://github.com/doudou/autobuild.git', :branch => 'master'"
             end
 
-            gitopts, common = Kernel.filter_options options, :branch => 'master', :tag => nil, :commit => nil
+            gitopts, common = Kernel.filter_options options, :branch => nil, :tag => nil, :commit => nil
             if gitopts[:branch] && branch
                 raise ConfigException, "git branch specified with both the option hash and the explicit parameter"
             end
-            branch = gitopts[:branch] || branch
+            branch = gitopts[:branch] || branch || 'master'
             tag    = gitopts[:tag]
             commit = gitopts[:commit]
 
