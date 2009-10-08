@@ -152,7 +152,7 @@ module Autobuild
                          if common_commit == head_commit
                              Status::SIMPLE_UPDATE
                          else
-                             Status::MERGE
+                             Status::NEEDS_MERGE
                          end
                      else
                          if common_commit == head_commit
