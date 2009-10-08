@@ -100,18 +100,11 @@ module Autobuild
                 end
 
                 status = merge_status(remote_commit)
-                if status.needs_update?
-                    commits = fetch_commits_between(status.common, status.remote)
-                    if status.status == UPDATE_FAST_FORWARD
-                        Importer::Status.update(commits)
-                    else
-                        Importer::Status.merge(commits)
-                    end
-                elsif status.status == UPDATE_ADVANCED
-                    Importer::Status.advanced(fetch_commits_between(status.common, status.local))
-                else
-                    Importer::Status.up_to_date
+                `git diff --quiet`
+                if $?.exitstatus != 0
+                    status.uncommitted_code = true
                 end
+                status
             end
         end
 
@@ -122,17 +115,34 @@ module Autobuild
             current_branch == "refs/heads/#{branch}"
         end
 
-        MergeStatus = Struct.new :status, :remote, :local, :common
-        class MergeStatus
+        class Status < Importer::Status
+            attr_reader :fetch_commit
+            attr_reader :head_commit
+            attr_reader :common_commit
+
+            def initialize(status, remote_commit, local_commit, common_commit)
+                super()
+                @status        = status
+                @fetch_commit  = fetch_commit
+                @head_commit   = head_commit
+                @common_commit = common_commit
+
+                if remote_commit != common_commit
+                    @remote_commits = log(common_commit, remote_commit)
+                end
+                if local_commit != common_commit
+                    @local_commits = log(common_commit, local_commit)
+                end
+            end
+
             def needs_update?
-                status == UPDATE_FAST_FORWARD || status == UPDATE_MERGE
+                status == Status::NEEDS_MERGE || status == Status::SIMPLE_UPDATE
+            end
+
+            def log(from, to)
+                `git log --pretty=format:"%h %cr %cn %s" #{from}..#{to}`.chomp.split("\n")
             end
         end
-
-        UPDATE_FAST_FORWARD = 1
-        UPDATE_MERGE        = 2
-        UPDATE_SYNC         = 3
-        UPDATE_ADVANCED     = 4
 
         def merge_status(fetch_commit)
             common_commit = `git merge-base HEAD #{fetch_commit}`.chomp
@@ -140,19 +150,19 @@ module Autobuild
 
             status = if common_commit != fetch_commit
                          if common_commit == head_commit
-                             UPDATE_FAST_FORWARD
+                             Status::SIMPLE_UPDATE
                          else
-                             UPDATE_MERGE
+                             Status::MERGE
                          end
                      else
                          if common_commit == head_commit
-                             UPDATE_SYNC
+                             Status::UP_TO_DATE
                          else
-                             UPDATE_ADVANCED
+                             Status::ADVANCED
                          end
                      end
 
-            MergeStatus.new(status, fetch_commit, head_commit, common_commit)
+            Status.new(status, fetch_commit, head_commit, common_commit)
         end
 
         def update(package)
@@ -181,7 +191,7 @@ module Autobuild
 
                 status = merge_status(fetch_commit)
                 if status.needs_update?
-                    if !merge? && status.status == UPDATE_MERGE
+                    if !merge? && status.status == Status::NEEDS_MERGE
                         raise PackageException, "importing the current version would require a merge"
                     end
                     Subprocess.run(package.name, :import, Autobuild.tool('git'), 'merge', fetch_commit)

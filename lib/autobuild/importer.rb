@@ -5,6 +5,38 @@ require 'autobuild/exceptions'
 # various RCS into the package source directory. A list of patches to apply
 # after the import can be given in the +:patches+ option.
 class Autobuild::Importer
+    # Instances of the Importer::Status class represent the status of a current
+    # checkout w.r.t. the remote repository.
+    class Status
+        # Remote and local are at the same point
+        UP_TO_DATE    = 0
+        # Local contains all data that remote has, but has new commits
+        ADVANCED      = 1
+        # Next update will require a merge
+        NEEDS_MERGE   = 2
+        # Next update will be simple (no merge)
+        SIMPLE_UPDATE = 3
+
+        # The update status
+        attr_accessor :status
+        # True if there is code in the working copy that is not committed
+        attr_accessor :uncommitted_code
+
+        # An array of strings that represent commits that are in the remote
+        # repository and not in this one (would be merged by an update)
+        attr_accessor :remote_commits
+        # An array of strings that represent commits that are in the local
+        # repository and not in the remote one (would be pushed by an update)
+        attr_accessor :local_commits
+
+        def initialize
+            @status = -1
+            @uncommitted_code = false
+            @remote_commits = Array.new
+            @local_commits  = Array.new
+        end
+    end
+
     # Creates a new Importer object. The options known to Importer are:
     # [:patches] a list of patch to apply after import
     #
