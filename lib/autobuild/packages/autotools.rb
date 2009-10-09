@@ -119,6 +119,8 @@ module Autobuild
         end
 
         def prepare
+            super
+
 	    configureflags.flatten!
 
 	    # Check if config.status has been generated with the

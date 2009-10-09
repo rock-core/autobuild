@@ -63,6 +63,8 @@ module Autobuild
         end
 
         def prepare
+            super
+
             file configurestamp do
                 ensure_dependencies_installed
                 configure
