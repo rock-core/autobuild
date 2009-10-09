@@ -11,6 +11,35 @@ module Autobuild
     #   - import
     #   - prepare
     #   - build & install
+    #
+    # In the first stage checks the source out and/or updates it.
+    #
+    # In the second stage, packages create their dependency structure to handle
+    # specific build systems. For instance, it is there that build systems like
+    # CMake are handled so that reconfiguration happens if needed. In the same
+    # way, it is there that code generation will happen as well.
+    #
+    # Finally, the build stage actually calls the package's build targets (of
+    # the form "package_name-build", which will trigger the build if needed.
+    #
+    # <b>Autodetecting dependencies</b>
+    # There are two sides in dependency autodetection. The first side is that
+    # packages must declare what they provide. One example is the handling of
+    # pkgconfig dependencies: packages must declare that they provide a
+    # pkgconfig definition. This side of the autodetection must be done just
+    # after the package's import, by overloading the #import method:
+    #
+    #   def import
+    #     super
+    #
+    #     # Do autodetection and call Package#provides
+    #   end
+    #
+    # Note that, in most cases, the overloaded import method *must* begin with
+    # "super".
+    #
+    # The other side is the detection itself. That must be done by overloading
+    # the #prepare method.
     class Package
 	@@packages = {}
 	@@provides = {}
@@ -98,8 +127,17 @@ module Autobuild
 	    task :default => name
 	end
 
+        # Call the importer if there is one. Autodetection of "provides" should
+        # be done there as well. See the documentation of Autobuild::Package for
+        # more information.
 	def import; @importer.import(self) if @importer end
-	def prepare; end
+        # Create all the dependencies required to reconfigure and/or rebuild the
+        # package when required. The package's build target is called
+        # "package_name-build".
+	def prepare
+            super if defined? super
+            Autobuild.update_environment prefix
+        end
 
         # Directory in which the documentation target will have generated the
         # documentation (if any). The interpretation of relative directories
@@ -186,7 +224,9 @@ module Autobuild
 	    end
 	end
 
-	# This package depends on +packages+
+	# This package depends on +packages+. It means that its build will
+        # always be triggered after the packages listed in +packages+ are built
+        # and installed.
 	def depends_on(*packages)
 	    packages.each do |p|
 		p = p.to_s
@@ -201,7 +241,8 @@ module Autobuild
 	    end
 	end
 
-	# Declare that this package provides +packages+
+	# Declare that this package provides +packages+. In effect, the names
+        # listed in +packages+ are aliases for this package.
 	def provides(*packages)
 	    packages.each do |p|
 		p = p.to_s
