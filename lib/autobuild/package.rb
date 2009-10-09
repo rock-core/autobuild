@@ -100,17 +100,8 @@ module Autobuild
 
             @doc_dir        ||= 'doc'
             @doc_target_dir ||= name
-	    
-	    # Declare the installation stampfile
-	    file installstamp do
-		Dir.chdir(srcdir) do
-		    Autobuild.apply_post_install(name, @post_install)
-		end
-	    end
-	    # Add dependencies declared in spec
-	    depends_on *depends if depends
 
-	    # Define the import task
+	    # Define the default tasks
 	    task "#{name}-import" do import end
 	    task :import => "#{name}-import"
 
@@ -118,7 +109,7 @@ module Autobuild
 	    task "#{name}-prepare" => "#{name}-import" do prepare end
 	    task :prepare => "#{name}-prepare"
 
-	    task "#{name}-build" => ["#{name}-prepare", installstamp]
+	    task "#{name}-build" => "#{name}-prepare"
 	    task :build => "#{name}-build"
 
 	    task(name) do
@@ -130,6 +121,10 @@ module Autobuild
                 end
 	    end
 	    task :default => name
+	    
+            # The dependencies will be declared in the prepare phase,  so save
+            # them there for now
+            @spec_dependencies = depends
 	end
 
         # Call the importer if there is one. Autodetection of "provides" should
@@ -141,6 +136,17 @@ module Autobuild
         # "package_name-build".
 	def prepare
             super if defined? super
+
+            task "#{name}-build" => installstamp
+	    # Declare the installation stampfile
+	    file installstamp do
+		Dir.chdir(srcdir) do
+		    Autobuild.apply_post_install(name, @post_install)
+		end
+	    end
+	    # Add dependencies declared in spec
+	    depends_on *@spec_dependencies if @spec_dependencies
+
             Autobuild.update_environment prefix
         end
 
