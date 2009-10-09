@@ -202,7 +202,7 @@ module Autobuild
         end
     end
 
-    def self.apply(packages)
+    def self.apply(packages, buildname = "autobuild")
         if Autobuild.mail[:to]
             if !Autobuild::HAS_RMAIL
                 STDERR.puts "RMail is not available. Mail notification is disabled"
@@ -227,10 +227,10 @@ module Autobuild
                           packages.map { |pkg| "#{pkg}-#{phase}" }
                       end
 
-            task "autobuild-#{phase}" => targets
+            task "#{buildname}-#{phase}" => targets
         end
         phases.each do |phase|
-            Rake::Task["autobuild-#{phase}"].invoke
+            Rake::Task["#{buildname}-#{phase}"].invoke
         end
     end
 end
