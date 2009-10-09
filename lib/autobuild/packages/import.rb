@@ -16,11 +16,12 @@ module Autobuild
         def initialize(*args)
 	    @exclude = []
             super
-	    exclude << Regexp.new("^#{Regexp.quote(installstamp)}")
         end
 
-        def import
+        def prepare
             super
+
+	    exclude << Regexp.new("^#{Regexp.quote(installstamp)}")
 
             Autobuild.source_tree(srcdir) do |pkg|
 		pkg.exclude.concat exclude
