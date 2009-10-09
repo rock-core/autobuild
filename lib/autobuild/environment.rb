@@ -28,6 +28,9 @@ module Autobuild
             oldpath = environment[name]
             if !oldpath || !oldpath.include?(path)
                 env_add(name, path)
+                if name == 'RUBYLIB'
+                    $LOAD_PATH.unshift path
+                end
             end
         end
         if !paths.empty?
