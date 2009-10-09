@@ -139,6 +139,7 @@ module Autobuild
             Dir.chdir(builddir) do
                 Autobuild.progress "installing #{name}"
                 Subprocess.run(name, 'install', Autobuild.tool(:make), 'install')
+                Autobuild.update_environment prefix
             end
             super
         end

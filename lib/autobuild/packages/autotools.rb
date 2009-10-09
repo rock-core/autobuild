@@ -51,8 +51,6 @@ module Autobuild
 	    @configureflags = []
 
             super
-
-            Autobuild.update_environment(prefix)
         end
         
         def install_doc(relative_to = builddir)
@@ -158,10 +156,10 @@ module Autobuild
 
             file installstamp => buildstamp do 
                 install
-                Autobuild.update_environment(prefix)
             end
-        end
 
+            Autobuild.update_environment(prefix)
+        end
 
     private
         # Adds a target to rebuild the autotools environment
@@ -245,6 +243,7 @@ module Autobuild
                 Subprocess.run(name, 'install', Autobuild.tool(:make), 'install')
             }
             Autobuild.touch_stamp(installstamp)
+            Autobuild.update_environment(prefix)
         end
     end
 end
