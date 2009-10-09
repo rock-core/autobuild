@@ -66,6 +66,15 @@ module Autobuild
             end
         end
 
+        def import
+            super
+
+            Dir.glob(File.join(srcdir, "*.pc.in")) do |file|
+                file = File.basename(file, ".pc.in")
+                provides "pkgconfig/#{file}"
+            end
+        end
+
         def prepare
             super
 
