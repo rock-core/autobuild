@@ -52,6 +52,9 @@ module Autobuild
 	# set the installation directory. If a relative path is given,
 	# it is relative to Autobuild.prefix. Defaults to ''
 	attr_writer :prefix
+        # Sets the log directory. If no value is set, the package will use
+        # Autobuild.logdir
+        attr_writer :logdir
 	
 	# Sets importer object for this package. Defined for backwards compatibility.
 	# Use the #importer attribute instead
@@ -73,7 +76,9 @@ module Autobuild
 	# has finished. The path is absolute
 	#
 	# A package is sucessfully built when it is installed
-	def installstamp; "#{Autobuild.logdir}/#{name}-#{STAMPFILE}" end
+	def installstamp
+            File.join(@logdir || Autobuild.logdir, "#{name}-#{STAMPFILE}")
+        end
 
 	def initialize(spec)
 	    @dependencies   = Array.new
