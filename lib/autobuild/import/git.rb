@@ -68,7 +68,7 @@ module Autobuild
         # repository
         def validates_git_repository
             if !File.directory?('.git')
-                raise ConfigException, "#{package.srcdir} is not a git repository"
+                raise ConfigException, "#{Dir.pwd} is not a git repository"
             end
         end
 
