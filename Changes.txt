@@ -3,7 +3,14 @@
   (hopefully) displays more useful error messages in most cases.
 * make the library easier to use to build other tools (i.e. not so much
   autobuild-centered anymore)
-* add the :branch and :tag targets to the git importer
+* add the :branch and :tag targets to the git importer. The git importer should
+  now be used as:
+    Autobuild.git(URL, :branch => branch_name)
+  OR
+    Autobuild.git(URL, :tag => tag_name_or_commit_id)
+  
+  This puts it in line with the other importers which have a
+  Autobuild.importer_type(URL, option_hash) form.
 
 == Version 1.2.15
 * fix branch switching in the git importer: the build will not fail anymore if
