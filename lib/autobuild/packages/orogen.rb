@@ -9,11 +9,43 @@ module Autobuild
     # discover the dependencies without resorting to an actual build
     class FakeOrogenEnvironment
         class BlackHole
-            def const_missing(*args)
-                self
+            def initialize(*args)
             end
             def method_missing(*args)
                 self
+            end
+            def self.method_missing(*args)
+                self
+            end
+            def self.const_missing(*args)
+                self
+            end
+        end
+        StaticDeployment = BlackHole
+        StaticDeployment::Logger = BlackHole
+        TaskContext = BlackHole
+
+        class FakeDeployment
+            attr_reader :env
+            def initialize(env, name)
+                @env = env
+                env.provides << "pkgconfig/orogen-#{name}"
+            end
+            def add_default_logger
+                env.using_task_library 'logger'
+                BlackHole
+            end
+            def task(*args)
+                method_missing(*args)
+            end
+            def const_missing(*args)
+                BlackHole
+            end
+            def method_missing(*args)
+                BlackHole
+            end
+            def self.const_missing(*args)
+                BlackHole
             end
         end
 
@@ -28,13 +60,14 @@ module Autobuild
             end
         end
 
-        attr_reader :project_name, :dependencies
+        attr_reader :project_name, :dependencies, :provides
         def self.load(file)
             FakeOrogenEnvironment.new.load(file)
         end
 
         def initialize
             @dependencies = Array.new
+            @provides = Array.new
         end
 
         def load(file)
@@ -44,24 +77,40 @@ module Autobuild
 
         def name(name)
             @project_name = name
+            nil
         end
         def using_library(*names)
             @dependencies.concat(names)
+            nil
         end
         def using_toolkit(*names)
             names = names.map { |n| "#{n}-toolkit-#{FakeOrogenEnvironment.orocos_target}" }
             @dependencies.concat(names)
+            nil
         end
         def using_task_library(*names)
             names = names.map { |n| "#{n}-tasks-#{FakeOrogenEnvironment.orocos_target}" }
             @dependencies.concat(names)
+            nil
         end
 
+        def static_deployment(name = nil, &block)
+            deployment("test_#{project_name}", &block)
+        end
+        def deployment(name, &block)
+            deployment = FakeDeployment.new(self, name)
+            deployment.instance_eval(&block) if block
+            deployment
+        end
+
+        def self.const_missing(*args)
+            BlackHole
+        end
         def const_missing(*args)
-            BlackHole.new
+            BlackHole
         end
         def method_missing(*args)
-            BlackHole.new
+            BlackHole
         end
     end
 
@@ -113,6 +162,9 @@ module Autobuild
             @orogen_spec = FakeOrogenEnvironment.load(File.join(srcdir, orogen_file))
             provides "pkgconfig/#{orogen_spec.project_name}-toolkit-#{FakeOrogenEnvironment.orocos_target}"
             provides "pkgconfig/#{orogen_spec.project_name}-tasks-#{FakeOrogenEnvironment.orocos_target}"
+            orogen_spec.provides.each do |name|
+                provides name
+            end
         end
 
         def prepare
@@ -129,10 +181,13 @@ module Autobuild
 
             # Find out where orogen is, and make sure the configurestamp depend
             # on it. Ignore if orogen is too old to have a --base-dir option
-            orogen_root = File.join(`orogen --base-dir`.chomp, 'orogen')
-            if !orogen_root.empty?
-                file genstamp => Autobuild.source_tree(orogen_root)
+            orogen_root = `orogen --base-dir`.chomp
+            if orogen_root.empty?
+                puts ENV['PATH']
+                raise ConfigException, "cannot find the orogen tool"
             end
+            orogen_root = File.join(orogen_root, 'orogen')
+            file genstamp => Autobuild.source_tree(orogen_root)
 
             file configurestamp => genstamp
             file genstamp => File.join(srcdir, orogen_file) do
