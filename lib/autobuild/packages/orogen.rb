@@ -183,7 +183,6 @@ module Autobuild
             # on it. Ignore if orogen is too old to have a --base-dir option
             orogen_root = `orogen --base-dir`.chomp
             if orogen_root.empty?
-                puts ENV['PATH']
                 raise ConfigException, "cannot find the orogen tool"
             end
             orogen_root = File.join(orogen_root, 'orogen')
