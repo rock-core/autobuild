@@ -6,12 +6,17 @@ module Autobuild
 
     # Set a new environment variable
     def self.env_set(name, *values)
-        environment.delete(name)
+        environment[name] = nil
         env_add(name, *values)
     end
     # Adds a new value to an environment variable
     def self.env_add(name, *values)
-        set = environment[name]
+        set = if environment.has_key?(name)
+                  environment[name]
+              else
+                  ENV[name].split(':')
+              end
+
         if !set
             set = Array.new
         elsif !set.respond_to?(:to_ary)

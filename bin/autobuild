@@ -15,10 +15,6 @@ DEFAULT_HTTP_PORT = 2000
 conffile, *packages = Autobuild.commandline(ARGV)
 Autobuild.packages = packages
 
-Autobuild.env_set 'PATH', *(ENV['PATH'].split(":"))
-Autobuild.env_set 'RUBYLIB', *(ENV['PATH'].split(":"))
-Autobuild.env_set 'PKG_CONFIG_PATH', *(ENV['PATH'].split(":"))
-
 # make conffile an absolute path since daemonize mode makes
 # / the current directory
 conffile = File.expand_path(conffile, Dir.pwd)
