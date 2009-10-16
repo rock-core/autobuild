@@ -66,8 +66,8 @@ module Autobuild
 
         # Raises ConfigException if the current directory is not a git
         # repository
-        def validates_git_repository
-            if !File.directory?('.git')
+        def validate_srcdir(package)
+            if !File.directory?(File.join(package.srcdir, '.git'))
                 raise ConfigException, "#{Dir.pwd} is not a git repository"
             end
         end
@@ -76,9 +76,8 @@ module Autobuild
         # ID on success, nil on failure. Expects the current directory to be the
         # package's source directory.
         def fetch_remote(package)
+            validate_srcdir(package)
             Dir.chdir(package.srcdir) do
-                validates_git_repository
-
                 Subprocess.run(package.name, :import, Autobuild.tool('git'), 'fetch', repository, branch)
                 if File.readable?( File.join('.git', 'FETCH_HEAD') )
                     fetch_commit = File.readlines( File.join('.git', 'FETCH_HEAD') ).
@@ -93,6 +92,7 @@ module Autobuild
         # Returns a Importer::Status object that represents the status of this
         # package w.r.t. the root repository
         def status(package)
+            validate_srcdir(package)
             Dir.chdir(package.srcdir) do
                 remote_commit = fetch_remote(package)
                 if !remote_commit
@@ -166,8 +166,8 @@ module Autobuild
         end
 
         def update(package)
+            validate_srcdir(package)
             Dir.chdir(package.srcdir) do
-                validates_git_repository
                 fetch_commit = fetch_remote(package)
                 if !fetch_commit
                     return
