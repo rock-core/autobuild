@@ -43,18 +43,31 @@ module Autobuild
         def get_requires
 	    apionly = genomflags.find { |f| f == '-a' }
             cpp = Autobuild.tool(:cpp)
+            currentBuffer = nil
             Open3.popen3("#{cpp} #{cpp_options.join(" ")} #{srcdir}/#{name}.gen") do |cin, out, err|
-                out.each_line { |line|
-                    if line =~ /^\s*(codels_)?requires\s*:\s*([\w\-]+(?:\s*,\s*[\w\-]+)*);/
-			# Remove the codels_requires lines if -a is given to genom
-			unless $1 == "codels_" && apionly
-			    $2.split(/,/).each { |name| depends_on name.strip }
-			end
-                    elsif line =~ /^\s*(?:codels_)?requires/
-			# Check that the regexp is not too strict
-                        STDERR.puts "failed to match #{line}"
+                out.each_line do |line|
+                    if line =~ /^\s*(codels_)?requires\s*:.*,$/
+                        currentBuffer = line
+                    elsif currentBuffer
+                        currentBuffer += line
+                        if currentBuffer =~ /^\s*(codels_)?requires\s*:\s*(\"?\s*[\w\-=><0-9.\s]+\s*\"?(?:\s*,\s*\"?\s*[\w\-=><0-9.\s]+\s*\"?)*);/
+                            # Remove the codels_requires lines if -a is given to genom
+                            unless $1 == "codels_" && apionly
+                                $2.split(/,/).each do |name|
+                                    if name.strip =~ /\s*\"?\s*([\w\-]+)\s*[<=>]+\s*[0-9.]+\s*\"?\s*/
+                                        depends_on $1
+                                    else
+                                        depends_on name.strip
+                                    end
+                                end
+                            end
+                            currentBuffer = nil
+                        elsif currentBuffer =~ /^\s*(?:codels_)?requires.*;$/
+                            # Check that the regexp is not too strict
+                            STDERR.puts "failed to match #{currentBuffer}"
+                        end
                     end
-                }
+                end
             end
         end
 
