@@ -138,7 +138,10 @@ module Autobuild
 
         attr_reader :orogen_spec
 
-        attr_accessor :corba
+        attr_writer :corba
+        def corba
+            @corba || (@corba.nil? && Orogen.corba)
+        end
 
         attr_accessor :orogen_file
         def initialize(*args, &config)
