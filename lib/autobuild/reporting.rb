@@ -16,7 +16,23 @@ require 'autobuild/exceptions'
 
 module Autobuild
     def self.progress(msg)
-	puts "  #{msg}"
+        if @last_msg
+            progress_value(100)
+            puts
+        end
+        @last_msg = nil
+        puts "  #{msg}"
+    end
+    def self.progress_with_value(msg)
+        if @last_msg
+            progress_value(100)
+            puts
+        end
+        @last_msg = msg
+        print "  #{msg}"
+    end
+    def self.progress_value(value)
+        print "\r  #{@last_msg} (#{value}%)"
     end
 
     ## The reporting module provides the framework

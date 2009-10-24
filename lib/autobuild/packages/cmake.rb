@@ -134,11 +134,15 @@ module Autobuild
         # Do the build in builddir
         def build
             Dir.chdir(builddir) do
-                Autobuild.progress "building #{name}"
+                Autobuild.progress_with_value "building #{name}"
                 if always_reconfigure || !File.file?('Makefile')
                     Subprocess.run(name, 'build', Autobuild.tool(:cmake), '.')
                 end
-                Subprocess.run(name, 'build', Autobuild.tool(:make), "-j#{parallel_build_level}")
+                Subprocess.run(name, 'build', Autobuild.tool(:make), "-j#{parallel_build_level}") do |line|
+                    if line =~ /\[\s+(\d+)%\]/
+                        Autobuild.progress_value Integer($1)
+                    end
+                end
             end
             Autobuild.touch_stamp(buildstamp)
         end

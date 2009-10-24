@@ -66,6 +66,8 @@ module Autobuild::Subprocess
     CONTROL_COMMAND_NOT_FOUND = 1
     CONTROL_UNEXPECTED = 2
     def self.run(target, phase, *command)
+        STDOUT.sync = true
+
         # Filter nil and empty? in command
         command.reject!  { |o| o.nil? || (o.respond_to?(:empty?) && o.empty?) }
         command.collect! { |o| o.to_s }
@@ -95,17 +97,29 @@ module Autobuild::Subprocess
             logfile.puts "    #{command.join(" ")}"
 	    logfile.puts
 	    logfile.flush
+            logfile.sync = true
 
-            pread, pwrite = IO.pipe # to feed subprocess stdin 
+            if !input_streams.empty?
+                pread, pwrite = IO.pipe # to feed subprocess stdin 
+            end
+            if block_given? # the caller wants the stdout/stderr stream of the process, git it to him
+                outread, outwrite = IO.pipe
+                outread.sync = true
+                outwrite.sync = true
+            end
             cread, cwrite = IO.pipe # to control that exec goes well
+
+            cwrite.fcntl(Fcntl::F_SETFD, Fcntl::FD_CLOEXEC)
 
             pid = fork do
                 cwrite.sync = true
                 begin
                     Process.setpriority(Process::PRIO_PROCESS, 0, Autobuild.nice)
-                    if Autobuild.verbose
-                        $stderr.dup.reopen(logfile.dup)
-                        $stdout.dup.reopen(logfile.dup)
+
+                    if outwrite
+                        outread.close
+                        $stderr.reopen(outwrite.dup)
+                        $stdout.reopen(outwrite.dup)
                     else
                         $stderr.reopen(logfile.dup)
                         $stdout.reopen(logfile.dup)
@@ -127,17 +141,19 @@ module Autobuild::Subprocess
             end
 
             # Feed the input
-            pread.close
-            begin
-                input_streams.each do |infile|
-                    File.open(infile) do |instream|
-                        instream.each_line { |line| pwrite.write(line) }
+            if !input_streams.empty?
+                pread.close
+                begin
+                    input_streams.each do |infile|
+                        File.open(infile) do |instream|
+                            instream.each_line { |line| pwrite.write(line) }
+                        end
                     end
+                rescue Errno::ENOENT => e
+                    raise Failed.new, "cannot open input files: #{e.message}"
                 end
-            rescue Errno::ENOENT => e
-                raise Failed.new, "cannot open input files: #{e.message}"
+                pwrite.close
             end
-            pwrite.close
 
             # Get control status
             cwrite.close
@@ -150,6 +166,22 @@ module Autobuild::Subprocess
                 else
                     raise Failed.new, "something unexpected happened"
                 end
+            end
+
+            # If the caller asked for process output, provide it to him
+            # line-by-line.
+            if outread
+                outwrite.close
+                outread.each_line do |line|
+                    if Autobuild.verbose
+                        STDOUT.print line
+                    end
+                    logfile.puts line
+                    if block_given?
+                        yield(line)
+                    end
+                end
+                outread.close
             end
 
             childpid, childstatus = Process.wait2(pid)
