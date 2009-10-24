@@ -40,7 +40,7 @@ module Autobuild
             doc_task do
                 Dir.chdir(builddir) do
                     Autobuild.progress "generating documentation for #{name}"
-                    Subprocess.run(name, 'doc', Autobuild.tool(:make), target)
+                    Subprocess.run(name, 'doc', Autobuild.tool(:make), "-j#{parallel_build_level}", target)
                     yield if block_given?
                 end
             end
@@ -138,7 +138,7 @@ module Autobuild
                 if always_reconfigure || !File.file?('Makefile')
                     Subprocess.run(name, 'build', Autobuild.tool(:cmake), '.')
                 end
-                Subprocess.run(name, 'build', Autobuild.tool(:make))
+                Subprocess.run(name, 'build', Autobuild.tool(:make), "-j#{parallel_build_level}")
             end
             Autobuild.touch_stamp(buildstamp)
         end
@@ -147,7 +147,7 @@ module Autobuild
         def install
             Dir.chdir(builddir) do
                 Autobuild.progress "installing #{name}"
-                Subprocess.run(name, 'install', Autobuild.tool(:make), 'install')
+                Subprocess.run(name, 'build', Autobuild.tool(:make), "-j#{parallel_build_level}", 'install')
                 Autobuild.update_environment prefix
             end
             super

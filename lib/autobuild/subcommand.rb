@@ -1,5 +1,59 @@
 require 'autobuild/exceptions'
 require 'autobuild/reporting'
+require 'fcntl'
+
+module Autobuild
+    @parallel_build_level = nil
+    class << self
+        # Sets the level of parallelism during the build
+        #
+        # See #parallel_build_level for detailed information
+        attr_writer :parallel_build_level
+
+        # Returns the number of processes that can run in parallel during the
+        # build. This is a system-wide value that can be overriden in a
+        # per-package fashion by using Package#parallel_build_level.
+        #
+        # If not set, defaults to the number of CPUs on the system
+        #
+        # See also #parallel_build_level=
+        def parallel_build_level
+            if @parallel_build_level.nil?
+                # No user-set value, return the count of processors on this
+                # machine
+                autodetect_processor_count
+            elsif !@parallel_build_level || @parallel_build_level <= 0
+                1
+            else
+                @parallel_build_level
+            end
+        end
+    end
+
+    # Returns the number of CPUs present on this system
+    def self.autodetect_processor_count
+        if @processor_count
+            return @processor_count
+        end
+
+        if File.file?('/sys/devices/system/cpu/present')
+            range = File.read('/sys/devices/system/cpu/present').
+                chomp
+                
+            @processor_count = Integer(range.split('-').last) + 1
+        elsif File.file?('/proc/cpuinfo')
+            # Just count the numer of processor: \d lines
+            @processor_count = File.readlines('/proc/cpuinfo').
+                find_all { |l| l =~ /^processor\s+:\s+\d+$/ }.
+                count
+        else
+            # Hug... What kind of system is it ?
+            STDERR.puts "INFO: cannot autodetect the number of CPUs on this sytem"
+            @processor_count = 1
+        end
+    end
+end
+
 
 module Autobuild::Subprocess
     class Failed < Exception

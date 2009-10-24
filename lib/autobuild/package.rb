@@ -83,6 +83,7 @@ module Autobuild
 	def initialize(spec)
 	    @dependencies   = Array.new
 	    @provides       = Array.new
+            @parallel_build_level = nil
 
 	    if Hash === spec
 		name, depends = spec.to_a.first
@@ -279,6 +280,31 @@ module Autobuild
 	def self.[](name)
 	    @@packages[name.to_s] || @@provides[name.to_s]
 	end
+
+        # Sets the level of parallelism authorized while building this package
+        #
+        # See #parallel_build_level and Autobuild.parallel_build_level for more
+        # information.
+        #
+        # Note that not all package types use this value
+        def parallel_build_level=(value)
+            @parallel_build_level = Integer(value)
+        end
+
+        # Returns the level of parallelism authorized during the build for this
+        # particular package. If not set, defaults to the system-wide option 
+        # (Autobuild.parallel_build_level and Autobuild.parallel_build_level=).
+        #
+        # The default value is the number of CPUs on this system.
+        def parallel_build_level
+            if @parallel_build_level.nil?
+                Autobuild.parallel_build_level
+            elsif !@parallel_build_level || @parallel_build_level <= 0
+                1
+            else
+                @parallel_build_level
+            end
+        end
     end
 
     def self.package_set(spec)
