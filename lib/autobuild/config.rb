@@ -18,6 +18,8 @@ end
 # debug:: more verbose than 'verbose': displays Rake's debugging output
 # do_update:: if we should update the packages
 # do_build:: if we should build the packages
+# do_forced_build:: if we should forcefully trigger all the packages build phases
+# do_rebuild:: if we should cleanly rebuild every packages
 # do_doc:: if we should produce the documentation
 # doc_errors:: if errors during the documentation generation are treated as errors
 # daemonize:: if the build should go into daemon mode (only if the daemons gem is available)
@@ -30,7 +32,7 @@ end
 module Autobuild
     class << self
         %w{ nice srcdir prefix
-            verbose debug do_update do_build only_doc do_doc doc_errors
+            verbose debug do_update do_build do_rebuild do_forced_build only_doc do_doc doc_errors
             daemonize clean_log packages default_packages
             doc_prefix keep_oldlogs}.each do |name|
             attr_accessor name
@@ -48,7 +50,7 @@ module Autobuild
     end
     DEFAULT_OPTIONS = { :nice => 0,
         :srcdir => Dir.pwd, :prefix => Dir.pwd, :logdir => nil,
-        :verbose => false, :debug => false, :do_build => true, :do_update => true, 
+        :verbose => false, :debug => false, :do_build => true, :do_forced_build => false, :do_rebuild => false, :do_update => true, 
         :daemonize => false, :packages => [], :default_packages => [],
         :only_doc => false, :do_doc => true, :doc_errors => false,
         :doc_prefix => 'doc', :keep_oldlogs => false }
@@ -157,6 +159,8 @@ module Autobuild
 		end
                 opts.on("--no-update", "update already checked-out sources") do |@do_update| end
                 opts.on("--no-build",  "only prepare packages, do not build them") do |@do_build| end 
+                opts.on("--forced-build",  "force the trigger of all the build commands") do |@do_forced_build| end 
+                opts.on("--rebuild",  "clean and rebuild") do |@do_forced_build| end 
                 opts.on("--only-doc", "only generate documentation") do |@only_doc| end
                 opts.on("--no-doc", "don't generate documentation") do |@do_doc| end
                 opts.on("--doc-errors", "treat documentation failure as error") do |@doc_errors| end
@@ -208,6 +212,19 @@ module Autobuild
                 STDERR.puts "RMail is not available. Mail notification is disabled"
             else
                 Reporting << MailReporter.new(Autobuild.mail)
+            end
+        end
+
+        if Autobuild.do_rebuild
+            packages.each do |pkg_name|
+                Autobuild::Package[pkg_name].prepare_for_rebuild
+            end
+            # And delete the prefix !
+            FileUtils.rm_rf Autobuild.prefix
+
+        elsif Autobuild.do_forced_build
+            packages.each do |pkg_name|
+                Autobuild::Package[pkg_name].prepare_for_forced_build
             end
         end
 

@@ -50,6 +50,17 @@ module Autobuild
             Autobuild.update_environment(prefix)
         end
 
+        def prepare_for_forced_build
+            FileUtils.rm_f buildstamp
+            FileUtils.rm_f configurestamp
+        end
+
+        def prepare_for_rebuild
+            if File.exists?(builddir) && builddir != srcdir
+                FileUtils.rm_rf builddir
+            end
+        end
+
         def depends_on(*packages)
             super
             stamps = packages.collect { |p| Package[p.to_s].installstamp }
