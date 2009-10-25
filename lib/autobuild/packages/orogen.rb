@@ -188,6 +188,15 @@ module Autobuild
         def prepare
             super
 
+            # Check if someone provides the pkgconfig/orocos-rtt-TARGET package,
+            # and if so add it into our dependency list
+            if rtt = Autobuild::Package["pkgconfig/orocos-rtt-#{orocos_target}"]
+                if Autobuild.verbose
+                    STDERR.puts "orogen: found #{rtt.name} which provides the RTT"
+                end
+                depends_on rtt.name
+            end
+
             # If required, load the component's specification and add
             # dependencies based on the orogen specification.
             orogen_spec.dependencies.each do |pkg_name|
