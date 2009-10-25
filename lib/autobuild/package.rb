@@ -255,7 +255,7 @@ module Autobuild
         # and installed.
 	def depends_on(*packages)
 	    packages.each do |p|
-		p = p.to_s
+		p = p.to_str
 		next if p == name
 		unless Package[p]
 		    raise ConfigException.new(name), "package #{p} not defined"
@@ -271,7 +271,7 @@ module Autobuild
         # listed in +packages+ are aliases for this package.
 	def provides(*packages)
 	    packages.each do |p|
-		p = p.to_s
+		p = p.to_str
 		next if p == name
 		@@provides[p] = self 
 		task p => name
