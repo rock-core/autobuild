@@ -17,7 +17,7 @@ Hoe.spec 'autobuild' do
 end
 
 Rake.clear_tasks(/publish_docs/)
-task 'publish_docs' => 'doc' do
+task 'publish_docs' => 'docs' do
     if !system('./update_github')
         raise "cannot update the gh-pages branch for GitHub"
     end
