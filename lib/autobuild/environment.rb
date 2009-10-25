@@ -13,7 +13,7 @@ module Autobuild
     def self.env_add(name, *values)
         set = if environment.has_key?(name)
                   environment[name]
-              else
+              elsif ENV[name]
                   ENV[name].split(':')
               end
 
