@@ -49,23 +49,16 @@ module Autobuild
             end
         end
 
-        def self.orocos_target
-            user_target = ENV['OROCOS_TARGET']
-            if @orocos_target
-                @orocos_target.dup
-            elsif user_target && !user_target.empty?
-                user_target
-            else
-                'gnulinux'
-            end
-        end
-
         attr_reader :project_name, :dependencies, :provides
-        def self.load(file)
-            FakeOrogenEnvironment.new.load(file)
+        def self.load(pkg, file)
+            FakeOrogenEnvironment.new(pkg).load(file)
         end
 
-        def initialize
+        # The Autobuild::Orogen instance we are working for
+        attr_reader :pkg
+
+        def initialize(pkg)
+            @pkg = pkg
             @dependencies = Array.new
             @provides = Array.new
         end
@@ -84,12 +77,12 @@ module Autobuild
             nil
         end
         def using_toolkit(*names)
-            names = names.map { |n| "#{n}-toolkit-#{FakeOrogenEnvironment.orocos_target}" }
+            names = names.map { |n| "#{n}-toolkit-#{pkg.orocos_target}" }
             @dependencies.concat(names)
             nil
         end
         def using_task_library(*names)
-            names = names.map { |n| "#{n}-tasks-#{FakeOrogenEnvironment.orocos_target}" }
+            names = names.map { |n| "#{n}-tasks-#{pkg.orocos_target}" }
             @dependencies.concat(names)
             nil
         end
@@ -136,6 +129,27 @@ module Autobuild
             attr_accessor :corba
         end
 
+        @orocos_target = nil
+        def self.orocos_target
+            user_target = ENV['OROCOS_TARGET']
+            if @orocos_target
+                @orocos_target.dup
+            elsif user_target && !user_target.empty?
+                user_target
+            else
+                'gnulinux'
+            end
+        end
+
+        attr_writer :orocos_target
+        def orocos_target
+            if @orocos_target.nil?
+                Orogen.orocos_target
+            else
+                @orocos_target
+            end
+        end
+
         attr_reader :orogen_spec
 
         attr_writer :corba
@@ -148,6 +162,7 @@ module Autobuild
             @corba       = Orogen.corba
             super
 
+            @orocos_target = nil
             @orogen_file ||= "#{File.basename(name)}.orogen"
         end
 
@@ -162,9 +177,9 @@ module Autobuild
         def import
             super
 
-            @orogen_spec = FakeOrogenEnvironment.load(File.join(srcdir, orogen_file))
-            provides "pkgconfig/#{orogen_spec.project_name}-toolkit-#{FakeOrogenEnvironment.orocos_target}"
-            provides "pkgconfig/#{orogen_spec.project_name}-tasks-#{FakeOrogenEnvironment.orocos_target}"
+            @orogen_spec = FakeOrogenEnvironment.load(self, File.join(srcdir, orogen_file))
+            provides "pkgconfig/#{orogen_spec.project_name}-toolkit-#{orocos_target}"
+            provides "pkgconfig/#{orogen_spec.project_name}-tasks-#{orocos_target}"
             orogen_spec.provides.each do |name|
                 provides name
             end
