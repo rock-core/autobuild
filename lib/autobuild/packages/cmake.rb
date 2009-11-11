@@ -13,12 +13,36 @@ module Autobuild
                 raise ConfigException, "builddir must be non-nil and non-empty" if (new.nil? || new.empty?)
                 @builddir = new
             end
+
+            attr_writer :full_reconfigures
+            def full_reconfigures?
+                @full_reconfigures
+            end
         end
+        @full_reconfigures = true
 
         # a key => value association of defines for CMake
         attr_reader :defines
         # If true, always run cmake before make during the build
         attr_accessor :always_reconfigure
+        # If true, we always remove the CMake cache before reconfiguring.
+        # 
+        # See #full_reconfigures? for more details
+        attr_writer :full_reconfigures
+
+        # If true, we always remove the CMake cache before reconfiguring. This
+        # is to workaround the aggressive caching behaviour of CMake, and is set
+        # to true by default.
+        #
+        # See CMake.full_reconfigures? and CMake.full_reconfigures= for a global
+        # setting
+        def full_reconfigures?
+            if @full_reconfigures.nil?
+                CMake.full_reconfigures?
+            else
+                @full_reconfigures
+            end
+        end
 
         def configurestamp; File.join(builddir, "CMakeCache.txt") end
 
@@ -126,6 +150,9 @@ module Autobuild
                 command << srcdir
                 
                 Autobuild.progress "generating and configuring build system for #{name}"
+                if full_reconfigures?
+                    FileUtils.rm_f configurestamp
+                end
                 Subprocess.run(name, 'configure', *command)
                 super
             end
