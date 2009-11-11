@@ -286,6 +286,10 @@ module Autobuild
 	# if with_provides is true, includes the list
 	# of package aliases
 	def self.each(with_provides = false, &p)
+            if !p
+                return enum_for(:each, with_provides)
+            end
+
 	    @@packages.each(&p) 
 	    @@provides.each(&p) if with_provides
 	end
