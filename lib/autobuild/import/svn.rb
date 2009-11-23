@@ -38,12 +38,12 @@ module Autobuild
 		if source != @source
 		    raise ConfigException, "current checkout found at #{package.srcdir} is from #{source}, was expecting #{@source}"
 		end
-                Subprocess.run(package.name, :import, @program, 'up', *@options_up)
+                Subprocess.run(package.name, :import, @program, 'up', "--non-interactive", *@options_up)
             }
         end
 
         def checkout(package) # :nodoc:
-            options = [ @program, 'co' ] + @options_co + [ @source, package.srcdir ]
+            options = [ @program, 'co', "--non-interactive" ] + @options_co + [ @source, package.srcdir ]
             Subprocess.run(package.name, :import, *options)
         end
     end
