@@ -32,14 +32,14 @@ module Autobuild
             if gitopts[:branch] && branch
                 raise ConfigException, "git branch specified with both the option hash and the explicit parameter"
             end
-            branch = gitopts[:branch] || branch || 'master'
+            branch = gitopts[:branch] || branch
             tag    = gitopts[:tag]
             commit = gitopts[:commit]
 
-            if (branch && commit) || (branch && commit) || (tag && commit)
+            if (branch && commit) || (branch && tag) || (tag && commit)
                 raise ConfigException, "you can specify only a branch, tag or commit but not two or three at the same time"
             end
-            @branch = branch
+            @branch = branch || 'master'
             @commit = tag || commit
             super(common)
         end
