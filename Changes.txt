@@ -1,3 +1,7 @@
+== Version 1.4.3
+* minor changes in how the shell environment is managed
+* update LD_LIBRARY_PATH when applicable
+
 == Version 1.4.2
 * call subversion with the --non-interactive option, otherwise the build will
   block indefinitely. Note that git "questions" are properly passed to the user.
