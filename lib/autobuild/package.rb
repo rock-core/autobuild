@@ -255,6 +255,7 @@ module Autobuild
         # and installed.
 	def depends_on(*packages)
 	    packages.each do |p|
+                raise ConfigException, "#{p.inspect} should be a string" if !p.respond_to? :to_str
 		p = p.to_str
 		next if p == name
 		unless Package[p]
@@ -271,6 +272,7 @@ module Autobuild
         # listed in +packages+ are aliases for this package.
 	def provides(*packages)
 	    packages.each do |p|
+                raise ConfigException, "#{p.inspect} should be a string" if !p.respond_to? :to_str
 		p = p.to_str
 		next if p == name
 		@@provides[p] = self 
