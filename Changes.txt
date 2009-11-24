@@ -1,6 +1,12 @@
 == Version 1.4.2
 * call subversion with the --non-interactive option, otherwise the build will
   block indefinitely. Note that git "questions" are properly passed to the user.
+* don't forcefully depend on orogen being available. This fixes bootstrapping
+  situations where both orogen and some orogen modules need to be built.
+* workaround CMake heavy-caching behaviour. When a reconfiguration is needed,
+  delete the CMakeCache.txt file instead of recalling cmake on top of it. It
+  should fix most of the problems of CMake related to caching of pkg-config
+  files for instance.
 
 == Version 1.4.0
 * cmake package handler now displays progress value
