@@ -72,6 +72,9 @@ module Autobuild
     def self.update_environment(newprefix)
         env_add_path('PATH', "#{newprefix}/bin")
         env_add_path('PKG_CONFIG_PATH', "#{newprefix}/lib/pkgconfig")
+        if File.directory?("#{newprefix}/lib") && !Dir.glob("#{newprefix}/lib/*.so").empty?
+            env_add_path('LD_LIBRARY_PATH', "#{newprefix}/lib")
+        end
 
         # Validate the new rubylib path
         new_rubylib = "#{newprefix}/lib"
