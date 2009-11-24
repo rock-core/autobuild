@@ -78,7 +78,11 @@ module Autobuild
         def fetch_remote(package)
             validate_srcdir(package)
             Dir.chdir(package.srcdir) do
-                Subprocess.run(package.name, :import, Autobuild.tool('git'), 'fetch', repository, branch)
+                if @commit
+                    Subprocess.run(package.name, :import, Autobuild.tool('git'), 'fetch', repository)
+                else
+                    Subprocess.run(package.name, :import, Autobuild.tool('git'), 'fetch', repository, branch)
+                end
                 if File.readable?( File.join('.git', 'FETCH_HEAD') )
                     fetch_commit = File.readlines( File.join('.git', 'FETCH_HEAD') ).
                         delete_if { |l| l =~ /not-for-merge/ }
