@@ -1,21 +1,34 @@
 module Autobuild
+    @inherited_environment = Hash.new
     @environment = Hash.new
     class << self
+        attr_reader :inherited_environment
         attr_reader :environment
+    end
+
+    def self.env_clear(name)
+        environment[name] = nil
+        inherited_environment[name] = nil
     end
 
     # Set a new environment variable
     def self.env_set(name, *values)
-        environment[name] = nil
+        env_clear(name)
         env_add(name, *values)
     end
     # Adds a new value to an environment variable
     def self.env_add(name, *values)
         set = if environment.has_key?(name)
                   environment[name]
-              elsif ENV[name]
-                  ENV[name].split(':')
               end
+
+        if !inherited_environment.has_key?(name)
+            if parent_env = ENV[name]
+                inherited_environment[name] = parent_env.split(':')
+            else
+                inherited_environment[name] = Array.new
+            end
+        end
 
         if !set
             set = Array.new
@@ -25,7 +38,9 @@ module Autobuild
 
         values.concat(set)
         @environment[name] = values
-        ENV[name] = values.join(":")
+
+        inherited = inherited_environment[name] || Array.new
+        ENV[name] = (values + inherited).join(":")
     end
 
     def self.env_add_path(name, path, *paths)
