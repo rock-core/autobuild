@@ -46,9 +46,10 @@ module Autobuild
             currentBuffer = nil
             Open3.popen3("#{cpp} #{cpp_options.join(" ")} #{srcdir}/#{name}.gen") do |cin, out, err|
                 out.each_line do |line|
-                    if line =~ /^\s*(codels_)?requires\s*:.*,$/
-                        currentBuffer = line
-                    elsif currentBuffer
+                    if line =~ /^\s*(codels_)?requires\s*:.*$/
+                        currentBuffer = ""
+                    end
+                    if currentBuffer
                         currentBuffer += line
                         if currentBuffer =~ /^\s*(codels_)?requires\s*:\s*(\"?\s*[\w\-=><0-9.\s]+\s*\"?(?:\s*,\s*\"?\s*[\w\-=><0-9.\s]+\s*\"?)*);/
                             # Remove the codels_requires lines if -a is given to genom
