@@ -40,7 +40,8 @@ module Autobuild
                 raise ConfigException, "you can specify only a branch, tag or commit but not two or three at the same time"
             end
             @branch = branch || 'master'
-            @commit = tag || commit
+            @tag    = tag
+            @commit = commit
             super(common)
         end
 
@@ -48,12 +49,17 @@ module Autobuild
 
         # The branch this importer is tracking
         #
-        # If set, tag has to be nil.
+        # If set, both commit and tag have to be nil.
         attr_accessor :branch
-        # The commit we are pointing to. It can be either a commit ID or a tag
-        # name. 
+
+        # The tag we are pointing to. It is a tag name.
         #
-        # If set, branch has to be nil.
+        # If set, both branch and commit have to be nil.
+        attr_reader :tag
+
+        # The commit we are pointing to. It is a commit ID.
+        #
+        # If set, both branch and tag have to be nil.
         attr_reader :commit
 
         # True if it is allowed to merge remote updates automatically. If false
@@ -78,10 +84,10 @@ module Autobuild
         def fetch_remote(package)
             validate_srcdir(package)
             Dir.chdir(package.srcdir) do
-                if @commit
+                if commit # we are checking out a specific commit. We just call git fetch
                     Subprocess.run(package.name, :import, Autobuild.tool('git'), 'fetch', repository)
                 else
-                    Subprocess.run(package.name, :import, Autobuild.tool('git'), 'fetch', repository, branch)
+                    Subprocess.run(package.name, :import, Autobuild.tool('git'), 'fetch', repository, branch || tag)
                 end
                 if File.readable?( File.join('.git', 'FETCH_HEAD') )
                     fetch_commit = File.readlines( File.join('.git', 'FETCH_HEAD') ).
@@ -178,8 +184,8 @@ module Autobuild
                 end
 
                 # If we are tracking a commit/tag, just check it out and return
-                if commit
-                    Subprocess.run(package.name, :import, Autobuild.tool('git'), 'checkout', commit)
+                if commit || tag
+                    Subprocess.run(package.name, :import, Autobuild.tool('git'), 'checkout', commit || tag)
                     return
                 end
 
