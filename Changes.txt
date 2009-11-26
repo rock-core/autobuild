@@ -1,6 +1,8 @@
 == Version 1.4.3
 * minor changes in how the shell environment is managed
 * update LD_LIBRARY_PATH when applicable
+* fix parsing of genom 'require' statements (fix from Matthieu Gallien)
+* fix issues with tracking tags and commits (fix from Matthieu Gallien)
 
 == Version 1.4.2
 * call subversion with the --non-interactive option, otherwise the build will
