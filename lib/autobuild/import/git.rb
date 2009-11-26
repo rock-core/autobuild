@@ -221,9 +221,9 @@ module Autobuild
 
             Dir.chdir(package.srcdir) do
                 # If we are tracking a commit/tag, just check it out
-                if commit
+                if commit || tag
                     Subprocess.run(package.name, :import, Autobuild.tool('git'),
-                        'checkout', commit)
+                        'checkout', commit || tag)
                     return
                 end
 
