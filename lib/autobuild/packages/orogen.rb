@@ -49,6 +49,8 @@ module Autobuild
             end
         end
 
+        attr_reader :orogen_file
+        attr_reader :base_dir
         attr_reader :project_name, :dependencies, :provides
         def self.load(pkg, file)
             FakeOrogenEnvironment.new(pkg).load(file)
@@ -64,6 +66,8 @@ module Autobuild
         end
 
         def load(file)
+            @orogen_file = file
+            @base_dir = File.dirname(file)
             Kernel.eval(File.read(file), binding)
             self
         end
@@ -75,6 +79,11 @@ module Autobuild
         def using_library(*names)
             @dependencies.concat(names)
             nil
+        end
+        def import_types_from(name)
+            if !File.file?(File.join(base_dir, name)) && name.downcase !~ /\.(hh|hpp|h)/
+                using_toolkit name
+            end
         end
         def using_toolkit(*names)
             names = names.map { |n| "#{n}-toolkit-#{pkg.orocos_target}" }
