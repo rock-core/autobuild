@@ -150,6 +150,17 @@ module Autobuild
             end
         end
 
+        def self.orogen_root
+            if @orogen_root.nil?
+                @orogen_root = `orogen --base-dir 2>&1`
+                if @orogen_root.empty?
+                    @orogen_root = false
+                end
+            else
+                @orogen_root
+            end
+        end
+
         attr_writer :orocos_target
         def orocos_target
             if @orocos_target.nil?
@@ -215,16 +226,22 @@ module Autobuild
                 end
             end
 
-            # Find out where orogen is, and make sure the configurestamp depend
-            # on it. Ignore if orogen is too old to have a --base-dir option
-            orogen_root = `orogen --base-dir 2>&1`
-            if !orogen_root.empty?
-                orogen_root = orogen_root.split[0].chomp
-                if File.directory?(orogen_root)
-                    orogen_root = File.join(orogen_root, 'orogen')
-                    file genstamp => Autobuild.source_tree(orogen_root)
+            # Check if there is an orogen package registered. If it is the case,
+            # simply depend on it. Otherwise, look out for orogen --base-dir
+            if Autobuild::Package['orogen']
+                depends_on "orogen"
+            else
+                # Find out where orogen is, and make sure the configurestamp depend
+                # on it. Ignore if orogen is too old to have a --base-dir option
+                if orogen_root = self.class.orogen_root
+                    orogen_root = orogen_root.split[0].chomp
+                    if File.directory?(orogen_root)
+                        orogen_root = File.join(orogen_root, 'orogen')
+                        file genstamp => Autobuild.source_tree(orogen_root)
+                    end
                 end
             end
+
             file configurestamp => genstamp
             file genstamp => File.join(srcdir, orogen_file) do
                 regen
