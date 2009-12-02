@@ -85,9 +85,9 @@ module Autobuild
             validate_srcdir(package)
             Dir.chdir(package.srcdir) do
                 if commit # we are checking out a specific commit. We just call git fetch
-                    Subprocess.run(package.name, :import, Autobuild.tool('git'), 'fetch', repository)
+                    Subprocess.run(package, :import, Autobuild.tool('git'), 'fetch', repository)
                 else
-                    Subprocess.run(package.name, :import, Autobuild.tool('git'), 'fetch', repository, branch || tag)
+                    Subprocess.run(package, :import, Autobuild.tool('git'), 'fetch', repository, branch || tag)
                 end
                 if File.readable?( File.join('.git', 'FETCH_HEAD') )
                     fetch_commit = File.readlines( File.join('.git', 'FETCH_HEAD') ).
@@ -185,7 +185,7 @@ module Autobuild
 
                 # If we are tracking a commit/tag, just check it out and return
                 if commit || tag
-                    Subprocess.run(package.name, :import, Autobuild.tool('git'), 'checkout', commit || tag)
+                    Subprocess.run(package, :import, Autobuild.tool('git'), 'checkout', commit || tag)
                     return
                 end
 
@@ -193,9 +193,9 @@ module Autobuild
                     # Check if the target branch already exists. If it is the
                     # case, check it out. Otherwise, create it.
                     if File.file?(File.join(".git", "refs", "heads", branch))
-                        Subprocess.run(package.name, :import, Autobuild.tool('git'), 'checkout', branch)
+                        Subprocess.run(package, :import, Autobuild.tool('git'), 'checkout', branch)
                     else
-                        Subprocess.run(package.name, :import, Autobuild.tool('git'), 'checkout', '-b', branch, "FETCH_HEAD")
+                        Subprocess.run(package, :import, Autobuild.tool('git'), 'checkout', '-b', branch, "FETCH_HEAD")
                     end
                 end
 
@@ -204,7 +204,7 @@ module Autobuild
                     if !merge? && status.status == Status::NEEDS_MERGE
                         raise PackageException, "importing the current version would require a merge"
                     end
-                    Subprocess.run(package.name, :import, Autobuild.tool('git'), 'merge', fetch_commit)
+                    Subprocess.run(package, :import, Autobuild.tool('git'), 'merge', fetch_commit)
                 end
             end
         end
@@ -215,24 +215,24 @@ module Autobuild
                 FileUtils.mkdir_p base_dir
             end
 
-            Subprocess.run(package.name, :import,
+            Subprocess.run(package, :import,
                 Autobuild.tool('git'), 'clone', '-o', 'autobuild',
                 repository, package.srcdir)
 
             Dir.chdir(package.srcdir) do
                 # If we are tracking a commit/tag, just check it out
                 if commit || tag
-                    Subprocess.run(package.name, :import, Autobuild.tool('git'),
+                    Subprocess.run(package, :import, Autobuild.tool('git'),
                         'checkout', commit || tag)
                     return
                 end
 
                 current_branch = `git symbolic-ref HEAD`.chomp
                 if current_branch == "refs/heads/#{branch}"
-                    Subprocess.run(package.name, :import, Autobuild.tool('git'),
+                    Subprocess.run(package, :import, Autobuild.tool('git'),
                     'reset', '--hard', "autobuild/#{branch}")
                 else
-                    Subprocess.run(package.name, :import, Autobuild.tool('git'),
+                    Subprocess.run(package, :import, Autobuild.tool('git'),
                     'checkout', '-b', branch, "autobuild/#{branch}")
                 end
             end

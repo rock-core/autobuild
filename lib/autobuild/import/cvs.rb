@@ -53,7 +53,7 @@ module Autobuild
 		if root != expected_root || mod != @module
 		    raise ConfigException, "checkout in #{package.srcdir} is from #{root}:#{mod}, was expecting #{expected_root}:#{@module}"
 		end
-                Subprocess.run(package.name, :import, @program, 'up', *@options_up)
+                Subprocess.run(package, :import, @program, 'up', *@options_up)
 	    end
         end
 
@@ -64,7 +64,7 @@ module Autobuild
             FileUtils.mkdir_p(head) if !File.directory?(head)
             Dir.chdir(head) do
                 options = [ @program, '-d', cvsroot, 'co', '-d', tail ] + @options_co + [ modulename ]
-                Subprocess.run(package.name, :import, *options)
+                Subprocess.run(package, :import, *options)
 	    end
         end
     end

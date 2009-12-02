@@ -136,7 +136,7 @@ module Autobuild
             file genomstamp => srcdir do
                 Dir.chdir(srcdir) do
                     Autobuild.progress "generating GenoM files for #{name}"
-                    Subprocess.run(name, 'genom', *cmdline)
+                    Subprocess.run(self, 'genom', *cmdline)
 		end
             end
 
@@ -146,7 +146,7 @@ module Autobuild
                 # since the generation takes care of rebuilding configure
                 # if .gen has changed
                 Autobuild.progress "generating build system for #{name}"
-                Dir.chdir(srcdir) { Subprocess.run(name, 'genom', File.expand_path('autogen')) }
+                Dir.chdir(srcdir) { Subprocess.run(self, 'genom', File.expand_path('autogen')) }
             end
 
 	    super("#{srcdir}/autoconf/configure.ac")

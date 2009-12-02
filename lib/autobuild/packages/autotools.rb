@@ -62,7 +62,7 @@ module Autobuild
             doc_task do
                 Dir.chdir(builddir) do
                     Autobuild.progress "generating documentation for #{name}"
-                    Subprocess.run(name, 'doc', Autobuild.tool(:make), "-j#{parallel_build_level}", target)
+                    Subprocess.run(self, 'doc', Autobuild.tool(:make), "-j#{parallel_build_level}", target)
                     yield if block_given?
                 end
             end
@@ -183,7 +183,7 @@ module Autobuild
 
                     Autobuild.progress "generating build system for #{name}"
                     if using[:autogen]
-                        Subprocess.run(name, 'configure', File.expand_path(using[:autogen]))
+                        Subprocess.run(self, 'configure', File.expand_path(using[:autogen]))
                     else
                         # Autodetect autoconf/aclocal/automake
                         #
@@ -202,11 +202,11 @@ module Autobuild
 					       else; Autobuild.tool(tool)
 					       end
 
-                                Subprocess.run(name, 'configure', tool_program)
+                                Subprocess.run(self, 'configure', tool_program)
                             end
                         end
                     end
-                }
+                end
             end
 
             return conffile
@@ -224,7 +224,7 @@ module Autobuild
                 command += Array[*configureflags]
                 
                 Autobuild.progress "configuring build system for #{name}"
-                Subprocess.run(name, 'configure', *command)
+                Subprocess.run(self, 'configure', *command)
             }
         end
 
@@ -232,8 +232,8 @@ module Autobuild
         def build
             Dir.chdir(builddir) {
                 Autobuild.progress "building #{name}"
-                Subprocess.run(name, 'build', './config.status')
-                Subprocess.run(name, 'build', Autobuild.tool(:make), "-j#{parallel_build_level}")
+                Subprocess.run(self, 'build', './config.status')
+                Subprocess.run(self, 'build', Autobuild.tool(:make), "-j#{parallel_build_level}")
             }
             Autobuild.touch_stamp(buildstamp)
         end
@@ -242,7 +242,7 @@ module Autobuild
         def install
             Dir.chdir(builddir) {
                 Autobuild.progress "installing #{name}"
-                Subprocess.run(name, 'install', Autobuild.tool(:make), "-j#{parallel_build_level}", 'install')
+                Subprocess.run(self, 'install', Autobuild.tool(:make), "-j#{parallel_build_level}", 'install')
             }
             Autobuild.touch_stamp(installstamp)
             Autobuild.update_environment(prefix)

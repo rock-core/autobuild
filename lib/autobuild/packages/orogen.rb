@@ -230,7 +230,7 @@ module Autobuild
 
             Autobuild.progress "generating oroGen project #{name}"
             Dir.chdir(srcdir) do
-                Subprocess.run name, 'orogen', *cmdline
+                Subprocess.run self, 'orogen', *cmdline
                 Autobuild.touch_stamp genstamp
             end
         end

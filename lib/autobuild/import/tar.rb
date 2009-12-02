@@ -123,7 +123,7 @@ module Autobuild
             FileUtils.mkdir_p base_dir
             cmd = [ 'tar', "x#{TAR_OPTION[mode]}f", cachefile, '-C', base_dir ]
 
-            Subprocess.run(package.name, :import, *cmd)
+            Subprocess.run(package, :import, *cmd)
 	    if tardir
 		File.mv File.join(base_dir, tardir), package.srcdir
 	    end

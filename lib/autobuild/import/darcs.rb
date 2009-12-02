@@ -27,7 +27,7 @@ module Autobuild
 		raise ConfigException, "#{package.srcdir} is not a Darcs repository"
 	    end
 
-	    Subprocess.run(package.name, :import, @program, 
+	    Subprocess.run(package, :import, @program, 
 	       'pull', '--all', "--repodir=#{package.srcdir}", '--set-scripts-executable', @source, *@pull)
         end
 
@@ -37,7 +37,7 @@ module Autobuild
 		FileUtils.mkdir_p(basedir)
 	    end
 
-	    Subprocess.run(package.name, :import, @program, 
+	    Subprocess.run(package, :import, @program, 
 	       'get', '--set-scripts-executable', @source, package.srcdir, *@get)
         end
     end

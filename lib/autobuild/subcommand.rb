@@ -72,14 +72,22 @@ module Autobuild::Subprocess
         command.reject!  { |o| o.nil? || (o.respond_to?(:empty?) && o.empty?) }
         command.collect! { |o| o.to_s }
 
-        FileUtils.mkdir_p Autobuild.logdir unless File.directory?(Autobuild.logdir)
-        logname = "#{Autobuild.logdir}/#{target}-#{phase}.log"
+        target_name = if target.respond_to?(:name)
+                          target.name
+                      else name.to_str
+                      end
+        logdir = if target.respond_to?(:logdir)
+                     target.logdir
+                 else Autobuild.logdir
+                 end
+
+        logname = "#{logdir}/#{target_name}-#{phase}.log"
         if !File.directory?(File.dirname(logname))
             FileUtils.mkdir_p File.dirname(logname)
         end
 
 	if Autobuild.verbose
-	    puts "#{target}: running #{command.join(" ")}\n    (output goes to #{logname})"
+	    puts "#{target_name}: running #{command.join(" ")}\n    (output goes to #{logname})"
 	end
 
         input_streams = command.collect { |o| $1 if o =~ /^\<(.+)/ }.compact
@@ -193,7 +201,7 @@ module Autobuild::Subprocess
         end
 
     rescue Failed => e
-        error = Autobuild::SubcommandFailed.new(target, command.join(" "), logname, e.status)
+        error = Autobuild::SubcommandFailed.new(target_name, command.join(" "), logname, e.status)
         error.phase = phase
         raise error, e.message
     end
