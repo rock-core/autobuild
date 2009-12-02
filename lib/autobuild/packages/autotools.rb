@@ -176,7 +176,7 @@ module Autobuild
 	    end
 
             file conffile do
-                Dir.chdir(srcdir) {
+                Dir.chdir(srcdir) do
                     if using[:autogen].nil?
                         using[:autogen] = %w{autogen autogen.sh}.find { |f| File.exists?(f) }
                     end
@@ -230,20 +230,20 @@ module Autobuild
 
         # Do the build in builddir
         def build
-            Dir.chdir(builddir) {
+            Dir.chdir(builddir) do
                 Autobuild.progress "building #{name}"
                 Subprocess.run(self, 'build', './config.status')
                 Subprocess.run(self, 'build', Autobuild.tool(:make), "-j#{parallel_build_level}")
-            }
+            end
             Autobuild.touch_stamp(buildstamp)
         end
 
         # Install the result in prefix
         def install
-            Dir.chdir(builddir) {
+            Dir.chdir(builddir) do
                 Autobuild.progress "installing #{name}"
                 Subprocess.run(self, 'install', Autobuild.tool(:make), "-j#{parallel_build_level}", 'install')
-            }
+            end
             Autobuild.touch_stamp(installstamp)
             Autobuild.update_environment(prefix)
         end
