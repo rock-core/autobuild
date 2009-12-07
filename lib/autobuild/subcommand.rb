@@ -74,7 +74,7 @@ module Autobuild::Subprocess
 
         target_name = if target.respond_to?(:name)
                           target.name
-                      else name.to_str
+                      else target.to_str
                       end
         logdir = if target.respond_to?(:logdir)
                      target.logdir
