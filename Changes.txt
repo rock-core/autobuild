@@ -1,3 +1,6 @@
+== Version 1.4.4
+* minor bug fixes
+
 == Version 1.4.3
 * minor changes in how the shell environment is managed
 * update LD_LIBRARY_PATH when applicable
