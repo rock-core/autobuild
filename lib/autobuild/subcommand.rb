@@ -196,7 +196,7 @@ module Autobuild::Subprocess
             childstatus
         end
 
-        if status.exitstatus > 0
+        if !status.exitstatus || status.exitstatus > 0
             raise Failed.new(status.exitstatus), "'#{command.join(' ')}' returned status #{status.exitstatus}"
         end
 
