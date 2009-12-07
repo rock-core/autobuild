@@ -4,6 +4,7 @@ require 'autobuild/environment'
 require 'autobuild/package'
 require 'autobuild/subcommand'
 require 'shellwords'
+require 'fileutils'
 
 module Autobuild
     def self.autotools(opts, &proc)
@@ -138,7 +139,7 @@ module Autobuild
 		old_opt = options.find   { |o| !testflags.include?(o) }
 		new_opt = testflags.find { |o| !options.include?(o) }
 		if old_opt || new_opt
-		    File.rm_f config_status # to force reconfiguration
+		    FileUtils.rm_f config_status # to force reconfiguration
 		end
 	    end
 
