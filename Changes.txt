@@ -1,3 +1,9 @@
+== Version 1.4.5
+* add support for zip in TarImporter, which is renamed ArchiveImporter to
+  reflect that. Backward compatibility is retained.
+* support sourceforge-like setups in ArchiveImporter: use wget for download and
+  add a :filename option to specify what is the name of the downloaded file.
+
 == Version 1.4.4
 * minor bug fixes
 
