@@ -120,7 +120,7 @@ module Autobuild
 		Rake::Task["#{name}-import"].invoke
 		Rake::Task["#{name}-prepare"].invoke
 		Rake::Task["#{name}-build"].invoke
-                if has_doc? && !Autobuild.no_doc
+                if has_doc? && Autobuild.do_doc
                     Rake::Task["#{name}-doc"].invoke
                 end
 	    end
