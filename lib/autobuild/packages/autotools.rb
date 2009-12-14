@@ -62,7 +62,7 @@ module Autobuild
         def with_doc(target = 'doc')
             doc_task do
                 Dir.chdir(builddir) do
-                    Autobuild.progress "generating documentation for #{name}"
+                    progress "generating documentation for %s"
                     Subprocess.run(self, 'doc', Autobuild.tool(:make), "-j#{parallel_build_level}", target)
                     yield if block_given?
                 end
@@ -182,7 +182,7 @@ module Autobuild
                         using[:autogen] = %w{autogen autogen.sh}.find { |f| File.exists?(f) }
                     end
 
-                    Autobuild.progress "generating build system for #{name}"
+                    progress "generating build system for %s"
                     if using[:autogen]
                         Subprocess.run(self, 'configure', File.expand_path(using[:autogen]))
                     else
@@ -224,7 +224,7 @@ module Autobuild
                 command = [ "#{srcdir}/configure", "--no-create", "--prefix=#{prefix}" ]
                 command += Array[*configureflags]
                 
-                Autobuild.progress "configuring build system for #{name}"
+                progress "configuring build system for %s"
                 Subprocess.run(self, 'configure', *command)
             }
         end
@@ -232,7 +232,7 @@ module Autobuild
         # Do the build in builddir
         def build
             Dir.chdir(builddir) do
-                Autobuild.progress "building #{name}"
+                progress "building %s"
                 Subprocess.run(self, 'build', './config.status')
                 Subprocess.run(self, 'build', Autobuild.tool(:make), "-j#{parallel_build_level}")
             end
@@ -242,7 +242,7 @@ module Autobuild
         # Install the result in prefix
         def install
             Dir.chdir(builddir) do
-                Autobuild.progress "installing #{name}"
+                progress "installing %s"
                 Subprocess.run(self, 'install', Autobuild.tool(:make), "-j#{parallel_build_level}", 'install')
             end
             Autobuild.touch_stamp(installstamp)

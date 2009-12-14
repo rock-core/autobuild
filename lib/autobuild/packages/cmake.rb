@@ -63,7 +63,7 @@ module Autobuild
         def with_doc(target = 'doc')
             doc_task do
                 Dir.chdir(builddir) do
-                    Autobuild.progress "generating documentation for #{name}"
+                    progress "generating documentation for %s"
                     Subprocess.run(self, 'doc', Autobuild.tool(:make), "-j#{parallel_build_level}", target)
                     yield if block_given?
                 end
@@ -149,7 +149,7 @@ module Autobuild
                 end
                 command << srcdir
                 
-                Autobuild.progress "generating and configuring build system for #{name}"
+                progress "generating and configuring build system for %s"
                 if full_reconfigures?
                     FileUtils.rm_f configurestamp
                 end
@@ -161,13 +161,13 @@ module Autobuild
         # Do the build in builddir
         def build
             Dir.chdir(builddir) do
-                Autobuild.progress_with_value "building #{name}"
+                progress_with_value "building %s"
                 if always_reconfigure || !File.file?('Makefile')
                     Subprocess.run(self, 'build', Autobuild.tool(:cmake), '.')
                 end
                 Subprocess.run(self, 'build', Autobuild.tool(:make), "-j#{parallel_build_level}") do |line|
                     if line =~ /\[\s+(\d+)%\]/
-                        Autobuild.progress_value Integer($1)
+                        progress_value Integer($1)
                     end
                 end
             end
@@ -177,7 +177,7 @@ module Autobuild
         # Install the result in prefix
         def install
             Dir.chdir(builddir) do
-                Autobuild.progress "installing #{name}"
+                progress "installing %s"
                 Subprocess.run(self, 'build', Autobuild.tool(:make), "-j#{parallel_build_level}", 'install')
                 Autobuild.update_environment prefix
             end

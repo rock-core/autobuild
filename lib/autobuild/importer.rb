@@ -52,7 +52,7 @@ class Autobuild::Importer
         srcdir = package.srcdir
         if File.directory?(srcdir)
             if Autobuild.do_update
-		Autobuild.progress "updating #{package.name}"
+		package.progress "updating %s"
                 update(package)
                 patch(package)
             else
@@ -66,7 +66,7 @@ class Autobuild::Importer
             raise ConfigException, "#{srcdir} exists but is not a directory"
         else
             begin
-		Autobuild.progress "checking out #{package.name}"
+		package.progress "checking out %s"
                 checkout(package)
                 patch(package)
             rescue Autobuild::Exception
@@ -105,7 +105,7 @@ class Autobuild::Importer
                         end
 
 	if !patches.empty?
-	    Autobuild.progress "patching #{package.name}"
+	    package.progress "patching %s"
 	end
 
         # Do not be smart, remove all already applied patches

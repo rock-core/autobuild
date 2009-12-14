@@ -135,7 +135,7 @@ module Autobuild
 	    file genomstamp => genom_dependencies
             file genomstamp => srcdir do
                 Dir.chdir(srcdir) do
-                    Autobuild.progress "generating GenoM files for #{name}"
+                    progress "generating GenoM files for %s"
                     Subprocess.run(self, 'genom', *cmdline)
 		end
             end
@@ -145,7 +145,7 @@ module Autobuild
                 # configure does not depend on the .gen file
                 # since the generation takes care of rebuilding configure
                 # if .gen has changed
-                Autobuild.progress "generating build system for #{name}"
+                progress "generating build system for %s"
                 Dir.chdir(srcdir) { Subprocess.run(self, 'genom', File.expand_path('autogen')) }
             end
 

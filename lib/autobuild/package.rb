@@ -168,6 +168,22 @@ module Autobuild
             Autobuild.update_environment prefix
         end
 
+        # Display a progress message. %s in the string is replaced by the
+        # package name
+        def progress(msg)
+            Autobuild.progress(msg % [name])
+        end
+
+        # Display a progress message, and later on update it with a progress
+        # value. %s in the string is replaced by the package name
+        def progress_with_value(msg)
+            Autobuild.progress_with_value(msg % [name])
+        end
+
+        def progress_value(value)
+            Autobuild.progress_value(value)
+        end
+
         # Directory in which the documentation target will have generated the
         # documentation (if any). The interpretation of relative directories
         # is package-specific. The default implementation interpret them
