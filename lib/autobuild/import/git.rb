@@ -74,7 +74,7 @@ module Autobuild
         # repository
         def validate_srcdir(package)
             if !File.directory?(File.join(package.srcdir, '.git'))
-                raise ConfigException, "#{Dir.pwd} is not a git repository"
+                raise ConfigException, "while importing #{package.name}, #{Dir.pwd} is not a git repository"
             end
         end
 
@@ -202,7 +202,7 @@ module Autobuild
                 status = merge_status(fetch_commit)
                 if status.needs_update?
                     if !merge? && status.status == Status::NEEDS_MERGE
-                        raise PackageException, "importing the current version would require a merge"
+                        raise PackageException, "importing the current version of #{package.name} would require a merge"
                     end
                     Subprocess.run(package, :import, Autobuild.tool('git'), 'merge', fetch_commit)
                 end
