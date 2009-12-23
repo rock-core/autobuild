@@ -246,6 +246,8 @@ module Autobuild
             file genstamp => File.join(srcdir, orogen_file) do
                 regen
             end
+
+            with_doc
         end
         def genstamp; File.join(srcdir, '.orogen', 'orogen-stamp') end
 
