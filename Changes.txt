@@ -3,6 +3,10 @@
   reflect that. Backward compatibility is retained.
 * support sourceforge-like setups in ArchiveImporter: use wget for download and
   add a :filename option to specify what is the name of the downloaded file.
+* improve configurability of the progress display for tools built on top of
+  autobuild
+* always call with_doc in orogen packages, as orogen itself adds a documentation
+  target
 
 == Version 1.4.4
 * minor bug fixes
