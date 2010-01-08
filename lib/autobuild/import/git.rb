@@ -84,18 +84,36 @@ module Autobuild
         def fetch_remote(package)
             validate_srcdir(package)
             Dir.chdir(package.srcdir) do
-                if commit # we are checking out a specific commit. We just call git fetch
-                    Subprocess.run(package, :import, Autobuild.tool('git'), 'fetch', repository)
+                # Update the remote definition
+                Subprocess.run(package, :import, Autobuild.tool('git'), 'config',
+                               "--replace-all", "remote.autobuild.url", repository)
+                Subprocess.run(package, :import, Autobuild.tool('git'), 'config',
+                               "--replace-all", "remote.autobuild.fetch",  "+refs/heads/*:refs/remotes/autobuild/*")
+
+                # We are checking out a specific commit. We just call git fetch
+                if commit 
+                    Subprocess.run(package, :import, Autobuild.tool('git'), 'fetch', 'autobuild')
                 else
                     Subprocess.run(package, :import, Autobuild.tool('git'), 'fetch', repository, branch || tag)
                 end
-                if File.readable?( File.join('.git', 'FETCH_HEAD') )
+
+                # Now get the actual commit ID from the FETCH_HEAD file, and
+                # return it
+                commit_id = if File.readable?( File.join('.git', 'FETCH_HEAD') )
                     fetch_commit = File.readlines( File.join('.git', 'FETCH_HEAD') ).
                         delete_if { |l| l =~ /not-for-merge/ }
                     if !fetch_commit.empty?
                         fetch_commit.first.split(/\s+/).first
                     end
                 end
+
+                # Update the remote tag if needs be
+                if branch && commit_id
+                    Subprocess.run(package, :import, Autobuild.tool('git'), 'update-ref',
+                                   "-m", "updated by autobuild", "refs/remotes/autobuild/#{branch}", commit_id)
+                end
+
+                commit_id
             end
         end
 
