@@ -124,24 +124,26 @@ module Autobuild
             update_cache(package)
 
             base_dir = File.dirname(package.srcdir)
-            FileUtils.mkdir_p base_dir
-
-            main_dir = if @options[:no_subdirectory] then package.srcdir
-                       else base_dir
-                       end
 
             if mode == Zip
-                cmd = [ 'unzip', '-o', '-f', cachefile, '-d', main_dir ]
-            else
-                cmd = [ 'tar', "x#{TAR_OPTION[mode]}f", cachefile, '-C', main_dir ]
-            end
+                main_dir = if @options[:no_subdirectory] then package.srcdir
+                           else base_dir
+                           end
 
-            Subprocess.run(package, :import, *cmd)
-	    if archive_dir
-		FileUtils.mv File.join(base_dir, archive_dir), package.srcdir
-	    end
-            if !File.directory?(package.srcdir)
-                raise Autobuild::Exception, "#{cachefile} does not contain directory called #{File.basename(package.srcdir)}. Did you forget to use the :archive_dir option ?"
+                cmd = [ 'unzip', '-o', '-f', cachefile, '-d', main_dir ]
+                if archive_dir
+                    FileUtils.rm_rf File.join(package.srcdir)
+                    FileUtils.mv File.join(base_dir, archive_dir), package.srcdir
+                elsif !File.directory?(package.srcdir)
+                    raise Autobuild::Exception, "#{cachefile} does not contain directory called #{File.basename(package.srcdir)}. Did you forget to use the :archive_dir option ?"
+                end
+            else
+                FileUtils.mkdir_p package.srcdir
+                cmd = ["x#{TAR_OPTION[mode]}f", cachefile, '-C', package.srcdir]
+                if !@options[:no_subdirectory]
+                    cmd << '--strip-components=1'
+                end
+                Subprocess.run(package, :import, Autobuild.tool('tar'), *cmd)
             end
 
         rescue OpenURI::HTTPError
