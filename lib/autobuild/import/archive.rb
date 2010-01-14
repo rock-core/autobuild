@@ -110,7 +110,7 @@ module Autobuild
             if @url.scheme == 'file'
                 @cachefile = @url.path
             else
-                @cachefile = File.join(cachedir, @options[:filename] || File.basename(url))
+                @cachefile = File.join(cachedir, @options[:filename] || File.basename(url).gsub(/\?.*/, ''))
             end
         end
 
