@@ -34,11 +34,15 @@ module Autobuild
             end
         end
 
+        def update_cached_file?; @options[:update_cached_file] end
+
 	# Updates the downloaded file in cache only if it is needed
         def update_cache(package)
-            do_update = true
+            do_update = false
 
-            if File.file?(cachefile)
+            if !File.file?(cachefile)
+                do_update = true
+            elsif self.update_cached_file?
                 cached_size = File.lstat(cachefile).size
                 cached_mtime = File.lstat(cachefile).mtime
 
@@ -57,6 +61,7 @@ module Autobuild
                     do_update = (size != cached_size)
                 else
                     $stderr.puts "WARNING: neither size nor modification time available for #{@url}, will always update"
+                    do_update = true
                 end
             end
 
@@ -93,6 +98,9 @@ module Autobuild
         #       subdirectory.
         def initialize(url, options)
             @options = options.dup
+            if !@options.has_key?(:update_cached_file)
+                @options[:update_cached_file] = true
+            end
             @options[:cachedir] ||= "#{Autobuild.prefix}/cache"
 
             @url = URI.parse(url)
