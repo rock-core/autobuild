@@ -1,3 +1,7 @@
+== Version 1.4.9
+* quickfix an issue related to a discrepancy between the definition of the
+  installstamp and the definition of the log dir.
+
 == Version 1.4.8
 * make the archive importer nicer to use:
   - the archive_dir is unneeded for tarballs from now on

@@ -72,15 +72,14 @@ module Autobuild
 	# Absolute path to the installation directory. See #prefix=
 	def prefix; File.expand_path(@prefix || '', Autobuild.prefix) end
         # Absolute path to the log directory for this package. See #logdir=
-        def logdir; File.expand_path(@logdir, prefix) end
-	
+        def logdir; File.expand_path(@logdir || File.join('log', File.dirname(@srcdir || name)), prefix) end
 
 	# The file which marks when the last sucessful install
 	# has finished. The path is absolute
 	#
 	# A package is sucessfully built when it is installed
 	def installstamp
-            File.join(@logdir || Autobuild.logdir, "#{name}-#{STAMPFILE}")
+            File.join(logdir, "#{name}-#{STAMPFILE}")
         end
 
 	def initialize(spec)
