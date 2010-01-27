@@ -143,33 +143,33 @@ module Autobuild
         def commandline(args)
             parser = OptionParser.new do |opts|
                 opts.separator "Path specification"
-                opts.on("--srcdir PATH", "sources are installed in PATH") do |@srcdir| end
-                opts.on("--prefix PATH", "built packages are installed in PATH") do |@prefix| end
-                opts.on("--logdir PATH", "logs are saved in PATH (default: <prefix>/autobuild)") do |@logdir| end
+                opts.on("--srcdir PATH", "sources are installed in PATH") do |v| Autobuild.srcdir=v end
+                opts.on("--prefix PATH", "built packages are installed in PATH") do |v| Autobuild.prefix = v end
+                opts.on("--logdir PATH", "logs are saved in PATH (default: <prefix>/autobuild)") do |v| Autobuild.logdir = v end
 
                 opts.separator ""
                 opts.separator "General behaviour"
-                opts.on('--nice NICE', Integer, 'nice the subprocesses to the given value') do |@nice| end
+                opts.on('--nice NICE', Integer, 'nice the subprocesses to the given value') do |v| Autobuild.nice = v end
                 opts.on("-h", "--help", "Show this message") do
                     puts opts
                     exit
                 end
 		if defined? Daemons
-		    opts.on("--[no-]daemon", "go into daemon mode") do |@daemonize| end
+		    opts.on("--[no-]daemon", "go into daemon mode") do |v| Autobuild.daemonize = v end
 		end
-                opts.on("--no-update", "update already checked-out sources") do |@do_update| end
-                opts.on("--no-build",  "only prepare packages, do not build them") do |@do_build| end 
-                opts.on("--forced-build",  "force the trigger of all the build commands") do |@do_forced_build| end 
-                opts.on("--rebuild",  "clean and rebuild") do |@do_forced_build| end 
-                opts.on("--only-doc", "only generate documentation") do |@only_doc| end
-                opts.on("--no-doc", "don't generate documentation") do |@do_doc| end
-                opts.on("--doc-errors", "treat documentation failure as error") do |@doc_errors| end
+                opts.on("--no-update", "update already checked-out sources") do |v|  Autobuild.do_update = v end
+                opts.on("--no-build",  "only prepare packages, do not build them") do |v| Autobuild.do_build = v end 
+                opts.on("--forced-build",  "force the trigger of all the build commands") do |v| Autobuild.do_forced_build = v end 
+                opts.on("--rebuild",  "clean and rebuild") do |v| Autobuild.do_forced_build = v end 
+                opts.on("--only-doc", "only generate documentation") do |v| Autobuild.only_doc = v end
+                opts.on("--no-doc", "don't generate documentation") do |v| Autobuild.do_doc = v end
+                opts.on("--doc-errors", "treat documentation failure as error") do |v| Autobuild.doc_errors = v end
 
                 opts.separator ""
                 opts.separator "Program output"
-                opts.on("--[no-]verbose", "display output of commands on stdout") do |@verbose| end
-                opts.on("--[no-]debug", "debug information (for debugging purposes)") do |@debug| end
-                opts.on("--keep-oldlogs", "old logs will be kept, new program output being appended") do |@keep_oldlogs| end
+                opts.on("--[no-]verbose", "display output of commands on stdout") do |v| Autobuild.verbose = v end
+                opts.on("--[no-]debug", "debug information (for debugging purposes)") do |v| Autobuild.debug = v end
+                opts.on("--keep-oldlogs", "old logs will be kept, new program output being appended") do |v| Autobuild.keep_oldlogs = v end
 
                 opts.separator ""
 		opts.separator "Mail reports"

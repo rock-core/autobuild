@@ -112,7 +112,7 @@ module Autobuild
             if File.exists?(configurestamp)
                 cache = File.read(configurestamp)
                 did_change = all_defines.any? do |name, value|
-                    cache_line = cache.find do |line|
+                    cache_line = cache.each_line.find do |line|
                         line =~ /^#{name}:/
                     end
 
