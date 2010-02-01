@@ -206,6 +206,13 @@ module Autobuild
                                 Subprocess.run(self, 'configure', tool_program)
                             end
                         end
+
+                        if using[:libtool].nil?
+                            using[:libtool] = File.exists?(File.join(srcdir, 'ltmain.sh'))
+                        end
+                        if using[:libtool]
+                            Subprocess.run(self, 'configure', Autobuild.tool('libtoolize'), '--copy')
+                        end
                     end
                 end
             end
