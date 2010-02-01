@@ -150,14 +150,24 @@ module Autobuild
             end
         end
 
-        def self.orogen_root
-            if @orogen_root.nil?
-                @orogen_root = `orogen --base-dir 2>&1`
-                if @orogen_root.empty?
-                    @orogen_root = false
-                end
+        def self.orogen_bin
+            if @orogen_bin
+                @orogen_bin
             else
+                program_name = Autobuild.tool('orogen')
+                if orogen_path = ENV['PATH'].split(':').find { |p| File.file?(File.join(p, program_name)) }
+                    @orogen_bin = File.join(orogen_path, program_name)
+                else
+                    program_name
+                end
+            end
+        end
+
+        def self.orogen_root
+            if @orogen_root
                 @orogen_root
+            elsif orogen_bin = self.orogen_bin
+                @orogen_root = File.expand_path('../lib', File.dirname(orogen_bin))
             end
         end
 
@@ -234,11 +244,8 @@ module Autobuild
                 # Find out where orogen is, and make sure the configurestamp depend
                 # on it. Ignore if orogen is too old to have a --base-dir option
                 if orogen_root = self.class.orogen_root
-                    orogen_root = orogen_root.split[0].chomp
-                    if File.directory?(orogen_root)
-                        orogen_root = File.join(orogen_root, 'orogen')
-                        file genstamp => Autobuild.source_tree(orogen_root)
-                    end
+                    orogen_root = File.join(orogen_root, 'orogen')
+                    file genstamp => Autobuild.source_tree(orogen_root)
                 end
             end
 
@@ -252,7 +259,7 @@ module Autobuild
         def genstamp; File.join(srcdir, '.orogen', 'orogen-stamp') end
 
         def regen
-            cmdline = [Autobuild.tool('orogen')]
+            cmdline = [Autobuild.tool('ruby'), self.class.orogen_bin]
             cmdline << '--corba' if corba
             cmdline << orogen_file
 

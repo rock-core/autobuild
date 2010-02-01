@@ -83,9 +83,13 @@ module Autobuild
         end
 
         require 'rbconfig'
-        ruby_arch = File.basename(Config::CONFIG['archdir'])
-        env_add_path("RUBYLIB", "#{newprefix}/lib/ruby/1.8")
-        env_add_path("RUBYLIB", "#{newprefix}/lib/ruby/1.8/#{ruby_arch}")
+        ruby_arch    = File.basename(Config::CONFIG['archdir'])
+        ruby_version = RUBY_VERSION
+
+        env_add_path("RUBYLIB", "#{newprefix}/lib/ruby/#{RUBY_VERSION}")
+        env_add_path("RUBYLIB", "#{newprefix}/lib/ruby/#{RUBY_VERSION}/#{ruby_arch}")
+        env_add_path("RUBYLIB", "#{newprefix}/lib/ruby/#{RUBY_VERSION.gsub(/\.\d+$/, '')}")
+        env_add_path("RUBYLIB", "#{newprefix}/lib/ruby/#{RUBY_VERSION.gsub(/\.\d+$/, '')}/#{ruby_arch}")
     end
 end
 
