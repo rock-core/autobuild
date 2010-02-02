@@ -27,7 +27,7 @@ module Autobuild
             case filename
                 when /\.zip$/; Zip
                 when /\.tar$/; Plain
-                when /\.tar\.gz|\.tgz$/;  Gzip
+                when /\.tar\.gz$|\.tgz$/;  Gzip
                 when /\.bz2$/; Bzip
                 else
                     raise "unknown file type '#{filename}'"
@@ -106,11 +106,12 @@ module Autobuild
             @url = URI.parse(url)
             raise ConfigException, "invalid URL #{@url}" unless VALID_URI_SCHEMES.include?(@url.scheme)
 
-            @mode = options[:mode] || ArchiveImporter.filename_to_mode(options[:filename] || url)
+            filename = options[:filename] || File.basename(url).gsub(/\?.*/, '')
+            @mode = options[:mode] || ArchiveImporter.filename_to_mode(filename)
             if @url.scheme == 'file'
                 @cachefile = @url.path
             else
-                @cachefile = File.join(cachedir, @options[:filename] || File.basename(url).gsub(/\?.*/, ''))
+                @cachefile = File.join(cachedir, filename)
             end
         end
 
