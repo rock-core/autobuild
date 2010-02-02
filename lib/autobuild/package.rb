@@ -154,6 +154,9 @@ module Autobuild
 	def prepare
             super if defined? super
 
+            dependencies.each do |p|
+                file installstamp => Package[p].installstamp
+            end
             task "#{name}-build" => installstamp
 	    # Declare the installation stampfile
 	    file installstamp do
@@ -279,7 +282,6 @@ module Autobuild
 		unless Package[p]
 		    raise ConfigException.new(name), "package #{p} not defined"
 		end
-		file installstamp => Package[p].installstamp
 		task "#{name}-import"  => "#{p}-import"
 		task "#{name}-prepare" => "#{p}-prepare"
 		@dependencies << p

@@ -107,12 +107,6 @@ module Autobuild
             nil
         end
 
-        def depends_on(*packages)
-            super
-            stamps = packages.collect { |p| Package[p.to_s].installstamp }
-            file "#{builddir}/config.status" => stamps
-        end
-
         def ensure_dependencies_installed
             dependencies.each do |pkg|
                 Rake::Task[Package[pkg].installstamp].invoke
@@ -121,6 +115,9 @@ module Autobuild
 
         def prepare
             super
+
+            stamps = dependencies.map { |p| Package[p.to_s].installstamp }
+            file "#{builddir}/config.status" => stamps
 
 	    configureflags.flatten!
 

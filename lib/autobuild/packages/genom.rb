@@ -28,6 +28,7 @@ module Autobuild
 	    genomflags.flatten!
 
             super
+	    file genomstamp => dependencies.map { |p| Package[p].installstamp }
 	    get_requires
         end
 
@@ -85,11 +86,6 @@ module Autobuild
                 }
             end
         end
-            
-        def depends_on(*packages)
-            super
-	    file genomstamp => packages.map { |p| Package[p].installstamp }
-	end
 
 	# Make the genom-stamp file depend on
 	#   * genom includes

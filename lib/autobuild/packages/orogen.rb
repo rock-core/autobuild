@@ -196,14 +196,6 @@ module Autobuild
             @orogen_file ||= "#{File.basename(name)}.orogen"
         end
 
-        def depends_on(*packages)
-            super
-
-            packages.each do |p|
-                file genstamp => Package[p].installstamp
-            end
-        end
-
         def import
             super
 
@@ -218,6 +210,9 @@ module Autobuild
         def prepare
             super
 
+            dependencies.each do |p|
+                file genstamp => Package[p].installstamp
+            end
             # Check if someone provides the pkgconfig/orocos-rtt-TARGET package,
             # and if so add it into our dependency list
             if rtt = Autobuild::Package["pkgconfig/orocos-rtt-#{orocos_target}"]
