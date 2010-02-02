@@ -1,3 +1,10 @@
+== Version 1.4.10
+* Ruby1.9 compatibility fixes
+* properly runs if the ruby interpreter is not called ruby
+* fix some issues with the usage of #depends_on *before* Package#srcdir #logdir
+  and #prefix were set. It fixes an autoproj bug in case the autobuild files use
+  #depends_on
+
 == Version 1.4.9
 * quickfix an issue related to a discrepancy between the definition of the
   installstamp and the definition of the log dir.
