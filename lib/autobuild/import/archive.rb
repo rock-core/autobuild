@@ -67,7 +67,13 @@ module Autobuild
 
             if do_update
                 FileUtils.mkdir_p(cachedir)
-                Subprocess.run(package, :import, Autobuild.tool('wget'), '-q', '-P', cachedir, @url)
+                begin
+                    Subprocess.run(package, :import, Autobuild.tool('wget'), '-q', '-P', cachedir, @url, '-O', "#{cachefile}.partial")
+                rescue Exception
+                    FileUtils.rm_f "#{cachefile}.partial"
+                    raise
+                end
+                FileUtils.mv "#{cachefile}.partial", cachefile
                 true
             end
         end
