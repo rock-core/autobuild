@@ -21,31 +21,13 @@ module Autobuild
     #
     # To override this default behaviour on a per-package basis, use Autotools#use
     #
-    class Autotools < Package
+    class Autotools < Configurable
         attr_accessor   :using
         attr_accessor   :configureflags
-        class << self
-            attr_reader :builddir
-            def builddir=(new)
-                raise ConfigException, "absolute builddirs are not supported" if (Pathname.new(new).absolute?)
-                raise ConfigException, "builddir must be non-nil and non-empty" if (new.nil? || new.empty?)
-                @builddir = new
-            end
-        end
+
         @builddir = 'build'
         
-        def builddir=(new)
-            raise ConfigException, "absolute builddirs are not supported" if (Pathname.new(new).absolute?)
-            raise ConfigException, "builddir must be non-empty" if new.empty?
-            @builddir = new
-        end
-        # Returns the absolute builddir
-        def builddir; File.expand_path(@builddir || Autotools.builddir, srcdir) end
-
-        # Build stamp
-        # This returns the name of the file which marks when the package has been
-        # successfully built for the last time. The path is absolute
-        def buildstamp; "#{builddir}/#{STAMPFILE}" end
+        def configurestamp; "#{builddir}/config.status" end
 
         def initialize(options)
             @using = Hash.new
@@ -54,10 +36,6 @@ module Autobuild
             super
         end
         
-        def install_doc(relative_to = builddir)
-            super(relative_to)
-        end
-
         # Declare that the given target can be used to generate documentation
         def with_doc(target = 'doc')
             doc_task do
@@ -107,27 +85,17 @@ module Autobuild
             nil
         end
 
-        def ensure_dependencies_installed
-            dependencies.each do |pkg|
-                Rake::Task[Package[pkg].installstamp].invoke
-            end
-        end
-
         def prepare
             super
 
-            stamps = dependencies.map { |p| Package[p.to_s].installstamp }
-            file "#{builddir}/config.status" => stamps
-
-	    configureflags.flatten!
-
 	    # Check if config.status has been generated with the
 	    # same options than the ones in configureflags
-	    config_status = "#{builddir}/config.status"
-
+            #
+            # If it is not the case, remove it to force reconfiguration
+	    configureflags.flatten!
 	    force_reconfigure = false
-	    if File.exists?(config_status)
-		output = IO.popen("#{config_status} --version").readlines.grep(/with options/).first.chomp
+	    if File.exists?(configurestamp)
+		output = IO.popen("#{configurestamp} --version").readlines.grep(/with options/).first.chomp
 		raise "invalid output of config.status --version" unless output =~ /with options "(.*)"$/
 		options = Shellwords.shellwords($1)
 
@@ -136,34 +104,17 @@ module Autobuild
 		old_opt = options.find   { |o| !testflags.include?(o) }
 		new_opt = testflags.find { |o| !options.include?(o) }
 		if old_opt || new_opt
-		    FileUtils.rm_f config_status # to force reconfiguration
+		    FileUtils.rm_f configurestamp # to force reconfiguration
 		end
 	    end
 
-            file config_status => regen do
-                ensure_dependencies_installed
-                configure
-            end
-
-            Autobuild.source_tree srcdir do |pkg|
-		pkg.exclude << Regexp.new("^#{Regexp.quote(builddir)}")
-	    end
-            file buildstamp => [ srcdir, "#{builddir}/config.status" ] do 
-                ensure_dependencies_installed
-                build
-            end
-            task "#{name}-build" => installstamp
-
-            file installstamp => buildstamp do 
-                install
-            end
-
-            Autobuild.update_environment(prefix)
+            regen_target = create_regen_target
+            file configurestamp => regen_target
         end
 
     private
         # Adds a target to rebuild the autotools environment
-        def regen(confsource = nil)
+        def create_regen_target(confsource = nil)
 	    conffile = "#{srcdir}/configure"
 	    if confsource
 		file conffile => confsource
@@ -219,18 +170,15 @@ module Autobuild
 
         # Configure the builddir directory before starting make
         def configure
-            if File.exists?(builddir) && !File.directory?(builddir)
-                raise ConfigException, "#{builddir} already exists but is not a directory"
+            super do
+                Dir.chdir(builddir) do
+                    command = [ "#{srcdir}/configure", "--no-create", "--prefix=#{prefix}" ]
+                    command += Array[*configureflags]
+                    
+                    progress "configuring build system for %s"
+                    Subprocess.run(self, 'configure', *command)
+                end
             end
-
-            FileUtils.mkdir_p builddir if !File.directory?(builddir)
-            Dir.chdir(builddir) {
-                command = [ "#{srcdir}/configure", "--no-create", "--prefix=#{prefix}" ]
-                command += Array[*configureflags]
-                
-                progress "configuring build system for %s"
-                Subprocess.run(self, 'configure', *command)
-            }
         end
 
         # Do the build in builddir
@@ -249,8 +197,8 @@ module Autobuild
                 progress "installing %s"
                 Subprocess.run(self, 'install', Autobuild.tool(:make), "-j#{parallel_build_level}", 'install')
             end
-            Autobuild.touch_stamp(installstamp)
-            Autobuild.update_environment(prefix)
+
+            super
         end
     end
 end

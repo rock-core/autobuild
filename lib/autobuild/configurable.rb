@@ -37,7 +37,7 @@ module Autobuild
             @builddir = new
         end
         # Returns the absolute builddir
-        def builddir; File.expand_path(@builddir || Configurable.builddir, srcdir) end
+        def builddir; File.expand_path(@builddir || self.class.builddir, srcdir) end
 
         # Build stamp
         # This returns the name of the file which marks when the package has been
@@ -56,6 +56,7 @@ module Autobuild
         end
 
         def prepare_for_rebuild
+            prepare_for_forced_build
             if File.exists?(builddir) && builddir != srcdir
                 FileUtils.rm_rf builddir
             end
@@ -68,35 +69,39 @@ module Autobuild
         end
 
         def prepare
-            super
-
-            stamps = dependencies.map { |p| Package[p.to_s].installstamp }
-            file configurestamp => stamps
-            file configurestamp do
-                ensure_dependencies_installed
-                configure
-            end
-            task "#{name}-prepare" => configurestamp
-
             Autobuild.source_tree srcdir do |pkg|
 		pkg.exclude << Regexp.new("^#{Regexp.quote(builddir)}")
                 pkg.exclude << Regexp.new("^#{doc_dir}") if doc_dir
 	    end
 
-            file buildstamp => [ srcdir, configurestamp ] do 
+            super
+
+            stamps = dependencies.map { |pkg| Autobuild::Package[pkg].installstamp }
+            file configurestamp => stamps do
+                ensure_dependencies_installed
+                configure
+            end
+            task "#{name}-prepare" => configurestamp
+
+            file buildstamp => [ srcdir, configurestamp ] do
                 ensure_dependencies_installed
                 build
             end
             task "#{name}-build" => buildstamp
 
-            file installstamp => buildstamp do 
-                install
-                Autobuild.update_environment(prefix)
-            end
+            file installstamp => buildstamp
+            Autobuild.update_environment(prefix)
         end
 
         # Configure the builddir directory before starting make
         def configure
+            if File.exists?(builddir) && !File.directory?(builddir)
+                raise ConfigException, "#{builddir} already exists but is not a directory"
+            end
+            FileUtils.mkdir_p builddir if !File.directory?(builddir)
+
+            yield
+
             Autobuild.touch_stamp(configurestamp)
         end
 
@@ -104,9 +109,9 @@ module Autobuild
         def build
         end
 
-        # Install the result in prefix
         def install
-            Autobuild.touch_stamp(installstamp)
+            super
+            Autobuild.update_environment(prefix)
         end
     end
 end

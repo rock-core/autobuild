@@ -32,9 +32,7 @@ module Autobuild
 		exclude.freeze
 	    end
 
-            file installstamp => srcdir do 
-                Autobuild.touch_stamp installstamp
-            end
+            file installstamp => srcdir
         end
     end
 end

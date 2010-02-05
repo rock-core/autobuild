@@ -125,7 +125,7 @@ module Autobuild
 	    end
 	    task :default => name
 	    
-            # The dependencies will be declared in the prepare phase,  so save
+            # The dependencies will be declared in the import phase,  so save
             # them there for now
             @spec_dependencies = depends
 	end
@@ -147,25 +147,25 @@ module Autobuild
         # Call the importer if there is one. Autodetection of "provides" should
         # be done there as well. See the documentation of Autobuild::Package for
         # more information.
-	def import; @importer.import(self) if @importer end
+	def import
+            @importer.import(self) if @importer
+
+	    # Add the dependencies declared in spec
+	    depends_on *@spec_dependencies if @spec_dependencies
+        end
+
         # Create all the dependencies required to reconfigure and/or rebuild the
         # package when required. The package's build target is called
         # "package_name-build".
 	def prepare
             super if defined? super
 
-            dependencies.each do |p|
-                file installstamp => Package[p].installstamp
-            end
-            task "#{name}-build" => installstamp
-	    # Declare the installation stampfile
-	    file installstamp do
-		Dir.chdir(srcdir) do
-		    Autobuild.apply_post_install(name, @post_install)
-		end
+            stamps = dependencies.map { |p| Package[p].installstamp }
+
+	    file installstamp => stamps do
+                install
 	    end
-	    # Add dependencies declared in spec
-	    depends_on *@spec_dependencies if @spec_dependencies
+            task "#{name}-build" => installstamp
 
             Autobuild.update_environment prefix
         end
@@ -184,6 +184,14 @@ module Autobuild
 
         def progress_value(value)
             Autobuild.progress_value(value)
+        end
+
+        # Install the result in prefix
+        def install
+            Dir.chdir(srcdir) do
+                Autobuild.apply_post_install(name, @post_install)
+            end
+            Autobuild.touch_stamp(installstamp)
         end
 
         # Directory in which the documentation target will have generated the

@@ -26,10 +26,11 @@ module Autobuild
         # after all imports have been made
         def prepare
 	    genomflags.flatten!
+	    get_requires
 
             super
+
 	    file genomstamp => dependencies.map { |p| Package[p].installstamp }
-	    get_requires
         end
 
         # The file touched by genom on successful generation

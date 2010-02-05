@@ -100,7 +100,6 @@ module Autobuild
         end
 
         def prepare
-            super
 
             all_defines = defines.dup
             all_defines['CMAKE_INSTALL_PREFIX'] = prefix
@@ -133,28 +132,26 @@ module Autobuild
                     FileUtils.rm_f configurestamp
                 end
             end
+
+            super
         end
 
         # Configure the builddir directory before starting make
         def configure
-            if File.exists?(builddir) && !File.directory?(builddir)
-                raise ConfigException, "#{builddir} already exists but is not a directory"
-            end
-
-            FileUtils.mkdir_p builddir if !File.directory?(builddir)
-            Dir.chdir(builddir) do
-                command = [ "cmake", "-DCMAKE_INSTALL_PREFIX=#{prefix}" ]
-                defines.each do |name, value|
-                    command << "-D#{name}=#{value}"
+            super do
+                Dir.chdir(builddir) do
+                    command = [ "cmake", "-DCMAKE_INSTALL_PREFIX=#{prefix}" ]
+                    defines.each do |name, value|
+                        command << "-D#{name}=#{value}"
+                    end
+                    command << srcdir
+                    
+                    progress "generating and configuring build system for %s"
+                    if full_reconfigures?
+                        FileUtils.rm_f configurestamp
+                    end
+                    Subprocess.run(self, 'configure', *command)
                 end
-                command << srcdir
-                
-                progress "generating and configuring build system for %s"
-                if full_reconfigures?
-                    FileUtils.rm_f configurestamp
-                end
-                Subprocess.run(self, 'configure', *command)
-                super
             end
         end
 
@@ -179,7 +176,6 @@ module Autobuild
             Dir.chdir(builddir) do
                 progress "installing %s"
                 Subprocess.run(self, 'build', Autobuild.tool(:make), "-j#{parallel_build_level}", 'install')
-                Autobuild.update_environment prefix
             end
             super
         end

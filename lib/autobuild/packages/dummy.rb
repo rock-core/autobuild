@@ -24,6 +24,8 @@ module Autobuild
             Rake.task(installstamp)
             t = Rake::Task[installstamp]
             def t.needed?; false end
+
+            super
         end
     end
 end
