@@ -104,14 +104,13 @@ module Autobuild
             # but no Makefile.
             #
             # Delete the CMakeCache to force reconfiguration
-            all_defines = defines.dup
-            all_defines['CMAKE_INSTALL_PREFIX'] = prefix
-
             if !File.exists?( File.join(builddir, 'Makefile') )
                 FileUtils.rm_f configurestamp
             end
 
             if File.exists?(configurestamp)
+                all_defines = defines.dup
+                all_defines['CMAKE_INSTALL_PREFIX'] = prefix
                 cache = File.read(configurestamp)
                 did_change = all_defines.any? do |name, value|
                     cache_line = cache.each_line.find do |line|
