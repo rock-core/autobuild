@@ -4,7 +4,8 @@ require 'autobuild/exceptions'
 # This class is the base class for objects that are used to get the source from
 # various RCS into the package source directory. A list of patches to apply
 # after the import can be given in the +:patches+ option.
-class Autobuild::Importer
+module Autobuild
+class Importer
     # Instances of the Importer::Status class represent the status of a current
     # checkout w.r.t. the remote repository.
     class Status
@@ -125,5 +126,6 @@ class Autobuild::Importer
             end
         end
     end
+end
 end
 
