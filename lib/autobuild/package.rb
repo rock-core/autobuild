@@ -194,6 +194,10 @@ module Autobuild
             Autobuild.touch_stamp(installstamp)
         end
 
+        def run(*args, &block)
+            Autobuild::Subprocess.run(self, *args, &block)
+        end
+
         # Directory in which the documentation target will have generated the
         # documentation (if any). The interpretation of relative directories
         # is package-specific. The default implementation interpret them
