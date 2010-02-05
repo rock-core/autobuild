@@ -45,7 +45,13 @@ class Importer
     def initialize(options); @options = options end
 
     def patches
-	@options[:patches] ||= []
+        if @options[:patches].respond_to?(:to_ary)
+            @options[:patches]
+        elsif !@options[:patches]
+            []
+        else
+            [@options[:patches]]
+        end
     end
 
     # Performs the import of +package+
