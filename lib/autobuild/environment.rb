@@ -84,12 +84,10 @@ module Autobuild
 
         require 'rbconfig'
         ruby_arch    = File.basename(Config::CONFIG['archdir'])
-        ruby_version = RUBY_VERSION
-
-        env_add_path("RUBYLIB", "#{newprefix}/lib/ruby/#{RUBY_VERSION}")
-        env_add_path("RUBYLIB", "#{newprefix}/lib/ruby/#{RUBY_VERSION}/#{ruby_arch}")
-        env_add_path("RUBYLIB", "#{newprefix}/lib/ruby/#{RUBY_VERSION.gsub(/\.\d+$/, '')}")
-        env_add_path("RUBYLIB", "#{newprefix}/lib/ruby/#{RUBY_VERSION.gsub(/\.\d+$/, '')}/#{ruby_arch}")
+        candidates = %w{rubylibdir archdir sitelibdir sitearchdir vendorlibdir vendorarchdir}.
+            map { |key| Config::CONFIG[key] }.
+            map { |path| path.gsub(/.*lib\/(\w*ruby\/)/, '\\1') }.
+            each { |subdir| env_add_path("RUBYLIB", "#{newprefix}/lib/#{subdir}") }
     end
 end
 
