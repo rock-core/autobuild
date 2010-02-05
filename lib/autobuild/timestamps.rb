@@ -23,7 +23,7 @@ module Autobuild
                     Find.prune
                 end
             }
-            next if File.directory?(p)
+            next if !File.file?(p)
 
             p_time = File.mtime(p)
             if latest < p_time
