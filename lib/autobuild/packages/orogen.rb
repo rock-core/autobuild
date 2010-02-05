@@ -254,8 +254,17 @@ module Autobuild
         end
         def genstamp; File.join(srcdir, '.orogen', 'orogen-stamp') end
 
+        def guess_ruby_name
+            if Autobuild.programs['ruby']
+                Autobuild.tool('ruby')
+            else
+                ruby_bin = Config::CONFIG['RUBY_INSTALL_NAME']
+                Autobuild.programs['ruby'] = ruby_bin
+            end
+        end
+
         def regen
-            cmdline = [Autobuild.tool('ruby'), self.class.orogen_bin]
+            cmdline = [guess_ruby_name, self.class.orogen_bin]
             cmdline << '--corba' if corba
             cmdline << orogen_file
 
