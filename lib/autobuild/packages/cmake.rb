@@ -100,7 +100,10 @@ module Autobuild
         end
 
         def prepare
-
+            # A failed initial CMake configuration leaves a CMakeCache.txt file,
+            # but no Makefile.
+            #
+            # Delete the CMakeCache to force reconfiguration
             all_defines = defines.dup
             all_defines['CMAKE_INSTALL_PREFIX'] = prefix
 
