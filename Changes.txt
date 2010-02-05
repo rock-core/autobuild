@@ -1,9 +1,16 @@
-== Version 1.4.10
-* Ruby1.9 compatibility fixes
-* properly runs if the ruby interpreter is not called ruby
+== Version 1.5.0
+* now Ruby1.9 compatibility fixes, can be run with ruby1.9.1 on Debian
+* properly runs if the ruby interpreter is not called 'ruby', as ruby1.9.1
+  on Debian
 * fix some issues with the usage of #depends_on *before* Package#srcdir #logdir
   and #prefix were set. It fixes an autoproj bug in case the autobuild files use
   #depends_on
+* the archive importer now properly handles interruptions
+* the archive importer now properly autodetects file names if the URLs contains '?'
+* fixed the importer package type
+* fixed some rare issues with internal dependency definitions. This bug was
+  usually manifesting itself with rake exceptions whose message were "do not
+  know how to build <package name>-stamp"
 
 == Version 1.4.9
 * quickfix an issue related to a discrepancy between the definition of the
