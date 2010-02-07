@@ -74,12 +74,8 @@ module Autobuild
 	end
 
         ## Iterate on all log files
-        def self.each_log
-            Find.find(Autobuild.logdir) do |path|
-                if File.file?(path) && path =~ /\.log$/
-                    yield(path)
-                end
-            end
+        def self.each_log(&block)
+            Autobuild.logfiles.each(&block)
         end
     end
 

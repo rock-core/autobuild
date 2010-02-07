@@ -3,6 +3,23 @@ require 'autobuild/reporting'
 require 'fcntl'
 
 module Autobuild
+    @logfiles = Set.new
+    def self.clear_logfiles
+        @logfiles.clear
+    end
+
+    def self.logfiles
+        @logfiles
+    end
+
+    def self.register_logfile(path)
+        @logfiles << path
+    end
+
+    def self.registered_logfile?(logfile)
+        @logfiles.include?(logfile)
+    end
+
     @parallel_build_level = nil
     class << self
         # Sets the level of parallelism during the build
@@ -81,7 +98,7 @@ module Autobuild::Subprocess
                  else Autobuild.logdir
                  end
 
-        logname = "#{logdir}/#{target_name}-#{phase}.log"
+        logname = File.join(logdir, "#{target_name}-#{phase}.log")
         if !File.directory?(File.dirname(logname))
             FileUtils.mkdir_p File.dirname(logname)
         end
@@ -94,8 +111,11 @@ module Autobuild::Subprocess
         command.reject! { |o| o =~ /^\<(.+)/ }
 
         open_flag = if Autobuild.keep_oldlogs then 'a'
+                    elsif Autobuild.registered_logfile?(logname) then 'a'
                     else 'w'
                     end
+
+        Autobuild.register_logfile(logname)
 
         status = File.open(logname, open_flag) do |logfile|
             if Autobuild.keep_oldlogs
