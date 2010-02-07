@@ -156,16 +156,25 @@ module Autobuild
             end
 
             # Send the mails
-	    smtp = Net::SMTP.new(smtp_hostname, smtp_port)
-	    smtp.start {
-		to_email.each do |email|
-		    mail.header.to = email
-		    smtp.send_mail RMail::Serialize.write('', mail), from_email, email
-		end
-	    }
+            if File.directory?(File.dirname(smtp_hostname))
+                File.open(smtp_hostname, 'w') do |io|
+                    io.puts "From: #{from_email}"
+                    io.puts "To: #{to_email.join(" ")}"
+                    io.write RMail::Serialize.write('', mail)
+                end
+                puts "saved notification email in #{smtp_hostname}"
+            else
+                smtp = Net::SMTP.new(smtp_hostname, smtp_port)
+                smtp.start {
+                    to_email.each do |email|
+                        mail.header.to = email
+                        smtp.send_mail RMail::Serialize.write('', mail), from_email, email
+                    end
+                }
 
-            # Notify the sending
-            puts "Sent notification mail to #{to_email} with source #{from_email}"
+                # Notify the sending
+                puts "sent notification mail to #{to_email} with source #{from_email}"
+            end
         end
     end
 end
