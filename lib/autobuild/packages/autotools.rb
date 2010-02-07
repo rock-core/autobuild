@@ -138,7 +138,11 @@ module Autobuild
                         #
                         # Let the user disable the use of autoconf explicitely by using 'false'.
                         # 'nil' means autodetection
-                        using[:autoconf] = true if using[:autoconf].nil?
+                        if using[:autoconf].nil?
+                            if File.file?(File.join(srcdir, 'configure.in')) || File.file?(File.join(srcdir, 'configure.ac'))
+                                using[:autoconf] = true 
+                            end
+                        end
                         using[:aclocal] = using[:autoconf] if using[:aclocal].nil?
                         if using[:automake].nil?
                             using[:automake] = File.exists?(File.join(srcdir, 'Makefile.am'))
