@@ -1,3 +1,4 @@
+require 'set'
 require 'autobuild/exceptions'
 require 'autobuild/reporting'
 require 'fcntl'
