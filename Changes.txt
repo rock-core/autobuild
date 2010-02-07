@@ -1,3 +1,13 @@
+== Version 1.5.1
+* autotools: must run libtool before the other tools
+* autotools: properly autodetect need for autoconf (autoconf was always enabled
+  before)
+* logs: properly log everything that happens in one session. The previous
+  behaviour was to have, in each log file, only the last command that has been
+  run.
+* logs: only attach relevant logs to report mails. The previous behaviour was to
+  attach all log files that were in <prefix>/log
+
 == Version 1.5.0
 * now Ruby1.9 compatibility fixes, can be run with ruby1.9.1 on Debian
 * properly runs if the ruby interpreter is not called 'ruby', as ruby1.9.1
