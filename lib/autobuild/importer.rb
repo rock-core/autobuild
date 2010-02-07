@@ -88,7 +88,7 @@ class Importer
     # We assume that package.srcdir already exists (checkout is supposed to
     # have been called)
     def patchlist(package)
-        "#{package.srcdir}/patches-autobuild-stamp"
+        File.join(package.srcdir, "patches-autobuild-stamp")
     end
 
     def call_patch(package, reverse, file)
