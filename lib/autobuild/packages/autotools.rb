@@ -144,6 +144,13 @@ module Autobuild
                             using[:automake] = File.exists?(File.join(srcdir, 'Makefile.am'))
                         end
 
+                        if using[:libtool].nil?
+                            using[:libtool] = File.exists?(File.join(srcdir, 'ltmain.sh'))
+                        end
+                        if using[:libtool]
+                            Subprocess.run(self, 'configure', Autobuild.tool('libtoolize'), '--copy')
+                        end
+
                         [ :aclocal, :autoconf, :autoheader, :automake ].each do |tool|
                             if tool_flag = using[tool]
 				tool_program = if tool_flag.respond_to?(:to_str)
@@ -153,13 +160,6 @@ module Autobuild
 
                                 Subprocess.run(self, 'configure', tool_program)
                             end
-                        end
-
-                        if using[:libtool].nil?
-                            using[:libtool] = File.exists?(File.join(srcdir, 'ltmain.sh'))
-                        end
-                        if using[:libtool]
-                            Subprocess.run(self, 'configure', Autobuild.tool('libtoolize'), '--copy')
                         end
                     end
                 end
