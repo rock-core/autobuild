@@ -118,8 +118,9 @@ class Importer
         # Do not be smart, remove all already applied patches
         # and then apply the new ones
         begin
-            while p = cur_patches.pop
+            while p = cur_patches.last
                 unapply(package, p) 
+                cur_patches.pop
             end
 
             patches.to_a.each do |p| 
