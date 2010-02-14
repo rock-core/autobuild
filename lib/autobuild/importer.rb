@@ -111,6 +111,10 @@ class Importer
                             end
                         end
 
+        if cur_patches == patches
+            return
+        end
+
 	if !patches.empty?
 	    package.progress "patching %s"
 	end
