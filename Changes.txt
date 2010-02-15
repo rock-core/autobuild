@@ -1,4 +1,6 @@
 == Version 1.5.2
+* fix broken mail reporting. The mail report was always saved in a file since
+  1.5.1.
 * fix small bugs in the patching part of the import
   - be error tolerant: if patching/unpatching fails, we go back to a well
     defined state instead of having to fix the package by hand
