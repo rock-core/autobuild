@@ -86,7 +86,7 @@ module Autobuild
         ruby_arch    = File.basename(Config::CONFIG['archdir'])
         candidates = %w{rubylibdir archdir sitelibdir sitearchdir vendorlibdir vendorarchdir}.
             map { |key| Config::CONFIG[key] }.
-            map { |path| path.gsub(/.*lib\/(\w*ruby\/)/, '\\1') }.
+            map { |path| path.gsub(/.*lib(?:32|64)?\/(\w*ruby\/)/, '\\1') }.
             each { |subdir| env_add_path("RUBYLIB", "#{newprefix}/lib/#{subdir}") }
     end
 end
