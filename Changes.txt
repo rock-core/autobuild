@@ -1,3 +1,7 @@
+== Version 1.5.3
+* quickfix for RUBYLIB on OSes that install libraries in usr/lib32 or usr/lib64
+  instead of usr/lib
+
 == Version 1.5.2
 * fix broken mail reporting. The mail report was always saved in a file since
   1.5.1.
