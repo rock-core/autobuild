@@ -142,6 +142,9 @@ module Autobuild
         # Called when the user asked for a full rebuild. It should delete the
         # build products so that a full build is retriggered.
         def prepare_for_rebuild
+            if File.exists?(installstamp)
+                FileUtils.rm_f installstamp
+            end
         end
 
         # Call the importer if there is one. Autodetection of "provides" should
