@@ -156,7 +156,7 @@ module Autobuild
             end
 
             # Send the mails
-            if File.directory?(File.dirname(smtp_hostname))
+            if smtp_hostname =~ /\// && File.directory?(File.dirname(smtp_hostname))
                 File.open(smtp_hostname, 'w') do |io|
                     io.puts "From: #{from_email}"
                     io.puts "To: #{to_email.join(" ")}"
