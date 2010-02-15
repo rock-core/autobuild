@@ -85,6 +85,23 @@ module Autobuild
             nil
         end
 
+        def prepare_for_forced_build
+            autodetect_needed_stages
+            if using[:autoconf]
+                FileUtils.rm_f File.join(srcdir, 'configure')
+            end
+
+            if using[:automake]
+                Find.find(srcdir) do |path|
+                    if File.basename(path) == "Makefile.in"
+                        FileUtils.rm_f path
+                    end
+                end
+            end
+
+            FileUtils.rm_f configurestamp
+        end
+
         def prepare
             super
 
@@ -113,6 +130,26 @@ module Autobuild
         end
 
     private
+        def autodetect_needed_stages
+            # Autodetect autoconf/aclocal/automake
+            #
+            # Let the user disable the use of autoconf explicitely by using 'false'.
+            # 'nil' means autodetection
+            if using[:autoconf].nil?
+                if File.file?(File.join(srcdir, 'configure.in')) || File.file?(File.join(srcdir, 'configure.ac'))
+                    using[:autoconf] = true 
+                end
+            end
+            using[:aclocal] = using[:autoconf] if using[:aclocal].nil?
+            if using[:automake].nil?
+                using[:automake] = File.exists?(File.join(srcdir, 'Makefile.am'))
+            end
+
+            if using[:libtool].nil?
+                using[:libtool] = File.exists?(File.join(srcdir, 'ltmain.sh'))
+            end
+        end
+
         # Adds a target to rebuild the autotools environment
         def create_regen_target(confsource = nil)
 	    conffile = "#{srcdir}/configure"
@@ -130,31 +167,15 @@ module Autobuild
                         using[:autogen] = %w{autogen autogen.sh}.find { |f| File.exists?(f) }
                     end
 
+                    autodetect_needed_stages
+
                     progress "generating build system for %s"
+                    if using[:libtool]
+                        Subprocess.run(self, 'configure', Autobuild.tool('libtoolize'), '--copy')
+                    end
                     if using[:autogen]
                         Subprocess.run(self, 'configure', File.expand_path(using[:autogen]))
                     else
-                        # Autodetect autoconf/aclocal/automake
-                        #
-                        # Let the user disable the use of autoconf explicitely by using 'false'.
-                        # 'nil' means autodetection
-                        if using[:autoconf].nil?
-                            if File.file?(File.join(srcdir, 'configure.in')) || File.file?(File.join(srcdir, 'configure.ac'))
-                                using[:autoconf] = true 
-                            end
-                        end
-                        using[:aclocal] = using[:autoconf] if using[:aclocal].nil?
-                        if using[:automake].nil?
-                            using[:automake] = File.exists?(File.join(srcdir, 'Makefile.am'))
-                        end
-
-                        if using[:libtool].nil?
-                            using[:libtool] = File.exists?(File.join(srcdir, 'ltmain.sh'))
-                        end
-                        if using[:libtool]
-                            Subprocess.run(self, 'configure', Autobuild.tool('libtoolize'), '--copy')
-                        end
-
                         [ :aclocal, :autoconf, :autoheader, :automake ].each do |tool|
                             if tool_flag = using[tool]
 				tool_program = if tool_flag.respond_to?(:to_str)
