@@ -1,3 +1,9 @@
+== Version 1.5.2
+* fix small bugs in the patching part of the import
+  - be error tolerant: if patching/unpatching fails, we go back to a well
+    defined state instead of having to fix the package by hand
+  - do not apply patches unnecessarily
+
 == Version 1.5.1
 * autotools: must run libtool before the other tools
 * autotools: properly autodetect need for autoconf (autoconf was always enabled
