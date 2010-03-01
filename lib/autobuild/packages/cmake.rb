@@ -44,7 +44,8 @@ module Autobuild
             end
         end
 
-        def configurestamp; File.join(builddir, "CMakeCache.txt") end
+        def cmake_cache; File.join(builddir, "CMakeCache.txt") end
+        def configurestamp; cmake_cache end
 
         def initialize(options)
 	    @defines = Hash.new
@@ -105,13 +106,13 @@ module Autobuild
             #
             # Delete the CMakeCache to force reconfiguration
             if !File.exists?( File.join(builddir, 'Makefile') )
-                FileUtils.rm_f configurestamp
+                FileUtils.rm_f cmake_cache
             end
 
-            if File.exists?(configurestamp)
+            if File.exists?(cmake_cache)
                 all_defines = defines.dup
                 all_defines['CMAKE_INSTALL_PREFIX'] = prefix
-                cache = File.read(configurestamp)
+                cache = File.read(cmake_cache)
                 did_change = all_defines.any? do |name, value|
                     cache_line = cache.each_line.find do |line|
                         line =~ /^#{name}:/
@@ -131,7 +132,7 @@ module Autobuild
                     if Autobuild.debug
                         puts "CMake configuration changed, forcing a reconfigure"
                     end
-                    FileUtils.rm_f configurestamp
+                    FileUtils.rm_f cmake_cache
                 end
             end
 
@@ -150,7 +151,7 @@ module Autobuild
                     
                     progress "generating and configuring build system for %s"
                     if full_reconfigures?
-                        FileUtils.rm_f configurestamp
+                        FileUtils.rm_f cmake_cache
                     end
                     Subprocess.run(self, 'configure', *command)
                 end
