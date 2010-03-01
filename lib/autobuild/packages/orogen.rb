@@ -136,6 +136,7 @@ module Autobuild
     class Orogen < CMake
         class << self
             attr_accessor :corba
+            attr_accessor :extended_states
         end
 
         @orocos_target = nil
@@ -187,9 +188,13 @@ module Autobuild
             @corba || (@corba.nil? && Orogen.corba)
         end
 
+        attr_writer :extended_states
+        def extended_states
+            @extended_states || (@extended_states.nil? && Orogen.extended_states)
+        end
+
         attr_accessor :orogen_file
         def initialize(*args, &config)
-            @corba       = Orogen.corba
             super
 
             @orocos_target = nil
@@ -266,6 +271,7 @@ module Autobuild
         def regen
             cmdline = [guess_ruby_name, self.class.orogen_bin]
             cmdline << '--corba' if corba
+            cmdline << '--extended-states' if extended_states
             cmdline << orogen_file
 
             progress "generating oroGen project %s"
