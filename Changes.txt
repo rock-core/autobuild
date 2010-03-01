@@ -1,3 +1,7 @@
+== Version 1.5.4
+* support orogen's --extended-states
+* small API fix when subclassing CMake package handler
+
 == Version 1.5.3
 * quickfix for RUBYLIB on OSes that install libraries in usr/lib32 or usr/lib64
   instead of usr/lib
