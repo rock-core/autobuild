@@ -1,3 +1,6 @@
+== Version 1.5.5
+* small API additions
+
 == Version 1.5.4
 * support orogen's --extended-states
 * small API fix when subclassing CMake package handler

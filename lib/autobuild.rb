@@ -1,5 +1,5 @@
 module Autobuild
-    VERSION = "1.5.4" unless defined? Autobuild::VERSION
+    VERSION = "1.5.5" unless defined? Autobuild::VERSION
 end
 
 require 'autobuild/config'
