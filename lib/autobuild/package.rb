@@ -286,6 +286,12 @@ module Autobuild
 	    end
 	end
 
+        # Returns true if this package depends on +package_name+ and false
+        # otherwise.
+        def depends_on?(package_name)
+            @dependencies.include?(package_name)
+        end
+
 	# This package depends on +packages+. It means that its build will
         # always be triggered after the packages listed in +packages+ are built
         # and installed.
