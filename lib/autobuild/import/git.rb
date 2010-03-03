@@ -74,7 +74,7 @@ module Autobuild
         # repository
         def validate_srcdir(package)
             if !File.directory?(File.join(package.srcdir, '.git'))
-                raise ConfigException, "while importing #{package.name}, #{Dir.pwd} is not a git repository"
+                raise ConfigException, "while importing #{package.name}, #{package.srcdir} is not a git repository"
             end
         end
 
