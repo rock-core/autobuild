@@ -7,10 +7,6 @@ module Autobuild
     end
     
     class ImporterPackage < Package
-        def installstamp
-            "#{srcdir}/#{STAMPFILE}"
-        end
-	
 	attr_reader :exclude
 
         def initialize(*args)
