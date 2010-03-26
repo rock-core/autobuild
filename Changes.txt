@@ -1,3 +1,9 @@
+== Version 1.5.7
+* the "importer" package will now rebuild if the main prefix is deleted. It was
+  previously not, which was leading to partial builds if the actual installation
+  was done by a post_install block
+* fix the documentation mode
+
 == Version 1.5.6
 * fix the directory in error message when a git importer detects a non-git
   repository
