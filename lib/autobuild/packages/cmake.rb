@@ -56,8 +56,10 @@ module Autobuild
             @defines[name] = value
         end
 
-        def install_doc
-            super(builddir)
+        def doc_dir
+            if @doc_dir
+                File.expand_path(@doc_dir, builddir)
+            end
         end
 
         # Declare that the given target can be used to generate documentation
