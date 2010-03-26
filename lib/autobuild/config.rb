@@ -241,7 +241,9 @@ module Autobuild
             targets = if packages.empty?
                           phase
                       else
-                          packages.map { |pkg| "#{pkg}-#{phase}" }
+                          packages.
+                            find_all { |pkg| Rake.application.lookup("#{pkg}-#{phase}") }.
+                            map { |pkg| "#{pkg}-#{phase}" }
                       end
 
             task "#{buildname}-#{phase}" => targets
