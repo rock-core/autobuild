@@ -22,7 +22,19 @@ module Autobuild
     #   
     class Configurable < Package
         class << self
-            attr_reader :builddir
+            def builddir
+                if @builddir
+                    @builddir
+                else
+                    ancestors.each do |klass|
+                        if result = klass.instance_variable_get(:@builddir)
+                            return result
+                        end
+                    end
+                    nil
+                end
+            end
+
             def builddir=(new)
                 raise ConfigException, "absolute builddirs are not supported" if (Pathname.new(new).absolute?)
                 raise ConfigException, "builddir must be non-nil and non-empty" if (new.nil? || new.empty?)
