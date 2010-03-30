@@ -56,12 +56,6 @@ module Autobuild
         # successfully built for the last time. The path is absolute
         def buildstamp; "#{builddir}/#{STAMPFILE}" end
 
-        def initialize(options)
-            super
-
-            Autobuild.update_environment(prefix)
-        end
-
         def prepare_for_forced_build
             FileUtils.rm_f buildstamp
             FileUtils.rm_f configurestamp
@@ -102,7 +96,6 @@ module Autobuild
             task "#{name}-build" => buildstamp
 
             file installstamp => buildstamp
-            Autobuild.update_environment(prefix)
         end
 
         # Configure the builddir directory before starting make
@@ -119,11 +112,6 @@ module Autobuild
 
         # Do the build in builddir
         def build
-        end
-
-        def install
-            super
-            Autobuild.update_environment(prefix)
         end
     end
 end

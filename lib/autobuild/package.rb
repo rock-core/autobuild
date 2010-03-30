@@ -195,6 +195,7 @@ module Autobuild
                 Autobuild.apply_post_install(name, @post_install)
             end
             Autobuild.touch_stamp(installstamp)
+            Autobuild.update_environment prefix
         end
 
         def run(*args, &block)
