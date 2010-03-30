@@ -320,6 +320,7 @@ module Autobuild
 		end
 		task "#{name}-import"  => "#{p}-import"
 		task "#{name}-prepare" => "#{p}-prepare"
+		task "#{name}-build"   => "#{p}-build"
 		@dependencies << p
 	    end
 	end
