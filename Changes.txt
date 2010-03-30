@@ -1,3 +1,6 @@
+== Version 1.5.8
+* fix major issue while setting up dependencies
+
 == Version 1.5.7
 * the "importer" package will now rebuild if the main prefix is deleted. It was
   previously not, which was leading to partial builds if the actual installation

@@ -71,7 +71,13 @@ module Autobuild
 	#     pkg.use :automake => nil
 	#
         def use(*programs)
-            programs = *programs
+            programs =
+                if programs.size == 1
+                    programs.first
+                else
+                    programs
+                end
+
             if !programs.kind_of?(Hash)
                 programs = Array[*programs].inject({}) do |programs, spec|
                     programs[spec.first] = spec.last
