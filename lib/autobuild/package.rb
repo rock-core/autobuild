@@ -82,6 +82,13 @@ module Autobuild
             File.join(logdir, "#{name}-#{STAMPFILE}")
         end
 
+        attr_writer :updated
+
+        # Returns true if this package has already been updated. It will not be
+        # true if the importer has been called while Autobuild.do_update was
+        # false.
+        def updated?; !!@updated end
+
 	def initialize(spec)
 	    @dependencies   = Array.new
 	    @provides       = Array.new

@@ -62,6 +62,7 @@ class Importer
 		package.progress "updating %s"
                 update(package)
                 patch(package)
+                package.updated = true
             else
 		if Autobuild.verbose
 		    puts "  not updating #{package.name}"
@@ -76,6 +77,7 @@ class Importer
 		package.progress "checking out %s"
                 checkout(package)
                 patch(package)
+                package.updated = true
             rescue Autobuild::Exception
                 FileUtils.rm_rf package.srcdir
                 raise
