@@ -206,7 +206,7 @@ module Autobuild::Subprocess
                         STDOUT.print line
                     end
                     logfile.puts line
-                    if block_given?
+                    if !Autobuild.verbose && block_given?
                         yield(line)
                     end
                 end
