@@ -326,6 +326,9 @@ module Autobuild
 		unless pkg = Package[p]
 		    raise ConfigException.new(name), "package #{p} not defined"
 		end
+
+                next if @dependencies.include?(pkg.name)
+
 		task "#{name}-import"  => "#{pkg.name}-import"
 		task "#{name}-prepare" => "#{pkg.name}-prepare"
 		task "#{name}-build"   => "#{pkg.name}-build"
@@ -340,6 +343,8 @@ module Autobuild
                 raise ConfigException, "#{p.inspect} should be a string" if !p.respond_to? :to_str
 		p = p.to_str
 		next if p == name
+                next if @provides.include?(name)
+
 		@@provides[p] = self 
 		task p => name
 		task "#{p}-import" => "#{name}-import"
