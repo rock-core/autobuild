@@ -329,6 +329,10 @@ module Autobuild
 
                 next if @dependencies.include?(pkg.name)
 
+                if Autobuild.verbose
+                    STDERR.puts "  #{name} depends on #{pkg.name}"
+                end
+
 		task "#{name}-import"  => "#{pkg.name}-import"
 		task "#{name}-prepare" => "#{pkg.name}-prepare"
 		task "#{name}-build"   => "#{pkg.name}-build"
@@ -346,6 +350,11 @@ module Autobuild
                 next if @provides.include?(name)
 
 		@@provides[p] = self 
+
+                if Autobuild.verbose
+                    STDERR.puts "  #{name} provides #{p}"
+                end
+
 		task p => name
 		task "#{p}-import" => "#{name}-import"
 		task "#{p}-prepare" => "#{name}-prepare"
