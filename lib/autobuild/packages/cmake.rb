@@ -145,6 +145,10 @@ module Autobuild
         def configure
             super do
                 Dir.chdir(builddir) do
+                    if !File.file?(File.join(srcdir, 'CMakeLists.txt'))
+                        raise ConfigException, "#{srcdir} contains no CMakeLists.txt file"
+                    end
+
                     command = [ "cmake", "-DCMAKE_INSTALL_PREFIX=#{prefix}" ]
                     defines.each do |name, value|
                         command << "-D#{name}=#{value}"
