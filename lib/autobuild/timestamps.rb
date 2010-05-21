@@ -60,6 +60,12 @@ module Autobuild
 
     def self.touch_stamp(stampfile)
         puts "Touching #{stampfile}" if Autobuild.debug
+        dir = File.dirname(stampfile)
+        if File.exists?(dir) && !File.directory?(dir)
+            raise "#{dir} exists and is not a directory"
+        elsif !File.exists?(dir)
+            FileUtils.mkdir_p dir
+        end
         FileUtils.touch(stampfile)
 
         # File modification times on most Unix filesystems have a granularity of
