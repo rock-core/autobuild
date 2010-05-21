@@ -215,7 +215,7 @@ module Autobuild
         # Do the build in builddir
         def build
             Dir.chdir(builddir) do
-                progress "building %s"
+                progress "building %s [progress not available]"
                 Subprocess.run(self, 'build', './config.status')
                 Subprocess.run(self, 'build', Autobuild.tool(:make), "-j#{parallel_build_level}")
             end
