@@ -162,6 +162,10 @@ module Autobuild
 
 	    # Add the dependencies declared in spec
 	    depends_on *@spec_dependencies if @spec_dependencies
+
+            if File.directory?(prefix)
+                Autobuild.update_environment prefix
+            end
         end
 
         # Create all the dependencies required to reconfigure and/or rebuild the
@@ -176,8 +180,6 @@ module Autobuild
                 install
 	    end
             task "#{name}-build" => installstamp
-
-            Autobuild.update_environment prefix
         end
 
         # Display a progress message. %s in the string is replaced by the
