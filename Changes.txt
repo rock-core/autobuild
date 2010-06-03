@@ -1,3 +1,7 @@
+== Version 1.5.11
+* don't sleep unnecessarily on filesystems that have sub-second modification
+  time resolutions. This speeds up builds.
+
 == Version 1.5.10
 * avoid unnecessary reconfigurations in the autotools handler
 
