@@ -1,3 +1,6 @@
+== Version 1.5.10
+* avoid unnecessary reconfigurations in the autotools handler
+
 == Version 1.5.9
 * small fixes
 * fixed some corner-case problems with log files not being created in the right
