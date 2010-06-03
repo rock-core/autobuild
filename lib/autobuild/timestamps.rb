@@ -58,6 +58,17 @@ module Autobuild
         return File.mtime(stampfile)
     end
 
+    def self.hires_modification_time?
+        if @hires_modification_time.nil?
+            Tempfile.open('test') do |io|
+                io.flush
+                p_time = File.mtime(io.path)
+                @hires_modification_time = (p_time.tv_usec != 0)
+            end
+        end
+        @hires_modification_time
+    end
+
     def self.touch_stamp(stampfile)
         puts "Touching #{stampfile}" if Autobuild.debug
         dir = File.dirname(stampfile)
@@ -68,10 +79,12 @@ module Autobuild
         end
         FileUtils.touch(stampfile)
 
-        # File modification times on most Unix filesystems have a granularity of
-        # one second, so we (unfortunately) have to sleep 1s to make sure that
-        # time comparisons will work as expected.
-        sleep(1)
+        if !hires_modification_time?
+            # File modification times on most Unix filesystems have a granularity of
+            # one second, so we (unfortunately) have to sleep 1s to make sure that
+            # time comparisons will work as expected.
+            sleep(1)
+        end
     end
 end
 
