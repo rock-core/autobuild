@@ -168,7 +168,11 @@ module Autobuild
             end
 
             def log(from, to)
-                `git log --pretty=format:"%h %cr %cn %s" #{from}..#{to}`.chomp.split("\n")
+                log = `git log --pretty=format:"%h %cr %cn %s" #{from}..#{to}`
+                if log.respond_to?(:force_encoding)
+                    log.force_encoding('UTF-8')
+                end
+                log.chomp.split("\n")
             end
         end
 
