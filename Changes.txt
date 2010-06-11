@@ -1,3 +1,7 @@
+== Version 1.5.13
+* fix error messages in the oroGen packages, when the loaded oroGen file has an
+  error
+
 == Version 1.5.12
 * fix exception when git logs contain non-ASCII characters on Ruby 1.9 version
   compiled with another default encoding than UTF-8 (!)
