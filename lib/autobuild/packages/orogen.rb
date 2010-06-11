@@ -68,7 +68,21 @@ module Autobuild
         def load(file)
             @orogen_file = file
             @base_dir = File.dirname(file)
-            Kernel.eval(File.read(file), binding)
+
+            begin
+                Kernel.eval(File.read(file), binding, file, 0)
+            rescue ::Exception => e
+                backtrace = e.backtrace.dup
+                message   = e.message.dup
+
+                backtrace.delete_if { |line| line !~ /(\s|^)#{Regexp.quote(file)}:/ }
+                if message =~ /^(#{Regexp.quote(file)}:\d+): (.*)/m
+                    backtrace.unshift $1
+                    message = $2
+                end
+                raise e, message, backtrace
+            end
+
             self
         end
 
