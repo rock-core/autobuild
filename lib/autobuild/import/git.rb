@@ -168,11 +168,20 @@ module Autobuild
             end
 
             def log(from, to)
-                log = `git log --pretty=format:"%h %cr %cn %s" #{from}..#{to}`
-                if log.respond_to?(:force_encoding)
-                    log.force_encoding('UTF-8')
+                log = `git log --encoding=UTF-8 --pretty=format:"%h %cr %cn %s" #{from}..#{to}`.chomp
+
+                if log.respond_to?(:encode)
+                    log = log.encode
                 end
-                log.chomp.split("\n")
+
+                encodings = ['UTF-8', 'iso8859-1']
+                begin
+                    log.split("\n")
+                rescue
+                    raise if encodings.empty?
+                    log.force_encoding(encodings.pop)
+                    retry
+                end
             end
         end
 
