@@ -1,3 +1,6 @@
+== Version 1.5.14
+* fix Ruby 1.9 rejecting some git logs if they have a weird encoding
+
 == Version 1.5.13
 * fix error messages in the oroGen packages, when the loaded oroGen file has an
   error

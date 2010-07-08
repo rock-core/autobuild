@@ -178,7 +178,9 @@ module Autobuild
                 begin
                     log.split("\n")
                 rescue
-                    raise if encodings.empty?
+                    if encodings.empty?
+                        return "[some log messages have invalid characters, cannot display/parse them]"
+                    end
                     log.force_encoding(encodings.pop)
                     retry
                 end
