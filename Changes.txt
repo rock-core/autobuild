@@ -1,3 +1,6 @@
+== Version 1.5.15
+* display a message when git switches branches
+
 == Version 1.5.14
 * fix Ruby 1.9 rejecting some git logs if they have a weird encoding
 
