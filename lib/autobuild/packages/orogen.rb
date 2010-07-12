@@ -224,6 +224,9 @@ module Autobuild
             orogen_spec.provides.each do |name|
                 provides name
             end
+
+            Autobuild.env_add_path 'TYPELIB_RUBY_PLUGIN_PATH', File.join(prefix, 'share', 'typelib', 'ruby')
+            Autobuild.env_add_path 'OROCOS_ROBY_PLUGIN_PATH',  File.join(prefix, 'share', 'orocos', 'roby')
         end
 
         def prepare
