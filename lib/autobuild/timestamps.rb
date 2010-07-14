@@ -6,6 +6,27 @@ require 'fileutils'
 STAMPFILE = "autobuild-stamp"
 
 module Autobuild
+    class << self
+        # The set of global ignores for SourceTreeTask
+        #
+        # Regular expressions added to this set will be used to determine if a
+        # source tree has or has not changed
+        attr_reader :ignored_files
+    end
+    @ignored_files = Array.new
+
+    # Add a file and/or a regular expression to the ignore list
+    #
+    # The matching paths will not be considered when looking if a source tree
+    # has been updated or not.
+    def self.ignore(path)
+        if path.kind_of?(Regexp)
+            ignored_files << path
+        else
+            ignored_files << Regexp.new("^#{Regexp.quote(path)}")
+        end
+    end
+
     def self.tree_timestamp(path, *exclude)
         # Exclude autobuild timestamps
 	exclude.each { |rx| raise unless Regexp === rx }
@@ -39,7 +60,7 @@ module Autobuild
     class SourceTreeTask < Rake::Task
         attr_accessor :exclude
 	def initialize(*args, &block)
-	    @exclude = []
+	    @exclude = Autobuild.ignored_files.dup
 	    super
 	end
 	    
