@@ -1,3 +1,6 @@
+== Version 1.5.17
+* add a way to specify global ignores for listing files in source directories
+
 == Version 1.5.16
 * update the TYPELIB_RUBY_PLUGIN_PATH and OROCOS_ROBY_PLUGIN_PATH environment
   variables, as oroGen now installs plugin files from the oroGen project into
