@@ -1,3 +1,6 @@
+== Version 1.5.18
+* minor addition to the API for autoproj
+
 == Version 1.5.17
 * add a way to specify global ignores for listing files in source directories
 
