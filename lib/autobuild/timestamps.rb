@@ -54,18 +54,24 @@ module Autobuild
         }
 
         puts "  newest file: #{latest_file} at #{latest}" if Autobuild.debug
-        return latest
+        return latest_file, latest
     end
 
     class SourceTreeTask < Rake::Task
         attr_accessor :exclude
+
+        attr_reader :newest_file
+        attr_reader :newest_time
+
 	def initialize(*args, &block)
 	    @exclude = Autobuild.ignored_files.dup
 	    super
 	end
 	    
         def timestamp
-            Autobuild.tree_timestamp(name, %r#(?:^|/)(?:CVS|_darcs|\.svn)$#, *@exclude)
+            @newest_file, @newest_time =
+                Autobuild.tree_timestamp(name, %r#(?:^|/)(?:CVS|_darcs|\.svn)$#, *@exclude)
+            @newest_time
         end
     end
     def self.source_tree(path, &block)
