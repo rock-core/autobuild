@@ -1,5 +1,4 @@
 require 'hoe'
-require 'lib/autobuild'
 
 Hoe.spec 'autobuild' do
     developer "Sylvain Joyeux", "sylvain.joyeux@m4x.org"
