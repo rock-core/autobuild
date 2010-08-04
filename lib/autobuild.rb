@@ -1,7 +1,4 @@
-module Autobuild
-    VERSION = "1.5.18" unless defined? Autobuild::VERSION
-end
-
+require 'autobuild/version'
 require 'autobuild/config'
 require 'autobuild/configurable'
 require 'autobuild/environment'
