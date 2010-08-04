@@ -1,3 +1,9 @@
+== Version 1.5.19
+* git: fix cases where the importer was assuming that a branch did not exist
+  while it was
+* orogen: import_types_from accepts arguments for loading files. Be compatible
+  with that.
+
 == Version 1.5.18
 * minor addition to the API for autoproj
 
