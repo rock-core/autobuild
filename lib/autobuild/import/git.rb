@@ -225,7 +225,7 @@ module Autobuild
                 if !on_target_branch?
                     # Check if the target branch already exists. If it is the
                     # case, check it out. Otherwise, create it.
-                    if File.file?(File.join(".git", "refs", "heads", branch))
+                    if system("git", "show-ref", "--verify", "--quiet", "refs/heads/#{branch}")
                         package.progress "switching branch of %s to %s" % [package.name, branch]
                         Subprocess.run(package, :import, Autobuild.tool('git'), 'checkout', branch)
                     else
