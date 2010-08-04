@@ -94,7 +94,7 @@ module Autobuild
             @dependencies.concat(names)
             nil
         end
-        def import_types_from(name)
+        def import_types_from(name, *args)
             if !File.file?(File.join(base_dir, name)) && name.downcase !~ /\.(hh|hpp|h)/
                 using_toolkit name
             end
