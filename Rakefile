@@ -16,7 +16,9 @@ Hoe.spec 'autobuild' do
         ['utilrb', '>= 1.3.3']
 end
 
-Rake.clear_tasks(/publish_docs/)
+Rake.clear_tasks(/publish_docs/, /default/)
+task "default"
+
 task 'publish_docs' => 'docs' do
     if !system('./update_github')
         raise "cannot update the gh-pages branch for GitHub"
