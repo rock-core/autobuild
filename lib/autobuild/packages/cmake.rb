@@ -126,6 +126,11 @@ module Autobuild
                         if Autobuild.debug
                             puts "option '#{name}' changed value: '#{old_value}' => '#{value}'"
                         end
+                        if old_value
+                            progress "%s: changed value of #{name} from #{old_value} to #{value}"
+                        else
+                            progress "%s: setting value of #{name} to #{value}"
+                        end
                         
                         true
                     end
