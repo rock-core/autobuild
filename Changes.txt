@@ -1,3 +1,6 @@
+== Version 1.5.20
+* cmake: inform the user if a CMake configuration value gets changed
+
 == Version 1.5.19
 * git: fix cases where the importer was assuming that a branch did not exist
   while it was
