@@ -48,7 +48,7 @@ module Autobuild
             do_build && !only_doc && packages.empty?
         end
     end
-    DEFAULT_OPTIONS = { :nice => 0,
+    DEFAULT_OPTIONS = { :nice => nil,
         :srcdir => Dir.pwd, :prefix => Dir.pwd, :logdir => nil,
         :verbose => false, :debug => false, :do_build => true, :do_forced_build => false, :do_rebuild => false, :do_update => true, 
         :daemonize => false, :packages => [], :default_packages => [],

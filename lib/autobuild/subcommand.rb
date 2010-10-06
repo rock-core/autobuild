@@ -143,7 +143,9 @@ module Autobuild::Subprocess
             pid = fork do
                 cwrite.sync = true
                 begin
-                    Process.setpriority(Process::PRIO_PROCESS, 0, Autobuild.nice)
+                    if Autobuild.nice
+                        Process.setpriority(Process::PRIO_PROCESS, 0, Autobuild.nice)
+                    end
 
                     if outwrite
                         outread.close
