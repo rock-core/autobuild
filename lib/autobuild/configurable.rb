@@ -84,14 +84,18 @@ module Autobuild
 
             stamps = dependencies.map { |pkg| Autobuild::Package[pkg].installstamp }
             file configurestamp => stamps do
-                ensure_dependencies_installed
-                configure
+                isolate_errors do
+                    ensure_dependencies_installed
+                    configure
+                end
             end
             task "#{name}-prepare" => configurestamp
 
             file buildstamp => [ srcdir, configurestamp ] do
-                ensure_dependencies_installed
-                build
+                isolate_errors do
+                    ensure_dependencies_installed
+                    build
+                end
             end
             task "#{name}-build" => buildstamp
 

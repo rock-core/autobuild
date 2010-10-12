@@ -1,6 +1,7 @@
 require 'optparse'
 require 'rake'
 require 'singleton'
+require 'highline'
 
 # Evaluates +script+ in autobuild context
 def Autobuild(&script)
@@ -43,11 +44,21 @@ module Autobuild
 	# The directory in which logs are saved. Defaults to PREFIX/log.
         attr_writer :logdir
 
+        # A HighLine object that allows to colorize the output
+        attr_reader :console
+
         # True if we build and if the build is applied on all packages
         def full_build?
             do_build && !only_doc && packages.empty?
         end
     end
+
+    @console = HighLine.new
+
+    def self.color(*args)
+        console.color(*args)
+    end
+
     DEFAULT_OPTIONS = { :nice => nil,
         :srcdir => Dir.pwd, :prefix => Dir.pwd, :logdir => nil,
         :verbose => false, :debug => false, :do_build => true, :do_forced_build => false, :do_rebuild => false, :do_update => true, 

@@ -263,7 +263,7 @@ module Autobuild
 
             file configurestamp => genstamp
             file genstamp => File.join(srcdir, orogen_file) do
-                regen
+                isolate_errors { regen }
             end
 
             with_doc

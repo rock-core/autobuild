@@ -15,24 +15,30 @@ require 'autobuild/config'
 require 'autobuild/exceptions'
 
 module Autobuild
-    def self.progress(msg)
+    def self.progress(*args)
         if @last_msg
             progress_value(100)
             puts
         end
         @last_msg = nil
-        puts "  #{msg}"
+
+        if args.empty?
+            puts
+        else
+            puts "  #{color(*args)}"
+        end
     end
-    def self.progress_with_value(msg)
+    def self.progress_with_value(*args)
         if @last_msg
             progress_value(100)
             puts
         end
-        @last_msg = msg
-        print "  #{msg}"
+        @last_msg = "  #{color(args[0], *args[1..-1])}"
+
+        print @last_msg
     end
     def self.progress_value(value)
-        print "\r  #{@last_msg} (#{value}%)"
+        print "\r#{@last_msg} (#{value}%)"
     end
 
     ## The reporting module provides the framework

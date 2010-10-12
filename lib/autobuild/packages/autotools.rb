@@ -179,6 +179,7 @@ module Autobuild
 	    end
 
             file conffile do
+                isolate_errors do
                 Dir.chdir(srcdir) do
                     if using[:autogen].nil?
                         using[:autogen] = %w{autogen autogen.sh}.find { |f| File.exists?(f) }
@@ -204,6 +205,7 @@ module Autobuild
                             end
                         end
                     end
+                end
                 end
             end
 

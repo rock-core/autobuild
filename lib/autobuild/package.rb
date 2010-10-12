@@ -4,6 +4,10 @@ require 'autobuild/subcommand'
 
 module Autobuild
     TARGETS = %w{import prepare build}
+
+    class << self
+        attr_accessor :ignore_errors
+    end
     
     # Basic block for the autobuilder
     #
@@ -112,11 +116,15 @@ module Autobuild
             @doc_target_dir ||= name
 
 	    # Define the default tasks
-	    task "#{name}-import" do import end
+	    task "#{name}-import" do
+                isolate_errors { import }
+            end
 	    task :import => "#{name}-import"
 
 	    # Define the prepare task
-	    task "#{name}-prepare" => "#{name}-import" do prepare end
+	    task "#{name}-prepare" => "#{name}-import" do
+                isolate_errors { prepare }
+            end
 	    task :prepare => "#{name}-prepare"
 
 	    task "#{name}-build" => "#{name}-prepare"
@@ -154,14 +162,45 @@ module Autobuild
             end
         end
 
+        # If Autobuild.ignore_errors is set, an exception raised from within the
+        # provided block will be filtered out, only displaying a message instead
+        # of stopping the build
+        #
+        # Moreover, the package will be marked as "failed" and isolate_errors
+        # will subsequently be a noop. I.e. if +build+ fails, +install+ will do
+        # nothing.
+        def isolate_errors
+            if !Autobuild.ignore_errors
+                return yield
+            end
+
+            return if @failed
+
+            begin yield
+            rescue Exception => e
+                if Autobuild.ignore_errors
+                    @failed = true
+                    lines = e.to_s.split("\n")
+                    progress(lines.shift, :red, :bold)
+                    lines.each do |line|
+                        progress(line)
+                    end
+                else
+                    raise
+                end
+            end
+        end
+
         # Call the importer if there is one. Autodetection of "provides" should
         # be done there as well. See the documentation of Autobuild::Package for
         # more information.
 	def import
-            @importer.import(self) if @importer
+            if @importer
+                @importer.import(self)
+            end
 
-	    # Add the dependencies declared in spec
-	    depends_on *@spec_dependencies if @spec_dependencies
+            # Add the dependencies declared in spec
+            depends_on *@spec_dependencies if @spec_dependencies
 
             if File.directory?(prefix)
                 Autobuild.update_environment prefix
@@ -176,22 +215,32 @@ module Autobuild
 
             stamps = dependencies.map { |p| Package[p].installstamp }
 
-	    file installstamp => stamps do
-                install
-	    end
+            file installstamp => stamps do
+                isolate_errors { install }
+            end
             task "#{name}-build" => installstamp
         end
 
         # Display a progress message. %s in the string is replaced by the
         # package name
-        def progress(msg)
-            Autobuild.progress(msg % [name])
+        def progress(*args)
+            if !args.empty?
+                args[0] = args[0] % [name]
+                Autobuild.progress(*args)
+            else
+                Autobuild.progress
+            end
         end
 
         # Display a progress message, and later on update it with a progress
         # value. %s in the string is replaced by the package name
-        def progress_with_value(msg)
-            Autobuild.progress_with_value(msg % [name])
+        def progress_with_value(*args)
+            if !args.empty?
+                args[0] = args[0] % [name]
+                Autobuild.progress_with_value(*args)
+            else
+                Autobuild.progress_with_value
+            end
         end
 
         def progress_value(value)

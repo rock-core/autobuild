@@ -131,19 +131,23 @@ module Autobuild
             file buildstamp => genomstamp
 	    file genomstamp => genom_dependencies
             file genomstamp => srcdir do
-                Dir.chdir(srcdir) do
-                    progress "generating GenoM files for %s"
-                    Subprocess.run(self, 'genom', *cmdline)
-		end
+                isolate_errors do
+                    Dir.chdir(srcdir) do
+                        progress "generating GenoM files for %s"
+                        Subprocess.run(self, 'genom', *cmdline)
+                    end
+                end
             end
 
             acuser = File.join(srcdir, "configure.ac.user")
             file File.join(srcdir, 'configure') => acuser do
-                # configure does not depend on the .gen file
-                # since the generation takes care of rebuilding configure
-                # if .gen has changed
-                progress "generating build system for %s"
-                Dir.chdir(srcdir) { Subprocess.run(self, 'genom', File.expand_path('autogen')) }
+                isolate_errors do
+                    # configure does not depend on the .gen file
+                    # since the generation takes care of rebuilding configure
+                    # if .gen has changed
+                    progress "generating build system for %s"
+                    Dir.chdir(srcdir) { Subprocess.run(self, 'genom', File.expand_path('autogen')) }
+                end
             end
 
 	    super("#{srcdir}/autoconf/configure.ac")
