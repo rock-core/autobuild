@@ -119,12 +119,19 @@ module Autobuild
 
         # Returns a Importer::Status object that represents the status of this
         # package w.r.t. the root repository
-        def status(package)
-            validate_srcdir(package)
+        def status(package, only_local = false)
             Dir.chdir(package.srcdir) do
-                remote_commit = fetch_remote(package)
-                if !remote_commit
-                    return
+                validate_srcdir(package)
+                remote_commit = nil
+                if only_local
+                    Dir.chdir(package.srcdir) do
+                        remote_commit = `git show-ref -s refs/heads/#{branch}`.chomp
+                    end
+                else	
+                    remote_commit = fetch_remote(package)
+                    if !remote_commit
+                        return
+                    end
                 end
 
                 status = merge_status(remote_commit)
