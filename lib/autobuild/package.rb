@@ -225,7 +225,11 @@ module Autobuild
         # package name
         def progress(*args)
             if !args.empty?
-                args[0] = args[0] % [name]
+                begin args[0] = args[0] % [name]
+                rescue ArgumentError
+                    # Don't try to format strings that can't be formatted
+                end
+
                 Autobuild.progress(*args)
             else
                 Autobuild.progress
