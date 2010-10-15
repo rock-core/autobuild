@@ -1,3 +1,15 @@
+== Version 1.5.21
+* add an argument to status() to avoid using the network (for importers that can
+  do that, i.e. git)
+* disable changing the subprocess priorities by default. This is so that people
+  can use 'nice' on the autobuild script if they don't know that autobuild
+  supports changing the priority itself.
+* add the Autobuild.ignore_errors option. If set, the build will go on even if
+  some errors occur. Errors are properly reported at the end of the build.
+* git: update branch tracking information to track the specified branch
+* git: offer a way to specify a push URL, in cases where having separate
+  read-only and read-write URLs make sense.
+
 == Version 1.5.20
 * cmake: inform the user if a CMake configuration value gets changed
 
