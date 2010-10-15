@@ -104,6 +104,12 @@ module Autobuild
                 end
                 Subprocess.run(package, :import, Autobuild.tool('git'), 'config',
                                "--replace-all", "remote.autobuild.fetch",  "+refs/heads/*:refs/remotes/autobuild/*")
+                if branch
+                    Subprocess.run(package, :import, Autobuild.tool('git'), 'config',
+                                   "--replace-all", "branch.#{branch}.remote",  "autobuild")
+                    Subprocess.run(package, :import, Autobuild.tool('git'), 'config',
+                                   "--replace-all", "branch.#{branch}.merge", "refs/heads/#{branch}")
+                end
 
                 # We are checking out a specific commit. We just call git fetch
                 if commit 
