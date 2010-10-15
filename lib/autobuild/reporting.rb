@@ -41,6 +41,28 @@ module Autobuild
         print "\r#{@last_msg} (#{value}%)"
     end
 
+    # The exception type that is used to report multiple errors that occured
+    # when ignore_errors is set
+    class CompositeException < Autobuild::Exception
+        # The array of exception objects representing all the errors that
+        # occured during the build
+        attr_reader :original_errors
+
+        def initialize(original_errors)
+            @original_errors = original_errors
+        end
+
+        def mail?; true end
+
+        def to_s
+            result = ["#{original_errors.size} errors occured"]
+            original_errors.each_with_index do |e, i|
+                result << "(#{i}) #{e.to_s}"
+            end
+            result.join("\n")
+        end
+    end
+
     ## The reporting module provides the framework
     # to run commands in autobuild and report errors 
     # to the user
@@ -54,6 +76,21 @@ module Autobuild
         def self.report
             begin
                 yield
+
+                # If ignore_erorrs is true, check if some packages have failed
+                # on the way. If so, raise an exception to inform the user about
+                # it
+                errors = []
+                Autobuild::Package.each do |name, pkg|
+                    if pkg.failed?
+                        errors << pkg.failure
+                    end
+                end
+
+                if !errors.empty?
+                    raise CompositeException.new(errors)
+                end
+
             rescue Autobuild::Exception => e
                 error(e)
                 exit(1) if e.fatal?

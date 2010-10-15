@@ -162,6 +162,15 @@ module Autobuild
             end
         end
 
+        # Returns true if one of the operations applied on this package failed
+        def failed?
+            !!@failure
+        end
+
+        # If something failed on this package, returns the corresponding
+        # exception object. Otherwise, returns nil
+        attr_reader :failure
+
         # If Autobuild.ignore_errors is set, an exception raised from within the
         # provided block will be filtered out, only displaying a message instead
         # of stopping the build
@@ -170,21 +179,20 @@ module Autobuild
         # will subsequently be a noop. I.e. if +build+ fails, +install+ will do
         # nothing.
         def isolate_errors
-            if !Autobuild.ignore_errors
-                return yield
-            end
-
-            return if @failed
+            # Don't do anything if we already have failed
+            return if failed?
 
             begin yield
             rescue Exception => e
+                @failure = e
+
                 if Autobuild.ignore_errors
-                    @failed = true
                     lines = e.to_s.split("\n")
                     progress(lines.shift, :red, :bold)
                     lines.each do |line|
                         progress(line)
                     end
+                    nil
                 else
                     raise
                 end
