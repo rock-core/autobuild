@@ -28,10 +28,11 @@ module Autobuild
                 STDERR.puts "WARN:    Autobuild.git 'git://github.com/doudou/autobuild.git', :branch => 'master'"
             end
 
-            gitopts, common = Kernel.filter_options options, :branch => nil, :tag => nil, :commit => nil
+            gitopts, common = Kernel.filter_options options, :push_to => nil, :branch => nil, :tag => nil, :commit => nil
             if gitopts[:branch] && branch
                 raise ConfigException, "git branch specified with both the option hash and the explicit parameter"
             end
+            @push_to = gitopts[:push_to]
             branch = gitopts[:branch] || branch
             tag    = gitopts[:tag]
             commit = gitopts[:commit]
@@ -45,7 +46,17 @@ module Autobuild
             super(common)
         end
 
+        # The remote repository URL.
+        #
+        # See also #push_to
         attr_accessor :repository
+
+        # If set, this URL will be listed as a pushurl for the tracked branch.
+        # It makes it possible to have a read-only URL for fetching and specify
+        # a push URL for people that have commit rights
+        #
+        # #repository is always used for read-only operations
+        attr_reader :push_to
 
         # The branch this importer is tracking
         #
@@ -87,6 +98,10 @@ module Autobuild
                 # Update the remote definition
                 Subprocess.run(package, :import, Autobuild.tool('git'), 'config',
                                "--replace-all", "remote.autobuild.url", repository)
+                if push_to
+                    Subprocess.run(package, :import, Autobuild.tool('git'), 'config',
+                                   "--replace-all", "remote.autobuild.pushurl", push_to)
+                end
                 Subprocess.run(package, :import, Autobuild.tool('git'), 'config',
                                "--replace-all", "remote.autobuild.fetch",  "+refs/heads/*:refs/remotes/autobuild/*")
 
