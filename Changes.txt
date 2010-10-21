@@ -7,8 +7,8 @@
 * add the Autobuild.ignore_errors option. If set, the build will go on even if
   some errors occur. Errors are properly reported at the end of the build.
 * git: update branch tracking information to track the specified branch
-* git: offer a way to specify a push URL, in cases where having separate
-  read-only and read-write URLs make sense.
+* git: offer the push_to option as a way to specify a push URL, in cases
+  where having separate read-only and read-write URLs makes sense.
 
 == Version 1.5.20
 * cmake: inform the user if a CMake configuration value gets changed
