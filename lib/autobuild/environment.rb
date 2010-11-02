@@ -44,15 +44,14 @@ module Autobuild
     end
 
     def self.env_add_path(name, path, *paths)
-        if File.directory?(path)
-            oldpath = environment[name]
-            if !oldpath || !oldpath.include?(path)
-                env_add(name, path)
-                if name == 'RUBYLIB'
-                    $LOAD_PATH.unshift path
-                end
+        oldpath = environment[name]
+        if !oldpath || !oldpath.include?(path)
+            env_add(name, path)
+            if name == 'RUBYLIB'
+                $LOAD_PATH.unshift path
             end
         end
+
         if !paths.empty?
             env_add_path(name, *paths)
         end
@@ -70,15 +69,19 @@ module Autobuild
 
     # Updates the environment when a new prefix has been added
     def self.update_environment(newprefix)
-        env_add_path('PATH', "#{newprefix}/bin")
-        env_add_path('PKG_CONFIG_PATH', "#{newprefix}/lib/pkgconfig")
-        if File.directory?("#{newprefix}/lib") && !Dir.glob("#{newprefix}/lib/*.so").empty?
+        if File.directory?("#{newprefix}/bin")
+            env_add_path('PATH', "#{newprefix}/bin")
+        end
+        if File.directory?("#{newprefix}/lib/pkgconfig")
+            env_add_path('PKG_CONFIG_PATH', "#{newprefix}/lib/pkgconfig")
+        end
+        if File.directory?("#{newprefix}/lib") && !Dir.glob("#{newprefix}/lib/lib*.so").empty?
             env_add_path('LD_LIBRARY_PATH', "#{newprefix}/lib")
         end
 
         # Validate the new rubylib path
         new_rubylib = "#{newprefix}/lib"
-        if !File.directory?(File.join(new_rubylib, "ruby")) && !Dir["#{new_rubylib}/**/*.rb"].empty?
+        if File.directory?(new_rubylib) && !File.directory?(File.join(new_rubylib, "ruby")) && !Dir["#{new_rubylib}/**/*.rb"].empty?
             env_add_path('RUBYLIB', new_rubylib)
         end
 
@@ -87,7 +90,11 @@ module Autobuild
         candidates = %w{rubylibdir archdir sitelibdir sitearchdir vendorlibdir vendorarchdir}.
             map { |key| Config::CONFIG[key] }.
             map { |path| path.gsub(/.*lib(?:32|64)?\/(\w*ruby\/)/, '\\1') }.
-            each { |subdir| env_add_path("RUBYLIB", "#{newprefix}/lib/#{subdir}") }
+            each do |subdir|
+                if File.directory?("#{newprefix}/lib/#{subdir}")
+                    env_add_path("RUBYLIB", "#{newprefix}/lib/#{subdir}")
+                end
+            end
     end
 end
 

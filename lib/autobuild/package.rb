@@ -209,10 +209,14 @@ module Autobuild
 
             # Add the dependencies declared in spec
             depends_on *@spec_dependencies if @spec_dependencies
+            update_environment
+        end
 
-            if File.directory?(prefix)
-                Autobuild.update_environment prefix
-            end
+        # Called to set/update all environment variables at import and after
+        # install time
+        def update_environment
+            super if defined? super
+            Autobuild.update_environment prefix
         end
 
         # Create all the dependencies required to reconfigure and/or rebuild the
@@ -265,7 +269,7 @@ module Autobuild
                 Autobuild.apply_post_install(name, @post_install)
             end
             Autobuild.touch_stamp(installstamp)
-            Autobuild.update_environment prefix
+            update_environment
         end
 
         def run(*args, &block)

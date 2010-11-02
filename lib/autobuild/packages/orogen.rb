@@ -224,9 +224,18 @@ module Autobuild
             orogen_spec.provides.each do |name|
                 provides name
             end
+        end
 
-            Autobuild.env_add_path 'TYPELIB_RUBY_PLUGIN_PATH', File.join(prefix, 'share', 'typelib', 'ruby')
-            Autobuild.env_add_path 'OROCOS_ROBY_PLUGIN_PATH',  File.join(prefix, 'share', 'orocos', 'roby')
+        def update_environment
+            super
+            typelib_plugin = File.join(prefix, 'share', 'typelib', 'ruby')
+            if File.directory?(typelib_plugin)
+                Autobuild.env_add_path 'TYPELIB_RUBY_PLUGIN_PATH', typelib_plugin
+            end
+            roby_plugin = File.join(prefix, 'share', 'orocos', 'roby')
+            if File.directory?(roby_plugin)
+                Autobuild.env_add_path 'OROCOS_ROBY_PLUGIN_PATH',  roby_plugin
+            end
         end
 
         def prepare
