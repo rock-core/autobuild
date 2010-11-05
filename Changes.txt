@@ -1,3 +1,6 @@
+== Version 1.5.23
+* fix bug with paths that contain regexp special characters like C++
+
 == Version 1.5.22
 * minor change to #env_add_path. The provided directory is not filtered out
   anymore if it does not exist, to avoid the API user to *have* to call it
