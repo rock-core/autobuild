@@ -278,7 +278,7 @@ module Autobuild
                 status = merge_status(fetch_commit)
                 if status.needs_update?
                     if !merge? && status.status == Status::NEEDS_MERGE
-                        raise PackageException, "importing the current version of #{package.name} would require a merge"
+                        raise PackageException, "the local and remote branches #{branch} of #{package.name} have diverged, and I therefore refuse to update automatically. Go into #{package.srcdir} and either reset the local branch or merge the remote changes"
                     end
                     Subprocess.run(package, :import, Autobuild.tool('git'), 'merge', fetch_commit)
                 end
