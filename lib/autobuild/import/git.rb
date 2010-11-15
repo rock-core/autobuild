@@ -46,6 +46,19 @@ module Autobuild
             super(common)
         end
 
+        # Returns a string that identifies the remote repository uniquely
+        #
+        # This is meant for display purposes
+        def repository_id
+            result = "git:#{repository} branch=#{branch}"
+            if commit
+                result << " commit=#{commit}"
+            elsif tag
+                result << " tag=#{tag}"
+            end
+            result
+        end
+
         # The remote repository URL.
         #
         # See also #push_to

@@ -19,6 +19,13 @@ module Autobuild
             super(options)
         end
 
+        # Returns a string that identifies the remote repository uniquely
+        #
+        # This is meant for display purposes
+        def repository_id
+            @source.dup
+        end
+
         private
 
         def update(package) # :nodoc:

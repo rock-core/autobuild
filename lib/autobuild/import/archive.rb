@@ -94,6 +94,13 @@ module Autobuild
         # is the same than the source dir
         def archive_dir; @options[:archive_dir] || tardir end
 
+        # Returns a string that identifies the remote repository uniquely
+        #
+        # This is meant for display purposes
+        def repository_id
+            url.dup
+        end
+
 	# Creates a new importer which downloads +url+ in +cachedir+ and unpacks it. The following options
 	# are allowed:
 	# [:cachedir] the cache directory. Defaults to "#{Autobuild.prefix}/cache"
