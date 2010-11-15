@@ -141,8 +141,8 @@ module Autobuild::Subprocess
             cwrite.fcntl(Fcntl::F_SETFD, Fcntl::FD_CLOEXEC)
 
             pid = fork do
-                cwrite.sync = true
                 begin
+                    cwrite.sync = true
                     if Autobuild.nice
                         Process.setpriority(Process::PRIO_PROCESS, 0, Autobuild.nice)
                     end
