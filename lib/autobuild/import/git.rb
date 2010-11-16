@@ -292,10 +292,14 @@ module Autobuild
             end
 
             Subprocess.run(package, :import,
-                Autobuild.tool('git'), 'clone', '-o', 'autobuild',
-                repository, package.srcdir)
+                Autobuild.tool('git'), 'clone', '-o', 'autobuild', repository, package.srcdir)
 
             Dir.chdir(package.srcdir) do
+                if push_to
+                    Subprocess.run(package, :import, Autobuild.tool('git'), 'config',
+                                   "--replace-all", "remote.autobuild.pushurl", push_to)
+                end
+
                 # If we are tracking a commit/tag, just check it out
                 if commit || tag
                     Subprocess.run(package, :import, Autobuild.tool('git'),
