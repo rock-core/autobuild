@@ -1,3 +1,10 @@
+== Version 1.5.24
+* fix bug with git importer and the push_to option. The pushurl configuration
+  option was not set in just-cloned repositories
+* improve error message in the "merge" case of git updates
+* fix appearance of a backtrace when CTRL+C was hit just at the same time that
+  we start a subcommand
+
 == Version 1.5.23
 * fix bug with paths that contain regexp special characters like C++
 
