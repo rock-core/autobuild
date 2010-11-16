@@ -297,7 +297,15 @@ module Autobuild
         def regen
             cmdline = [guess_ruby_name, self.class.orogen_bin]
             cmdline << '--corba' if corba
-            cmdline << '--extended-states' if extended_states
+
+            ext_states = extended_states
+            if !ext_states.nil?
+                if ext_states
+                    cmdline << '--extended-states'
+                else
+                    cmdline << '--no-extended-states'
+                end
+            end
             cmdline << orogen_file
 
             progress "generating oroGen project %s"
