@@ -76,6 +76,15 @@ module Autobuild
         # If set, both commit and tag have to be nil.
         attr_accessor :branch
 
+        # The branch that should be used on the local clone
+        #
+        # If not set, it defaults to #branch
+        attr_writer :local_branch
+
+        def local_branch
+            @local_branch || branch
+        end
+
         # The tag we are pointing to. It is a tag name.
         #
         # If set, both branch and commit have to be nil.
@@ -117,11 +126,11 @@ module Autobuild
                 end
                 Subprocess.run(package, :import, Autobuild.tool('git'), 'config',
                                "--replace-all", "remote.autobuild.fetch",  "+refs/heads/*:refs/remotes/autobuild/*")
-                if branch
+                if local_branch
                     Subprocess.run(package, :import, Autobuild.tool('git'), 'config',
-                                   "--replace-all", "branch.#{branch}.remote",  "autobuild")
+                                   "--replace-all", "branch.#{local_branch}.remote",  "autobuild")
                     Subprocess.run(package, :import, Autobuild.tool('git'), 'config',
-                                   "--replace-all", "branch.#{branch}.merge", "refs/heads/#{branch}")
+                                   "--replace-all", "branch.#{local_branch}.merge", "refs/heads/#{branch}")
                 end
 
                 # We are checking out a specific commit. We just call git fetch
@@ -159,7 +168,7 @@ module Autobuild
                 remote_commit = nil
                 if only_local
                     Dir.chdir(package.srcdir) do
-                        remote_commit = `git show-ref -s refs/heads/#{branch}`.chomp
+                        remote_commit = `git show-ref -s refs/heads/#{local_branch}`.chomp
                     end
                 else	
                     remote_commit = fetch_remote(package)
@@ -181,7 +190,7 @@ module Autobuild
         # current directory is the package's directory
         def on_target_branch?
             current_branch = `git symbolic-ref HEAD`.chomp
-            current_branch == "refs/heads/#{branch}"
+            current_branch == "refs/heads/#{local_branch}"
         end
 
         class Status < Importer::Status
@@ -230,7 +239,7 @@ module Autobuild
 
         def merge_status(fetch_commit)
             common_commit = `git merge-base HEAD #{fetch_commit}`.chomp
-            head_commit   = `git rev-parse #{branch}`.chomp
+            head_commit   = `git rev-parse #{local_branch}`.chomp
 
             status = if common_commit != fetch_commit
                          if common_commit == head_commit
@@ -266,19 +275,19 @@ module Autobuild
                 if !on_target_branch?
                     # Check if the target branch already exists. If it is the
                     # case, check it out. Otherwise, create it.
-                    if system("git", "show-ref", "--verify", "--quiet", "refs/heads/#{branch}")
-                        package.progress "switching branch of %s to %s" % [package.name, branch]
-                        Subprocess.run(package, :import, Autobuild.tool('git'), 'checkout', branch)
+                    if system("git", "show-ref", "--verify", "--quiet", "refs/heads/#{local_branch}")
+                        package.progress "switching branch of %s to %s" % [package.name, local_branch]
+                        Subprocess.run(package, :import, Autobuild.tool('git'), 'checkout', local_branch)
                     else
-                        package.progress "checking out branch %s for %s" % [branch, package.name]
-                        Subprocess.run(package, :import, Autobuild.tool('git'), 'checkout', '-b', branch, "FETCH_HEAD")
+                        package.progress "checking out branch %s for %s" % [local_branch, package.name]
+                        Subprocess.run(package, :import, Autobuild.tool('git'), 'checkout', '-b', local_branch, "FETCH_HEAD")
                     end
                 end
 
                 status = merge_status(fetch_commit)
                 if status.needs_update?
                     if !merge? && status.status == Status::NEEDS_MERGE
-                        raise PackageException, "the local and remote branches #{branch} of #{package.name} have diverged, and I therefore refuse to update automatically. Go into #{package.srcdir} and either reset the local branch or merge the remote changes"
+                        raise PackageException, "the local branch '#{local_branch}' and the remote branch #{branch} of #{package.name} have diverged, and I therefore refuse to update automatically. Go into #{package.srcdir} and either reset the local branch or merge the remote changes"
                     end
                     Subprocess.run(package, :import, Autobuild.tool('git'), 'merge', fetch_commit)
                 end
@@ -308,12 +317,12 @@ module Autobuild
                 end
 
                 current_branch = `git symbolic-ref HEAD`.chomp
-                if current_branch == "refs/heads/#{branch}"
+                if current_branch == "refs/heads/#{local_branch}"
                     Subprocess.run(package, :import, Autobuild.tool('git'),
-                    'reset', '--hard', "autobuild/#{branch}")
+                        'reset', '--hard', "autobuild/#{branch}")
                 else
                     Subprocess.run(package, :import, Autobuild.tool('git'),
-                    'checkout', '-b', branch, "autobuild/#{branch}")
+                        'checkout', '-b', local_branch, "autobuild/#{branch}")
                 end
             end
         end
