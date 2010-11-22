@@ -1,6 +1,6 @@
 module Autobuild
     def self.dummy(spec)
-        ImporterPackage.new(spec)
+        DummyPackage.new(spec)
     end
 
     class DummyPackage < Package
@@ -17,11 +17,11 @@ module Autobuild
 
         def prepare
             %w{import prepare build doc}.each do |phase|
-                Rake.task("#{name}-#{phase}")
+                task "#{name}-#{phase}"
                 t = Rake::Task["#{name}-#{phase}"]
                 def t.needed?; false end
             end
-            Rake.task(installstamp)
+            task(installstamp)
             t = Rake::Task[installstamp]
             def t.needed?; false end
 
