@@ -1,3 +1,6 @@
+== Version 1.5.25
+* small bugfixes
+
 == Version 1.5.24
 * fix bug with git importer and the push_to option. The pushurl configuration
   option was not set in just-cloned repositories
