@@ -376,6 +376,18 @@ module Autobuild
 	    end
 	end
 
+        # Returns the name of all the packages +self+ depends on
+        def all_dependencies(result = Set.new)
+            dependencies.each do |pkg_name|
+                pkg = Autobuild::Package[pkg_name]
+                if !result.include?(pkg.name)
+                    result << pkg.name
+                    pkg.all_dependencies(result)
+                end
+            end
+            result
+        end
+
         # Returns true if this package depends on +package_name+ and false
         # otherwise.
         def depends_on?(package_name)
