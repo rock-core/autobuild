@@ -189,7 +189,7 @@ module Autobuild
         def install
             Dir.chdir(builddir) do
                 progress "installing %s"
-                Subprocess.run(self, 'build', Autobuild.tool(:make), "-j#{parallel_build_level}", 'install')
+                Subprocess.run(self, 'install', Autobuild.tool(:make), "-j#{parallel_build_level}", 'install')
             end
             super
         end
