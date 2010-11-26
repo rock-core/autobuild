@@ -71,6 +71,14 @@ module Autobuild
 	# The list of packages this one depends upon
 	attr_reader :dependencies
 
+        # Some statistics about the commands that have been run
+        attr_reader :statistics
+
+        def add_stat(phase, duration)
+            @statistics[phase] ||= 0
+            @statistics[phase] += duration
+        end
+
 	# Absolute path to the source directory. See #srcdir=
 	def srcdir; File.expand_path(@srcdir || name, Autobuild.srcdir) end
 	# Absolute path to the installation directory. See #prefix=
@@ -97,6 +105,7 @@ module Autobuild
 	    @dependencies   = Array.new
 	    @provides       = Array.new
             @parallel_build_level = nil
+            @statistics     = Hash.new
 
 	    if Hash === spec
 		name, depends = spec.to_a.first

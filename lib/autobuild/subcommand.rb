@@ -21,6 +21,23 @@ module Autobuild
         @logfiles.include?(logfile)
     end
 
+    def self.statistics
+        @statistics
+    end
+    def self.reset_statistics
+        @statistics = Hash.new
+    end
+    def self.add_stat(package, phase, duration)
+        if !@statistics[package]
+            @statistics[package] = { phase => duration }
+        elsif !@statistics[package][phase]
+            @statistics[package][phase] = duration
+        else
+            @statistics[package][phase] += duration
+        end
+    end
+    reset_statistics
+
     @parallel_build_level = nil
     class << self
         # Sets the level of parallelism during the build
@@ -85,6 +102,8 @@ module Autobuild::Subprocess
     CONTROL_UNEXPECTED = 2
     def self.run(target, phase, *command)
         STDOUT.sync = true
+
+        start_time = Time.now
 
         # Filter nil and empty? in command
         command.reject!  { |o| o.nil? || (o.respond_to?(:empty?) && o.empty?) }
@@ -221,6 +240,15 @@ module Autobuild::Subprocess
 
         if !status.exitstatus || status.exitstatus > 0
             raise Failed.new(status.exitstatus), "'#{command.join(' ')}' returned status #{status.exitstatus}"
+        end
+
+        duration = Time.now - start_time
+        Autobuild.add_stat(target, phase, duration)
+        File.open(File.join(Autobuild.logdir, "stats.log"), 'a') do |io|
+            io.puts "#{target} #{phase} #{duration}"
+        end
+        if target.respond_to?(:add_stat)
+            target.add_stat(phase, duration)
         end
 
     rescue Failed => e
