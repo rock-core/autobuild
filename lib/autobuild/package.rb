@@ -324,7 +324,7 @@ module Autobuild
         # In general, specific package types define a meaningful #with_doc
         # method which calls this method internally.
         def doc_task
-            task "#{name}-doc" => "#{name}-build" do
+            task "#{name}-doc" do
                 @installed_doc = false
                 catch(:doc_disabled) do
                     begin
