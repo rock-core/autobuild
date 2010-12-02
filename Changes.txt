@@ -1,3 +1,6 @@
+== Version 1.5.27
+* small fixes
+
 == Version 1.5.26
 * add statistics support
 
