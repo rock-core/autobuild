@@ -186,6 +186,17 @@ module Autobuild
             end
         end
 
+        def self.orogen_version
+            if !@orogen_version && root = orogen_root
+                version_file = File.join(root, 'orogen', 'version.rb')
+                version_line = File.readlines(version_file).grep(/VERSION\s*=\s*"/).first
+                if version_line =~ /.*=\s+"(.+)"$/
+                    @orogen_version = $1
+                end
+            end
+            @orogen_version
+        end
+
         attr_writer :orocos_target
         def orocos_target
             if @orocos_target.nil?
@@ -307,6 +318,10 @@ module Autobuild
                 end
             end
             cmdline << orogen_file
+
+            if (version = Orogen.orogen_version) && (version >= "1.0")
+                cmdline << "--parallel-build=#{parallel_build_level}"
+            end
 
             progress "generating oroGen project %s"
             Dir.chdir(srcdir) do

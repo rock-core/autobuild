@@ -69,7 +69,11 @@ module Autobuild
         # a push URL for people that have commit rights
         #
         # #repository is always used for read-only operations
-        attr_reader :push_to
+        attr_accessor :push_to
+
+        # If set, git will be configured so that a "git push" pushes by default
+        # to the specified branch, instead of using #branch
+        attr_accessor :push_to_branch
 
         # The branch this importer is tracking
         #
@@ -126,6 +130,15 @@ module Autobuild
                 end
                 Subprocess.run(package, :import, Autobuild.tool('git'), 'config',
                                "--replace-all", "remote.autobuild.fetch",  "+refs/heads/*:refs/remotes/autobuild/*")
+
+                if push_to_branch
+                    Subprocess.run(package, :import, Autobuild.tool('git'), 'config',
+                               "--replace-all", "remote.autobuild.push",  "refs/heads/#{local_branch || branch}:refs/heads/#{push_to_branch}")
+                else
+                    Subprocess.run(package, :import, Autobuild.tool('git'), 'config',
+                               "--replace-all", "remote.autobuild.push",  "refs/heads/*:refs/heads/*")
+                end
+
                 if local_branch
                     Subprocess.run(package, :import, Autobuild.tool('git'), 'config',
                                    "--replace-all", "branch.#{local_branch}.remote",  "autobuild")
