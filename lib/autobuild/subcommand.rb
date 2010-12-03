@@ -244,6 +244,7 @@ module Autobuild::Subprocess
 
         duration = Time.now - start_time
         Autobuild.add_stat(target, phase, duration)
+        FileUtils.mkdir_p(Autobuild.logdir)
         File.open(File.join(Autobuild.logdir, "stats.log"), 'a') do |io|
             io.puts "#{target_name} #{phase} #{duration}"
         end
