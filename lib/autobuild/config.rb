@@ -181,6 +181,10 @@ module Autobuild
                 opts.on("--[no-]verbose", "display output of commands on stdout") do |v| Autobuild.verbose = v end
                 opts.on("--[no-]debug", "debug information (for debugging purposes)") do |v| Autobuild.debug = v end
                 opts.on("--keep-oldlogs", "old logs will be kept, new program output being appended") do |v| Autobuild.keep_oldlogs = v end
+                opts.on('--version', "displays autobuild version and then exits") do
+                    puts "autobuild v#{Autobuild::VERSION}"
+                    exit 0
+                end
 
                 opts.separator ""
 		opts.separator "Mail reports"
