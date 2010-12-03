@@ -1,3 +1,8 @@
+== Version 1.5.28
+* fix failure when all packages are built in a different prefix than
+  Autobuild.prefix. The main log directory was not created, which was leading
+  to a failure to create stats.log
+
 == Version 1.5.27
 * small fixes
 
