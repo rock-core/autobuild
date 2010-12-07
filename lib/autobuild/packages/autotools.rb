@@ -146,6 +146,12 @@ module Autobuild
             file configurestamp => regen_target
         end
 
+        # If set to true, configure will be called with --no-create and
+        # ./config.status will be started each time before "make"
+        #
+        # In general, you should not need that.
+        attr_accessor :force_config_status
+
     private
         def autodetect_needed_stages
             # Autodetect autoconf/aclocal/automake
@@ -216,7 +222,11 @@ module Autobuild
         def configure
             super do
                 Dir.chdir(builddir) do
-                    command = [ "#{srcdir}/configure", "--no-create", "--prefix=#{prefix}" ]
+                    command = [ "#{srcdir}/configure"]
+                    if force_config_status
+                        command << "--no-create"
+                    end
+                    command << "--prefix=#{prefix}"
                     command += Array[*configureflags]
                     
                     progress "configuring build system for %s"
@@ -229,7 +239,9 @@ module Autobuild
         def build
             Dir.chdir(builddir) do
                 progress "building %s [progress not available]"
-                Subprocess.run(self, 'build', './config.status')
+                if force_config_status
+                    Subprocess.run(self, 'build', './config.status')
+                end
                 Subprocess.run(self, 'build', Autobuild.tool(:make), "-j#{parallel_build_level}")
             end
             Autobuild.touch_stamp(buildstamp)
