@@ -1,3 +1,9 @@
+== Version 1.5.30
+* make the autotools handler behave more normally, calling "configure" without
+  --no-create and not calling config.status before make by default. The old
+  behaviour can be restored by setting #force_config_status to true on the
+  package.
+
 == Version 1.5.29
 * added --version
 
