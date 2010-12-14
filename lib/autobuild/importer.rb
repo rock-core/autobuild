@@ -6,6 +6,29 @@ require 'autobuild/exceptions'
 # after the import can be given in the +:patches+ option.
 module Autobuild
 class Importer
+    # call-seq:
+    #   Autobuild::Importer.fallback { |package, importer| ... }
+    #
+    # If called, registers the given block as a fallback mechanism for failing
+    # imports.
+    #
+    # Fallbacks are tried in reverse order with the failing importer object as
+    # argument. The first valid importer object that has been returned will be
+    # used instead.
+    #
+    # It is the responsibility of the fallback handler to make sure that it does
+    # not do infinite recursions and stuff like that.
+    def self.fallback(&block)
+        @fallback_handlers.unshift(block)
+    end
+
+    class << self
+        # The set of handlers registered by Importer.fallback
+        attr_reader :fallback_handlers
+    end
+
+    @fallback_handlers = Array.new
+
     # Instances of the Importer::Status class represent the status of a current
     # checkout w.r.t. the remote repository.
     class Status
@@ -60,7 +83,11 @@ class Importer
         if File.directory?(srcdir)
             if Autobuild.do_update
 		package.progress "updating %s"
-                update(package)
+                begin
+                    update(package)
+                rescue Exception => e
+                    fallback(e, package, :import, package)
+                end
                 patch(package)
                 package.updated = true
             else
@@ -78,11 +105,26 @@ class Importer
                 checkout(package)
                 patch(package)
                 package.updated = true
-            rescue Autobuild::Exception
+            rescue Autobuild::Exception => e
+                FileUtils.rm_rf package.srcdir
+                fallback(e, package, :import, package)
+            rescue Exception
                 FileUtils.rm_rf package.srcdir
                 raise
             end
         end
+
+    end
+
+    # Tries to find a fallback importer because of the given error.
+    def fallback(error, package, *args, &block)
+        Importer.fallback_handlers.each do |handler|
+            fallback_importer = handler.call(package, self)
+            if fallback_importer.kind_of?(Importer)
+                return fallback_importer.send(*args, &block)
+            end
+        end
+        raise error
     end
 
     private

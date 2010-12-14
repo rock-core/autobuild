@@ -184,7 +184,12 @@ module Autobuild
                         remote_commit = `git show-ref -s refs/heads/#{local_branch}`.chomp
                     end
                 else	
-                    remote_commit = fetch_remote(package)
+                    remote_commit =
+                        begin fetch_remote(package)
+                        rescue Exception => e
+                            fallback(e, package, :status, package, only_local)
+                        end
+
                     if !remote_commit
                         return
                     end
@@ -197,6 +202,7 @@ module Autobuild
                 end
                 status
             end
+
         end
 
         # Checks if the current branch is the target branch. Expects that the
