@@ -106,6 +106,7 @@ module Autobuild
 	    @provides       = Array.new
             @parallel_build_level = nil
             @statistics     = Hash.new
+            @failures = Array.new
 
 	    if Hash === spec
 		name, depends = spec.to_a.first
@@ -173,12 +174,12 @@ module Autobuild
 
         # Returns true if one of the operations applied on this package failed
         def failed?
-            !!@failure
+            @failed
         end
 
         # If something failed on this package, returns the corresponding
         # exception object. Otherwise, returns nil
-        attr_reader :failure
+        attr_reader :failures
 
         # If Autobuild.ignore_errors is set, an exception raised from within the
         # provided block will be filtered out, only displaying a message instead
@@ -187,13 +188,16 @@ module Autobuild
         # Moreover, the package will be marked as "failed" and isolate_errors
         # will subsequently be a noop. I.e. if +build+ fails, +install+ will do
         # nothing.
-        def isolate_errors
+        def isolate_errors(mark_as_failed = false)
             # Don't do anything if we already have failed
             return if failed?
 
             begin yield
             rescue Exception => e
-                @failure = e
+                @failures << e
+                if mark_as_failed
+                    @failed = true
+                end
 
                 if Autobuild.ignore_errors
                     lines = e.to_s.split("\n")

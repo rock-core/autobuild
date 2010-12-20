@@ -83,7 +83,7 @@ module Autobuild
                 errors = []
                 Autobuild::Package.each do |name, pkg|
                     if pkg.failed?
-                        errors << pkg.failure
+                        errors.concat(pkg.failures)
                     end
                 end
 

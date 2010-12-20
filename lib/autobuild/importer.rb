@@ -81,20 +81,22 @@ class Importer
     def import(package)
         srcdir = package.srcdir
         if File.directory?(srcdir)
-            if Autobuild.do_update
-		package.progress "updating %s"
-                begin
-                    update(package)
-                rescue Exception => e
-                    fallback(e, package, :import, package)
+            package.isolate_errors(false) do
+                if Autobuild.do_update
+                    package.progress "updating %s"
+                    begin
+                        update(package)
+                    rescue Exception => e
+                        fallback(e, package, :import, package)
+                    end
+                    patch(package)
+                    package.updated = true
+                else
+                    if Autobuild.verbose
+                        puts "  not updating #{package.name}"
+                    end
+                    return
                 end
-                patch(package)
-                package.updated = true
-            else
-		if Autobuild.verbose
-		    puts "  not updating #{package.name}"
-		end
-                return
             end
 
         elsif File.exists?(srcdir)
