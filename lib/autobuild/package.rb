@@ -188,7 +188,7 @@ module Autobuild
         # Moreover, the package will be marked as "failed" and isolate_errors
         # will subsequently be a noop. I.e. if +build+ fails, +install+ will do
         # nothing.
-        def isolate_errors(mark_as_failed = false)
+        def isolate_errors(mark_as_failed = true)
             # Don't do anything if we already have failed
             return if failed?
 
