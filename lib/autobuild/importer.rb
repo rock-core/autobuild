@@ -86,11 +86,11 @@ class Importer
                     package.progress "updating %s"
                     begin
                         update(package)
+                        patch(package)
+                        package.updated = true
                     rescue Exception => e
                         fallback(e, package, :import, package)
                     end
-                    patch(package)
-                    package.updated = true
                 else
                     if Autobuild.verbose
                         puts "  not updating #{package.name}"
