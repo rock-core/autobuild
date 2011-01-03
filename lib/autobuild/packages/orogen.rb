@@ -165,6 +165,11 @@ module Autobuild
             end
         end
 
+        class << self
+            attr_accessor :default_type_export_policy
+        end
+        @default_type_export_policy = :used
+
         def self.orogen_bin
             if @orogen_bin
                 @orogen_bin
@@ -319,8 +324,13 @@ module Autobuild
             end
             cmdline << orogen_file
 
-            if (version = Orogen.orogen_version) && (version >= "1.0")
-                cmdline << "--parallel-build=#{parallel_build_level}"
+            if (version = Orogen.orogen_version)
+                if version >= "1.0"
+                    cmdline << "--parallel-build=#{parallel_build_level}"
+                end
+                if version >= "1.1"
+                    cmdline << "--type-export-policy=#{Orogen.default_type_export_policy}"
+                end
             end
 
             progress "generating oroGen project %s"
