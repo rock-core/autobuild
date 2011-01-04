@@ -1,3 +1,11 @@
+== Version 1.5.31
+* allow to override the type export policy for oroGen >= 1.1
+* allow to provide CMAKE_MODULE_PATH in the cmake handler. Unfortunately, cmake
+  does not support setting this through environment variables, so we have to
+  pass it as -D
+* make ignore_errors work for updates as well. We obviously still have to fail
+  on checkout
+
 == Version 1.5.30
 * make the autotools handler behave more normally, calling "configure" without
   --no-create and not calling config.status before make by default. The old
