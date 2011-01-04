@@ -18,7 +18,10 @@ module Autobuild
             def full_reconfigures?
                 @full_reconfigures
             end
+
+            attr_reader :module_path
         end
+        @module_path = []
         @full_reconfigures = true
 
         # a key => value association of defines for CMake
@@ -114,6 +117,7 @@ module Autobuild
             if File.exists?(cmake_cache)
                 all_defines = defines.dup
                 all_defines['CMAKE_INSTALL_PREFIX'] = prefix
+                all_defines['CMAKE_MODULE_PATH'] = "#{CMake.module_path.join(";")}"
                 cache = File.read(cmake_cache)
                 did_change = all_defines.any? do |name, value|
                     cache_line = cache.each_line.find do |line|
@@ -154,7 +158,8 @@ module Autobuild
                         raise ConfigException, "#{srcdir} contains no CMakeLists.txt file"
                     end
 
-                    command = [ "cmake", "-DCMAKE_INSTALL_PREFIX=#{prefix}" ]
+                    command = [ "cmake", "-DCMAKE_INSTALL_PREFIX=#{prefix}", "-DCMAKE_MODULE_PATH=#{CMake.module_path.join(";")}" ]
+
                     defines.each do |name, value|
                         command << "-D#{name}=#{value}"
                     end
