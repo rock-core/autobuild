@@ -111,6 +111,7 @@ class Importer
                 FileUtils.rm_rf package.srcdir
                 fallback(e, package, :import, package)
             rescue Exception
+                package.progress "checkout of %s failed, deleting the source directory #{package.srcdir}"
                 FileUtils.rm_rf package.srcdir
                 raise
             end
