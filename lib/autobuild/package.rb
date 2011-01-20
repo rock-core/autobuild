@@ -107,6 +107,7 @@ module Autobuild
             @parallel_build_level = nil
             @statistics     = Hash.new
             @failures = Array.new
+            @post_install_blocks = Array.new
 
 	    if Hash === spec
 		name, depends = spec.to_a.first
@@ -279,7 +280,9 @@ module Autobuild
         # Install the result in prefix
         def install
             Dir.chdir(srcdir) do
-                Autobuild.apply_post_install(name, @post_install)
+                @post_install_blocks.each do |b|
+                    Autobuild.apply_post_install(name, b)
+                end
             end
             Autobuild.touch_stamp(installstamp)
             update_environment
@@ -381,9 +384,9 @@ module Autobuild
 
 	def post_install(*args, &block)
 	    if args.empty?
-		@post_install = block
+		@post_install_blocks << block
 	    elsif !block
-		@post_install = args
+		@post_install_blocks << args
 	    else
 		raise ArgumentError, "cannot set both arguments and block"
 	    end
