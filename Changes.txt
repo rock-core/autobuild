@@ -1,3 +1,11 @@
+== Version 1.5.32
+* autobuild importers delete the source directory when
+  initial checkouts fail. They now display a message
+  when they do so to avoid user confusion
+* the Autobuild::Orogen.transports array can be used to
+  configure which transports are generated in orogen
+  packages
+
 == Version 1.5.31
 * allow to override the type export policy for oroGen
   >= 1.1
