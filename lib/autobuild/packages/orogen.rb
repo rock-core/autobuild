@@ -167,8 +167,11 @@ module Autobuild
 
         class << self
             attr_accessor :default_type_export_policy
+            # The list of enabled transports as an array of strings (default: typelib, corba)
+            attr_reader :transports
         end
         @default_type_export_policy = :used
+        @transports = %w{corba typelib}
 
         def self.orogen_bin
             if @orogen_bin
@@ -330,6 +333,7 @@ module Autobuild
                 end
                 if version >= "1.1"
                     cmdline << "--type-export-policy=#{Orogen.default_type_export_policy}"
+                    cmdline << "--transports=#{Orogen.transports.join(",")}"
                 end
             end
 
