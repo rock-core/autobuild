@@ -88,7 +88,7 @@ class Importer
                         update(package)
                         patch(package)
                         package.updated = true
-                    rescue Exception => e
+                    rescue ::Exception => e
                         fallback(e, package, :import, package)
                     end
                 else
@@ -110,7 +110,7 @@ class Importer
             rescue Autobuild::Exception => e
                 FileUtils.rm_rf package.srcdir
                 fallback(e, package, :import, package)
-            rescue Exception
+            rescue ::Exception
                 package.progress "checkout of %s failed, deleting the source directory #{package.srcdir}"
                 FileUtils.rm_rf package.srcdir
                 raise

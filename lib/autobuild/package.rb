@@ -194,7 +194,7 @@ module Autobuild
             return if failed?
 
             begin yield
-            rescue Exception => e
+            rescue ::Exception => e
                 @failures << e
                 if mark_as_failed
                     @failed = true
@@ -343,7 +343,7 @@ module Autobuild
                             install_doc
                         end
 
-                    rescue Exception => e
+                    rescue ::Exception => e
                         if Autobuild.doc_errors
                             raise
                         else

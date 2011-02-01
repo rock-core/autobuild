@@ -189,7 +189,7 @@ module Autobuild::Subprocess
                 rescue Errno::ENOENT
                     cwrite.write([CONTROL_COMMAND_NOT_FOUND].pack('I'))
                     raise
-                rescue Exception
+                rescue ::Exception
                     cwrite.write([CONTROL_UNEXPECTED].pack('I'))
                     raise
                 end
