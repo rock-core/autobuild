@@ -1,3 +1,8 @@
+== Version 1.5.33
+* fix autobuild failing if the generated documentation
+  is not in the doc_dir, as expected. It now reports
+  a warning, as it should
+
 == Version 1.5.32
 * autobuild importers delete the source directory when
   initial checkouts fail. They now display a message
