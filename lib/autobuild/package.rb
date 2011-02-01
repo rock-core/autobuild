@@ -360,6 +360,10 @@ module Autobuild
         end
 
         def install_doc
+            if !File.directory?(self.doc_dir)
+                raise "#{self.doc_dir} was expected to be a directory, but it is not. Check the package's documentation generation, the generated documentation should be in #{self.doc_dir}"
+            end
+
             doc_target_dir  = self.doc_target_dir
             doc_dir         = self.doc_dir
             FileUtils.rm_rf   doc_target_dir
