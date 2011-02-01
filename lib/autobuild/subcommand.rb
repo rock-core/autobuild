@@ -103,6 +103,14 @@ module Autobuild::Subprocess
     def self.run(target, phase, *command)
         STDOUT.sync = true
 
+        input_streams = []
+        if command.last.kind_of?(Hash)
+            options = command.pop
+            if options[:input]
+                input_streams = [options[:input]]
+            end
+        end
+
         start_time = Time.now
 
         # Filter nil and empty? in command
@@ -126,9 +134,6 @@ module Autobuild::Subprocess
 	if Autobuild.verbose
 	    puts "#{target_name}: running #{command.join(" ")}\n    (output goes to #{logname})"
 	end
-
-        input_streams = command.collect { |o| $1 if o =~ /^\<(.+)/ }.compact
-        command.reject! { |o| o =~ /^\<(.+)/ }
 
         open_flag = if Autobuild.keep_oldlogs then 'a'
                     elsif Autobuild.registered_logfile?(logname) then 'a'
