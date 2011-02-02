@@ -1,3 +1,7 @@
+== Version 1.5.34
+* make sure oroGen handlers will trigger a new generation
+  on force-build
+
 == Version 1.5.33
 * fix autobuild failing if the generated documentation
   is not in the doc_dir, as expected. It now reports

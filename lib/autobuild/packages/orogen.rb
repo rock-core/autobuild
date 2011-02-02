@@ -234,6 +234,11 @@ module Autobuild
             @orogen_file ||= "#{File.basename(name)}.orogen"
         end
 
+        def prepare_for_forced_build
+            super
+            FileUtils.rm_f genstamp 
+        end
+
         def import
             super
 

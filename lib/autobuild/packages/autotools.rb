@@ -92,6 +92,8 @@ module Autobuild
         end
 
         def prepare_for_forced_build
+            super
+
             autodetect_needed_stages
             if using[:autoconf]
                 FileUtils.rm_f File.join(srcdir, 'configure')

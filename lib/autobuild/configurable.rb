@@ -57,12 +57,15 @@ module Autobuild
         def buildstamp; "#{builddir}/#{STAMPFILE}" end
 
         def prepare_for_forced_build
+            super
+
             FileUtils.rm_f buildstamp
             FileUtils.rm_f configurestamp
         end
 
         def prepare_for_rebuild
-            prepare_for_forced_build
+            super
+
             if File.exists?(builddir) && builddir != srcdir
                 FileUtils.rm_rf builddir
             end
