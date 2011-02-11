@@ -187,7 +187,7 @@ module Autobuild
                     remote_commit =
                         begin fetch_remote(package)
                         rescue Exception => e
-                            fallback(e, package, :status, package, only_local)
+                            return fallback(e, package, :status, package, only_local)
                         end
 
                     if !remote_commit
