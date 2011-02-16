@@ -319,7 +319,7 @@ module Autobuild
         end
 
         def regen
-            cmdline = [guess_ruby_name, self.class.orogen_bin]
+            cmdline = []
             cmdline << '--corba' if corba
 
             ext_states = extended_states
@@ -330,7 +330,6 @@ module Autobuild
                     cmdline << '--no-extended-states'
                 end
             end
-            cmdline << orogen_file
 
             if (version = Orogen.orogen_version)
                 if version >= "1.0"
@@ -338,13 +337,45 @@ module Autobuild
                 end
                 if version >= "1.1"
                     cmdline << "--type-export-policy=#{Orogen.default_type_export_policy}"
-                    cmdline << "--transports=#{Orogen.transports.join(",")}"
+                    cmdline << "--transports=#{Orogen.transports.sort.uniq.join(",")}"
                 end
             end
+            cmdline = cmdline.sort
+            cmdline << orogen_file
 
-            progress "generating oroGen project %s"
-            Dir.chdir(srcdir) do
-                Subprocess.run self, 'orogen', *cmdline
+            # Try to avoid unnecessary regeneration as generation can be pretty
+            # long
+            #
+            # First, check if the command line changed
+            needs_regen =
+                if File.exists?(genstamp)
+                    last_cmdline = File.read(genstamp).split("\n")
+                    last_cmdline != cmdline
+                else
+                    true
+                end
+
+            # Then, if it has already been built, check what the check-uptodate
+            # target says
+            needs_regen ||=
+                if File.directory?(builddir)
+                    Dir.chdir(builddir) do
+                        !system("#{Autobuild.tool('make')} check-uptodate > /dev/null 2>&1")
+                    end
+                else
+                    true
+                end
+
+            if needs_regen
+                progress "generating oroGen project %s"
+                Dir.chdir(srcdir) do
+                    Subprocess.run self, 'orogen', guess_ruby_name, self.class.orogen_bin, *cmdline
+                    File.open(genstamp, 'w') do |io|
+                        io.print cmdline.join("\n")
+                    end
+                end
+            else
+                progress "no need to regenerate the oroGen project %s"
                 Autobuild.touch_stamp genstamp
             end
         end
