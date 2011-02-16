@@ -180,9 +180,7 @@ module Autobuild
                 validate_srcdir(package)
                 remote_commit = nil
                 if only_local
-                    Dir.chdir(package.srcdir) do
-                        remote_commit = `git show-ref -s refs/heads/#{local_branch}`.chomp
-                    end
+                    remote_commit = `git show-ref -s refs/heads/#{local_branch}`.chomp
                 else	
                     remote_commit =
                         begin fetch_remote(package)
