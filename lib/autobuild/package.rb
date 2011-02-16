@@ -206,6 +206,12 @@ module Autobuild
 
                 if Autobuild.ignore_errors
                     lines = e.to_s.split("\n")
+                    if lines.empty?
+                        lines = e.message.split("\n")
+                    end
+                    if lines.empty?
+                        lines = ["unknown error"]
+                    end
                     progress(lines.shift, :red, :bold)
                     lines.each do |line|
                         progress(line)
