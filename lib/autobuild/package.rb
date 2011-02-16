@@ -196,6 +196,8 @@ module Autobuild
             return if failed?
 
             begin yield
+            rescue Interrupt
+                raise
             rescue ::Exception => e
                 @failures << e
                 if mark_as_failed

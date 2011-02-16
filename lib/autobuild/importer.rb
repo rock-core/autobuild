@@ -88,6 +88,8 @@ class Importer
                         update(package)
                         patch(package)
                         package.updated = true
+                    rescue Interrupt
+                        raise
                     rescue ::Exception => e
                         fallback(e, package, :import, package)
                     end
