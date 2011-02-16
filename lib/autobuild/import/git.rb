@@ -256,7 +256,7 @@ module Autobuild
 
         def merge_status(fetch_commit)
             common_commit = `git merge-base HEAD #{fetch_commit}`.chomp
-            head_commit   = `git rev-parse #{local_branch}`.chomp
+            head_commit   = `git rev-parse HEAD`.chomp
 
             status = if common_commit != fetch_commit
                          if common_commit == head_commit
