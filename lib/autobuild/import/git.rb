@@ -203,6 +203,11 @@ module Autobuild
 
         end
 
+        def has_local_branch?
+            `git show-ref -q --verify refs/heads/#{local_branch}`
+            $?.exitstatus == 0
+        end
+
         # Checks if the current branch is the target branch. Expects that the
         # current directory is the package's directory
         def on_target_branch?
