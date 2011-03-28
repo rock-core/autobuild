@@ -290,8 +290,11 @@ module Autobuild
         # Install the result in prefix
         def install
             Dir.chdir(srcdir) do
+                Autobuild.post_install_handlers.each do |b|
+                    Autobuild.apply_post_install(self, b)
+                end
                 @post_install_blocks.each do |b|
-                    Autobuild.apply_post_install(name, b)
+                    Autobuild.apply_post_install(self, b)
                 end
             end
             Autobuild.touch_stamp(installstamp)

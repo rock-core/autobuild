@@ -71,28 +71,34 @@ module Autobuild
         send("#{name}=", value)
     end
 
+    @post_install_handlers = Array.new
     def self.post_install(*args, &block)
 	if args.empty?
-	    @post_install_handler = block
+	    @post_install_handlers << block
 	elsif !block
-	    @post_install_handler = args
+	    @post_install_handlers << args
 	else
 	    raise ArgumentError, "cannot set both arguments and block"
 	end
     end
-    attr_reader :post_install_handler
+    class << self
+        attr_reader :post_install_handlers
+    end
 
-    def self.apply_post_install(name, info)
+    def self.apply_post_install(pkg, info)
 	return unless info
 
 	case info
 	when Array
 	    args = info.dup
 	    tool = Autobuild.tool(args.shift)
-
-	    Autobuild::Subprocess.run name, 'post-install', tool, *args
+	    pkg.run 'post-install', tool, *args
 	when Proc
-	    info.call
+            if info.arity == 1
+                info.call(pkg)
+            else
+                info.call
+            end
 	end
     end
 
