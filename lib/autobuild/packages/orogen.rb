@@ -280,18 +280,19 @@ module Autobuild
                     depends_on target
                 end
             end
+            #
+            # Find out where orogen is, and make sure the configurestamp depend
+            # on it. Ignore if orogen is too old to have a --base-dir option
+            if orogen_root = self.class.orogen_root
+                orogen_tree = Autobuild.source_tree(orogen_root)
+            end
 
             # Check if there is an orogen package registered. If it is the case,
             # simply depend on it. Otherwise, look out for orogen --base-dir
             if Autobuild::Package['orogen']
                 depends_on "orogen"
-            else
-                # Find out where orogen is, and make sure the configurestamp depend
-                # on it. Ignore if orogen is too old to have a --base-dir option
-                if orogen_root = self.class.orogen_root
-                    orogen_root = File.join(orogen_root, 'orogen')
-                    file genstamp => Autobuild.source_tree(orogen_root)
-                end
+            elsif orogen_tree
+                file genstamp => orogen_tree
             end
 
             file configurestamp => genstamp
@@ -365,6 +366,9 @@ module Autobuild
                 else
                     true
                 end
+
+            # Finally, verify that orogen itself did not change
+            needs_regen ||= (Rake::Task[Orogen.orogen_root].timestamp > Rake::Task[genstamp].timestamp)
 
             if needs_regen
                 progress "generating oroGen project %s"
