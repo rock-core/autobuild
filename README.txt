@@ -1,8 +1,6 @@
-Copyright (c) 2006-2009 Sylvain Joyeux <sylvain.joyeux@m4x.org>
+Copyright (c) 2006-2011 Sylvain Joyeux <sylvain.joyeux@m4x.org> and contributors
 
-* http://doudou.github.com/autobuild
-* http://github.com/doudou/autobuild
-* http://doudou.github.com/autoproj
+* http://rock-robotics.org
 
 This work is licensed under the GPLv2 license. See License.txt for details
 
