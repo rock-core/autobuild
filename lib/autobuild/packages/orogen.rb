@@ -23,6 +23,11 @@ module Autobuild
     class Orogen < CMake
         class << self
             attr_accessor :corba
+
+            # If set to true, all components are generated with the
+            # --extended-states option
+            #
+            # The default is false
             attr_accessor :extended_states
 
             # See #always_regenerate?
@@ -64,6 +69,7 @@ module Autobuild
         @default_type_export_policy = :used
         @transports = %w{corba typelib}
 
+        # Path to the orogen tool
         def self.orogen_bin
             if @orogen_bin
                 @orogen_bin
@@ -77,6 +83,7 @@ module Autobuild
             end
         end
 
+        # Path to the root of the orogen package
         def self.orogen_root
             if @orogen_root
                 @orogen_root
@@ -85,6 +92,10 @@ module Autobuild
             end
         end
 
+        # The version of orogen, given as a string
+        #
+        # It is used to enable/disable some configuration features based on the
+        # orogen version string
         def self.orogen_version
             if !@orogen_version && root = orogen_root
                 version_file = File.join(root, 'orogen', 'version.rb')
@@ -96,7 +107,16 @@ module Autobuild
             @orogen_version
         end
 
+        # Overrides the global Orocos.orocos_target for this particular package
         attr_writer :orocos_target
+
+        # The orocos target that should be used for this particular orogen
+        # package
+        #
+        # By default, it is the same than Orogen.orocos_target. It can be set by
+        # doing
+        #
+        #   package.orocos_target = 'target_name'
         def orocos_target
             if @orocos_target.nil?
                 Orogen.orocos_target
@@ -110,12 +130,17 @@ module Autobuild
             @corba || (@corba.nil? && Orogen.corba)
         end
 
+        # Overrides the global Orocos.extended_states for this particular package
         attr_writer :extended_states
         def extended_states
             @extended_states || (@extended_states.nil? && Orogen.extended_states)
         end
 
+        # Path to the orogen file used for this package
+        #
+        # If present, it defaults to the package name with '.orogen' appended
         attr_accessor :orogen_file
+
         def initialize(*args, &config)
             super
 
