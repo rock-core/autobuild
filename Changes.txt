@@ -1,3 +1,10 @@
+== Version 1.5.35
+* fix some bad behaviour when using fallback importers
+  - git does not update the git configuration with the bad URLs anymore
+* orogen: removed automatic dependency detection, it was half-broken anyway.
+* orogen: avoid unnecessary regeneration (experimental, disabled by default).
+  It can be enabled by setting Autobuild::Orogen.always_regenerate = true
+
 == Version 1.5.34
 * make sure oroGen handlers will trigger a new generation
   on force-build
