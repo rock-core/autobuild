@@ -121,7 +121,20 @@ module Autobuild
         def fetch_remote(package)
             validate_srcdir(package)
             Dir.chdir(package.srcdir) do
-                # Update the remote definition
+                # If we are checking out a specific commit, we don't know which
+                # branch to refer to in git fetch. So, we have to set up the
+                # remotes and call git fetch directly (so that all branches get
+                # fetch)
+                #
+                # Otherwise, do git fetch now
+                #
+                # Doing it now is better as it makes sure that we replace the
+                # configuration parameters only if the repository and branch are
+                # OK (i.e. we keep old working configuration instead)
+                if !commit 
+                    Subprocess.run(package, :import, Autobuild.tool('git'), 'fetch', repository, branch || tag)
+                end
+
                 Subprocess.run(package, :import, Autobuild.tool('git'), 'config',
                                "--replace-all", "remote.autobuild.url", repository)
                 if push_to
@@ -146,11 +159,8 @@ module Autobuild
                                    "--replace-all", "branch.#{local_branch}.merge", "refs/heads/#{branch}")
                 end
 
-                # We are checking out a specific commit. We just call git fetch
-                if commit 
+                if commit
                     Subprocess.run(package, :import, Autobuild.tool('git'), 'fetch', 'autobuild')
-                else
-                    Subprocess.run(package, :import, Autobuild.tool('git'), 'fetch', repository, branch || tag)
                 end
 
                 # Now get the actual commit ID from the FETCH_HEAD file, and
