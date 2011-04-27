@@ -195,7 +195,10 @@ module Autobuild
             # Don't do anything if we already have failed
             return if failed?
 
-            begin yield
+            begin
+                do_isolate = Autobuild.ignore_errors
+                Autobuild.ignore_errors = false
+                yield
             rescue Interrupt
                 raise
             rescue ::Exception => e
@@ -204,7 +207,7 @@ module Autobuild
                     @failed = true
                 end
 
-                if Autobuild.ignore_errors
+                if do_isolate
                     lines = e.to_s.split("\n")
                     if lines.empty?
                         lines = e.message.split("\n")
@@ -220,6 +223,8 @@ module Autobuild
                 else
                     raise
                 end
+            ensure
+                Autobuild.ignore_errors = do_isolate
             end
         end
 
