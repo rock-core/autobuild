@@ -24,9 +24,27 @@ module Autobuild
         class << self
             attr_accessor :corba
             attr_accessor :extended_states
+
+            # See #always_regenerate?
+            attr_reader :always_regenerate
+
+            # If true (the default), the oroGen component will be regenerated
+            # every time a dependency is newer than the package itself.
+            #
+            # Otherwise, autobuild tries to regenerate it only when needed
+            #
+            # This is still considered experimental. Use
+            # Orogen.always_regenerate= to set it
+            def always_regenerate?
+                !!@always_regenerate
+            end
         end
 
+        @always_regenerate = true
+
         @orocos_target = nil
+
+        # The target that should be used to generate and build orogen components
         def self.orocos_target
             user_target = ENV['OROCOS_TARGET']
             if @orocos_target
@@ -199,11 +217,13 @@ module Autobuild
             cmdline = cmdline.sort
             cmdline << orogen_file
 
+            needs_regen = Autobuild::Orogen.always_regenerate?
+
             # Try to avoid unnecessary regeneration as generation can be pretty
             # long
             #
             # First, check if the command line changed
-            needs_regen =
+            needs_regen ||=
                 if File.exists?(genstamp)
                     last_cmdline = File.read(genstamp).split("\n")
                     last_cmdline != cmdline
