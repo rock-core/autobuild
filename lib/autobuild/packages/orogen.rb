@@ -70,14 +70,14 @@ module Autobuild
         @transports = %w{corba typelib}
 
         # Path to the orogen tool
-        def self.orogen_bin
+        def self.orogen_bin(full_path = false)
             if @orogen_bin
                 @orogen_bin
             else
                 program_name = Autobuild.tool('orogen')
                 if orogen_path = ENV['PATH'].split(':').find { |p| File.file?(File.join(p, program_name)) }
                     @orogen_bin = File.join(orogen_path, program_name)
-                else
+                elsif !full_path
                     program_name
                 end
             end
@@ -87,8 +87,8 @@ module Autobuild
         def self.orogen_root
             if @orogen_root
                 @orogen_root
-            elsif orogen_bin = self.orogen_bin
-                @orogen_root = File.expand_path('../lib', File.dirname(orogen_bin))
+            elsif orogen_bin = self.orogen_bin(true)
+                @orogen_root = File.expand_path('../lib', File.dirname(@orogen_bin))
             end
         end
 
