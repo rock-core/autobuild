@@ -1,3 +1,7 @@
+== Version 1.5.36
+* fix wrong caching behaviour in the orogen handler, which was leading to having
+  failures in the orogen package handler
+
 == Version 1.5.35
 * fix some bad behaviour when using fallback importers
   - git does not update the git configuration with the bad URLs anymore
