@@ -1,4 +1,11 @@
+== Version 1.5.37
+Quickfix release
+* broke Autobuild::Orogen.always_regenerate by converting attr_accessor to
+  attr_reader instead of attr_writer. As we say in french "better is the ennemy
+  of good"
+
 == Version 1.5.36
+Quickfix release
 * fix wrong caching behaviour in the orogen handler, which was leading to having
   failures in the orogen package handler
 

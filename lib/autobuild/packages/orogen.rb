@@ -31,7 +31,7 @@ module Autobuild
             attr_accessor :extended_states
 
             # See #always_regenerate?
-            attr_reader :always_regenerate
+            attr_writer :always_regenerate
 
             # If true (the default), the oroGen component will be regenerated
             # every time a dependency is newer than the package itself.
