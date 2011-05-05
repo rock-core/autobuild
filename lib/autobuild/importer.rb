@@ -126,7 +126,9 @@ class Importer
         Importer.fallback_handlers.each do |handler|
             fallback_importer = handler.call(package, self)
             if fallback_importer.kind_of?(Importer)
-                begin fallback_importer.send(*args, &block)
+                begin
+                    fallback_importer.send(*args, &block)
+                    return
                 rescue Exception
                     raise error
                 end
