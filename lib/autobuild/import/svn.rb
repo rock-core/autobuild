@@ -12,10 +12,17 @@ module Autobuild
 	# to 'svn' and can be configured by doing 
 	#   Autobuild.programs['svn'] = 'my_svn_tool'
         def initialize(source, options = {})
+            options = Kernel.validate_options options,
+                :svnup => [], :svnco => [], :revision => nil
+
             @source = [*source].join("/")
             @program    = Autobuild.tool('svn')
             @options_up = [*options[:svnup]]
             @options_co = [*options[:svnco]]
+            if rev = options[:revision]
+                @options_up << "--revision" << rev
+                @options_co << "--revision" << rev
+            end
             super(options)
         end
 
