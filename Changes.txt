@@ -1,3 +1,7 @@
+== Version 1.5.38
+* add the 'revision' option for the SVN importer. It allows to pick a particular
+  revision number, as usually specified by the -r option to svn co and svn up
+
 == Version 1.5.37
 Quickfix release
 * broke Autobuild::Orogen.always_regenerate by converting attr_accessor to
