@@ -499,6 +499,12 @@ module Autobuild
 	    @@packages[name.to_s] || @@provides[name.to_s]
 	end
 
+        # Removes all package definitions
+        def self.clear
+            @@packages.clear
+            @@provides.clear
+        end
+
         # Sets the level of parallelism authorized while building this package
         #
         # See #parallel_build_level and Autobuild.parallel_build_level for more
