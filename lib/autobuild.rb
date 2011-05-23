@@ -1,3 +1,9 @@
+require 'rake'
+
+if defined? Rake::DSL
+    include Rake::DSL
+end
+
 require 'autobuild/version'
 require 'autobuild/config'
 require 'autobuild/configurable'
