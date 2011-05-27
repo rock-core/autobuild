@@ -340,6 +340,10 @@ module Autobuild
                     Subprocess.run(package, :import, Autobuild.tool('git'), 'config',
                                    "--replace-all", "remote.autobuild.pushurl", push_to)
                 end
+                if push_to_branch
+                    Subprocess.run(package, :import, Autobuild.tool('git'), 'config',
+                                   "--replace-all", "remote.autobuild.push", "refs/heads/#{local_branch || branch}:refs/heads/#{push_to_branch}")
+                end
 
                 # If we are tracking a commit/tag, just check it out
                 if commit || tag
