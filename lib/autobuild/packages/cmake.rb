@@ -165,7 +165,7 @@ module Autobuild
                     end
                     command << srcdir
                     
-                    progress "generating and configuring build system for %s"
+                    progress "configuring CMake build system for %s"
                     if full_reconfigures?
                         FileUtils.rm_f cmake_cache
                     end
