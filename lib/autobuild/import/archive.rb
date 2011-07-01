@@ -117,7 +117,9 @@ module Autobuild
             @options[:cachedir] ||= "#{Autobuild.prefix}/cache"
 
             @url = URI.parse(url)
-            raise ConfigException, "invalid URL #{@url}" unless VALID_URI_SCHEMES.include?(@url.scheme)
+            if !VALID_URI_SCHEMES.include?(@url.scheme)
+                raise ConfigException, "invalid URL #{@url} (local files must be prefixed with file://)" 
+            end
 
             filename = options[:filename] || File.basename(url).gsub(/\?.*/, '')
             @mode = options[:mode] || ArchiveImporter.filename_to_mode(filename)
