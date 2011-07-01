@@ -47,8 +47,13 @@ module Autobuild
                 cached_mtime = File.lstat(cachefile).mtime
 
                 size, mtime = nil
-                open @url, :content_length_proc => lambda { |size| } do |file| 
-                    mtime = file.last_modified
+                if @url.scheme == "file"
+                    size  = File.stat(@url.path).size
+                    mtime = File.stat(@url.path).mtime
+                else
+                    open @url, :content_length_proc => lambda { |size| } do |file| 
+                        mtime = file.last_modified
+                    end
                 end
 
                 if mtime && size
