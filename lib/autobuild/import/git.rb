@@ -308,10 +308,10 @@ module Autobuild
                     # Check if the target branch already exists. If it is the
                     # case, check it out. Otherwise, create it.
                     if system("git", "show-ref", "--verify", "--quiet", "refs/heads/#{local_branch}")
-                        package.progress "switching branch of %s to %s" % [package.name, local_branch]
+                        package.progress "  switching branch of %s to %s" % [package.name, local_branch]
                         Subprocess.run(package, :import, Autobuild.tool('git'), 'checkout', local_branch)
                     else
-                        package.progress "checking out branch %s for %s" % [local_branch, package.name]
+                        package.progress "  checking out branch %s for %s" % [local_branch, package.name]
                         Subprocess.run(package, :import, Autobuild.tool('git'), 'checkout', '-b', local_branch, "FETCH_HEAD")
                     end
                 end
