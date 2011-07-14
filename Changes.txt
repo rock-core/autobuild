@@ -1,3 +1,9 @@
+== Version 1.5.42
+* archive: fix support for using local files
+* git: make "switching branch" messages stand out a bit more
+* cvs: make the CVS support compatible with autoproj (should remain backward
+  compatible as well)
+
 == Version 1.5.41
 * git: properly handle push_to_branch at checkout (was working during updates)
 * cmake: more specific progress message for configuration
