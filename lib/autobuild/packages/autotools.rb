@@ -95,7 +95,7 @@ module Autobuild
             super
 
             autodetect_needed_stages
-            if using[:autoconf]
+            if using[:autoconf] || using[:autogen]
                 FileUtils.rm_f File.join(srcdir, 'configure')
             end
 
@@ -110,9 +110,18 @@ module Autobuild
             FileUtils.rm_f configurestamp
         end
 
+        def import
+            @has_checked_out = !File.directory?(srcdir)
+            super
+        end
+
         def prepare
             super
             autodetect_needed_stages
+
+            if @has_checked_out
+                prepare_for_forced_build
+            end
 
 	    # Check if config.status has been generated with the
 	    # same options than the ones in configureflags
