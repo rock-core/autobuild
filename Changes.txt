@@ -1,3 +1,12 @@
+== Version 1.5.43
+* cvs: accept the common importer options, such as :patches
+  (Patch from Charles Lesire-Cabaniols)
+* autotools: regenerate the configure script on initial checkout
+  This is to workaround people that *do* have autogen scripts but
+  still include the configure scripts in their VCS. autotools is
+  pretty fragile, to it is much more robust to just regenerate
+  the whole thing in these cases.
+
 == Version 1.5.42
 * archive: fix support for using local files
 * git: make "switching branch" messages stand out a bit more
