@@ -13,19 +13,19 @@ module Autobuild
 	# to 'cvs' and can be configured by doing 
 	#   Autobuild.programs['cvs'] = 'my_cvs_tool'
         def initialize(root_name, options = {})
-            options = Kernel.validate_options options, :module => nil, :cvsup => '-dP', :cvsco => '-P'
+            cvsopts, common = Kernel.filter_options options, :module => nil, :cvsup => '-dP', :cvsco => '-P'
             @root   = root_name
-            @module = options[:module]
+            @module = cvsopts[:module]
             if !@module
                 raise ArgumentError, "no module given"
             end
 
             @program    = Autobuild.tool('cvs')
-            @options_up = options[:cvsup] || '-dP'
+            @options_up = cvsopts[:cvsup] || '-dP'
             @options_up = Array[*@options_up]
-            @options_co = options[:cvsco] || '-P'
+            @options_co = cvsopts[:cvsco] || '-P'
             @options_co = Array[*@options_co]
-            super(options)
+            super(common)
         end
 
 	# Array of options to give to 'cvs checkout'
