@@ -67,6 +67,7 @@ module Autobuild
 
         # Declare that the given target can be used to generate documentation
         def with_doc(target = 'doc')
+            task "#{name}-doc" => configurestamp
             doc_task do
                 Dir.chdir(builddir) do
                     progress "generating documentation for %s"

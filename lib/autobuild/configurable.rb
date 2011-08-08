@@ -101,9 +101,6 @@ module Autobuild
                 end
             end
             task "#{name}-build" => buildstamp
-            if has_doc?
-                task "#{name}-doc" => configurestamp
-            end
             file installstamp => buildstamp
         end
 
