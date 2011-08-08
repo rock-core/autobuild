@@ -77,10 +77,31 @@ module Autobuild
                 
             @processor_count = Integer(range.split('-').last) + 1
         elsif File.file?('/proc/cpuinfo')
-            # Just count the numer of processor: \d lines
-            @processor_count = File.readlines('/proc/cpuinfo').
-                find_all { |l| l =~ /^processor\s+:\s+\d+$/ }.
-                count
+            cpuinfo = File.readlines('/proc/cpuinfo')
+            physical_ids, core_count, processor_ids = [], [], []
+            cpuinfo.each do |line|
+                case line
+                when /^processor\s+:\s+(\d+)$/
+                    processor_ids << Integer($1)
+                when /^physical id\s+:\s+(\d+)$/
+                    physical_ids << Integer($1)
+                when /^cpu cores\s+:\s+(\d+)$/
+                    core_count << Integer($1)
+                end
+            end
+            
+            # Try to count the number of physical cores, not the number of
+            # logical ones. If the info is not available, fallback to the
+            # logical count
+            if (physical_ids.size == core_count.size) && (physical_ids.size == processor_ids.size)
+                info = Array.new
+                while (id = physical_ids.shift)
+                    info[id] = core_count.shift
+                end
+                @processor_count = info.map(&:+)
+            else
+                @processor_count = processor_ids.size
+            end
         else
             # Hug... What kind of system is it ?
             STDERR.puts "INFO: cannot autodetect the number of CPUs on this sytem"
