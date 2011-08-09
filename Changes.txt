@@ -1,3 +1,15 @@
+== Version 1.5.44
+* when autodetecting the parallel build level, use the number of physical cores
+  (ignore "logical processors" that are present due to SMT technologies like
+  HyperThreading)
+* add an experimental feature to make autobuild run doxygen by itself instead of
+  using "make doc" for CMake targets. This will sped up documentation
+  generation in simple cases, as dependencies won't need to be installed before
+  "make doc" can be run. This feature is turned OFF by default, and can be
+  turned ON by doing
+
+     Autobuild::CMake.always_use_doc_target = false
+
 == Version 1.5.43
 * cvs: accept the common importer options, such as :patches
   (Patch from Charles Lesire-Cabaniols)
