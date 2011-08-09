@@ -71,12 +71,7 @@ module Autobuild
             return @processor_count
         end
 
-        if File.file?('/sys/devices/system/cpu/present')
-            range = File.read('/sys/devices/system/cpu/present').
-                chomp
-                
-            @processor_count = Integer(range.split('-').last) + 1
-        elsif File.file?('/proc/cpuinfo')
+        if File.file?('/proc/cpuinfo')
             cpuinfo = File.readlines('/proc/cpuinfo')
             physical_ids, core_count, processor_ids = [], [], []
             cpuinfo.each do |line|
@@ -98,7 +93,7 @@ module Autobuild
                 while (id = physical_ids.shift)
                     info[id] = core_count.shift
                 end
-                @processor_count = info.map(&:+)
+                @processor_count = info.inject(&:+)
             else
                 @processor_count = processor_ids.size
             end
