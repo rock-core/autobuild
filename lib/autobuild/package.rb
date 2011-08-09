@@ -361,6 +361,8 @@ module Autobuild
                             install_doc
                         end
 
+                    rescue Interrupt
+                        raise
                     rescue ::Exception => e
                         if Autobuild.doc_errors
                             raise
