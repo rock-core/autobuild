@@ -151,7 +151,9 @@ module Autobuild
                            else base_dir
                            end
 
-                cmd = [ 'unzip', '-o', '-f', cachefile, '-d', main_dir ]
+                cmd = [ '-o', cachefile, '-d', main_dir ]
+                Subprocess.run(package, :import, Autobuild.tool('unzip'), *cmd)
+                
                 if archive_dir
                     FileUtils.rm_rf File.join(package.srcdir)
                     FileUtils.mv File.join(base_dir, archive_dir), package.srcdir
