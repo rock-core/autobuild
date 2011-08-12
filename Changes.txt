@@ -1,3 +1,6 @@
+== Version 1.5.45
+* fix zip support in the archive importer (patch from Thomas Roehr)
+
 == Version 1.5.44
 * when autodetecting the parallel build level, use the number of physical cores
   (ignore "logical processors" that are present due to SMT technologies like
