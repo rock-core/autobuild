@@ -1,3 +1,7 @@
+== Version 1.5.46
+* make the subversion importers accept :patches (the same way than 1.5.43 fixed
+  that for CVS). The other importers should be fine as well.
+
 == Version 1.5.45
 * fix zip support in the archive importer (patch from Thomas Roehr)
 
