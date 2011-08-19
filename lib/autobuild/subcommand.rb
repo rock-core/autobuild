@@ -97,11 +97,17 @@ module Autobuild
             else
                 @processor_count = processor_ids.size
             end
-        else
+        end
+
+        # The format of the cpuinfo file is ... let's say not very standardized.
+        # If the cpuinfo detection fails, inform the user and set it to 1
+        if !@processor_count
             # Hug... What kind of system is it ?
             STDERR.puts "INFO: cannot autodetect the number of CPUs on this sytem"
             @processor_count = 1
         end
+
+        @processor_count
     end
 end
 
