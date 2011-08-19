@@ -1,3 +1,7 @@
+== Version 1.5.47
+* fix behaviour of parallel_build_level if the parsing of /proc/cpuinfo fails.
+  This fixes issues in particular on ARM-based Linux platforms
+
 == Version 1.5.46
 * make the subversion importers accept :patches (the same way than 1.5.43 fixed
   that for CVS). The other importers should be fine as well.
