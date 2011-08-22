@@ -1,3 +1,4 @@
+require 'set'
 module Autobuild
     @inherited_environment = Hash.new
     @environment = Hash.new
@@ -67,16 +68,73 @@ module Autobuild
         end
     end
 
+    def self.each_env_search_path(prefix, patterns)
+        arch_names = self.arch_names
+        arch_size  = self.arch_size
+        
+        seen = Set.new
+        patterns.each do |base_path|
+            paths = []
+            if base_path =~ /ARCHSIZE/
+                base_path = base_path.gsub('ARCHSIZE', arch_size.to_s)
+            end
+            if base_path =~ /ARCH/
+                arch_names.each do |arch|
+                    paths << base_path.gsub('ARCH', arch)
+                end
+            else
+                paths << base_path
+            end
+            paths.each do |p|
+                p = File.join(prefix, *p.split('/'))
+                if !seen.include?(p) && File.directory?(p)
+                    yield(p)
+                    seen << p
+                end
+            end
+        end
+    end
+
+    def self.arch_size
+        if @arch_size
+            return @arch_size
+        end
+
+        @arch_size =
+            if RbConfig::CONFIG['host_cpu'] =~ /64/
+                64
+            else 32
+            end
+    end
+
+    def self.arch_names
+        if @arch_names
+            return @arch_names
+        end
+
+        result = Set.new
+        if File.file?('/usr/bin/dpkg-architecture')
+            arch = `/usr/bin/dpkg-architecture`.split.grep(/DEB_BUILD_MULTIARCH/).first.chomp
+            result << arch.split('=').last
+        end
+        @arch_names = result
+    end
+
     # Updates the environment when a new prefix has been added
     def self.update_environment(newprefix)
         if File.directory?("#{newprefix}/bin")
             env_add_path('PATH', "#{newprefix}/bin")
         end
-        if File.directory?("#{newprefix}/lib/pkgconfig")
-            env_add_path('PKG_CONFIG_PATH', "#{newprefix}/lib/pkgconfig")
+
+        pkg_config_search = ['lib/pkgconfig', 'lib/ARCH/pkgconfig', 'libARCHSIZE/pkgconfig']
+        each_env_search_path(newprefix, pkg_config_search) do |path|
+            env_add_path('PKG_CONFIG_PATH', path)
         end
-        if File.directory?("#{newprefix}/lib") && !Dir.glob("#{newprefix}/lib/lib*.so").empty?
-            env_add_path('LD_LIBRARY_PATH', "#{newprefix}/lib")
+        ld_library_search = ['lib', 'lib/ARCH', 'libARCHSIZE']
+        each_env_search_path(newprefix, pkg_config_search) do |path|
+            if !Dir.glob(File.join(path, "lib*.so")).empty?
+                env_add_path('LD_LIBRARY_PATH', path)
+            end
         end
 
         # Validate the new rubylib path
@@ -98,3 +156,6 @@ module Autobuild
     end
 end
 
+Autobuild.update_environment '/'
+Autobuild.update_environment '/usr'
+Autobuild.update_environment '/usr/local'
