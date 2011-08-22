@@ -1,3 +1,7 @@
+== Version 1.5.50
+* quickfix release for installations where dpkg-architecture does not report a
+  DEB_BUILD_MULTIARCH variable
+
 == Version 1.5.49
 * when starting a command, save the command environment in the logfile
 

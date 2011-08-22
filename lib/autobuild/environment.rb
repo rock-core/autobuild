@@ -114,8 +114,10 @@ module Autobuild
 
         result = Set.new
         if File.file?('/usr/bin/dpkg-architecture')
-            arch = `/usr/bin/dpkg-architecture`.split.grep(/DEB_BUILD_MULTIARCH/).first.chomp
-            result << arch.split('=').last
+            arch = `/usr/bin/dpkg-architecture`.split.grep(/DEB_BUILD_MULTIARCH/).first
+            if arch
+                result << arch.chomp.split('=').last
+            end
         end
         @arch_names = result
     end
