@@ -170,7 +170,10 @@ module Autobuild::Subprocess
             end
             logfile.puts "#{Time.now}: running"
             logfile.puts "    #{command.join(" ")}"
-	    logfile.puts
+	    logfile.puts "with environment:"
+            ENV.keys.sort.each do |key|
+                logfile.puts "  '#{key}'='#{ENV[key]}'"
+            end
 	    logfile.flush
             logfile.sync = true
 
