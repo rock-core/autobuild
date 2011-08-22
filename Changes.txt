@@ -1,3 +1,6 @@
+== Version 1.5.48
+* fix pkg-config support for Debian multiarch
+
 == Version 1.5.47
 * fix behaviour of parallel_build_level if the parsing of /proc/cpuinfo fails.
   This fixes issues in particular on ARM-based Linux platforms
