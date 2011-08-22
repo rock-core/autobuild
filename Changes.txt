@@ -1,3 +1,6 @@
+== Version 1.5.49
+* when starting a command, save the command environment in the logfile
+
 == Version 1.5.48
 * fix pkg-config support for Debian multiarch
 
