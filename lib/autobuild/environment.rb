@@ -133,7 +133,7 @@ module Autobuild
             env_add_path('PKG_CONFIG_PATH', path)
         end
         ld_library_search = ['lib', 'lib/ARCH', 'libARCHSIZE']
-        each_env_search_path(newprefix, pkg_config_search) do |path|
+        each_env_search_path(newprefix, ld_library_search) do |path|
             if !Dir.glob(File.join(path, "lib*.so")).empty?
                 env_add_path('LD_LIBRARY_PATH', path)
             end
