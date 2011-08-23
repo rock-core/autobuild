@@ -1,3 +1,6 @@
+== Version 1.5.51
+* quickfix release for broken LD_LIBRARY_PATH update
+
 == Version 1.5.50
 * quickfix release for installations where dpkg-architecture does not report a
   DEB_BUILD_MULTIARCH variable
