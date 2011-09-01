@@ -123,41 +123,51 @@ module Autobuild
     end
 
     # Updates the environment when a new prefix has been added
-    def self.update_environment(newprefix)
-        if File.directory?("#{newprefix}/bin")
-            env_add_path('PATH', "#{newprefix}/bin")
+    def self.update_environment(newprefix, includes = nil)
+        if !includes || includes.include?('PATH')
+            if File.directory?("#{newprefix}/bin")
+                env_add_path('PATH', "#{newprefix}/bin")
+            end
         end
 
-        pkg_config_search = ['lib/pkgconfig', 'lib/ARCH/pkgconfig', 'libARCHSIZE/pkgconfig']
-        each_env_search_path(newprefix, pkg_config_search) do |path|
-            env_add_path('PKG_CONFIG_PATH', path)
+        if !includes || includes.include?('PKG_CONFIG_PATH')
+            pkg_config_search = ['lib/pkgconfig', 'lib/ARCH/pkgconfig', 'libARCHSIZE/pkgconfig']
+            each_env_search_path(newprefix, pkg_config_search) do |path|
+                env_add_path('PKG_CONFIG_PATH', path)
+            end
         end
-        ld_library_search = ['lib', 'lib/ARCH', 'libARCHSIZE']
-        each_env_search_path(newprefix, ld_library_search) do |path|
-            if !Dir.glob(File.join(path, "lib*.so")).empty?
-                env_add_path('LD_LIBRARY_PATH', path)
+
+        if !includes || includes.include?('LD_LIBRARY_PATH')
+            ld_library_search = ['lib', 'lib/ARCH', 'libARCHSIZE']
+            each_env_search_path(newprefix, ld_library_search) do |path|
+                if !Dir.glob(File.join(path, "lib*.so")).empty?
+                    env_add_path('LD_LIBRARY_PATH', path)
+                end
             end
         end
 
         # Validate the new rubylib path
-        new_rubylib = "#{newprefix}/lib"
-        if File.directory?(new_rubylib) && !File.directory?(File.join(new_rubylib, "ruby")) && !Dir["#{new_rubylib}/**/*.rb"].empty?
-            env_add_path('RUBYLIB', new_rubylib)
-        end
-
-        require 'rbconfig'
-        ruby_arch    = File.basename(Config::CONFIG['archdir'])
-        candidates = %w{rubylibdir archdir sitelibdir sitearchdir vendorlibdir vendorarchdir}.
-            map { |key| Config::CONFIG[key] }.
-            map { |path| path.gsub(/.*lib(?:32|64)?\/(\w*ruby\/)/, '\\1') }.
-            each do |subdir|
-                if File.directory?("#{newprefix}/lib/#{subdir}")
-                    env_add_path("RUBYLIB", "#{newprefix}/lib/#{subdir}")
-                end
+        if !includes || includes.include?('RUBYLIB')
+            new_rubylib = "#{newprefix}/lib"
+            if File.directory?(new_rubylib) && !File.directory?(File.join(new_rubylib, "ruby")) && !Dir["#{new_rubylib}/**/*.rb"].empty?
+                env_add_path('RUBYLIB', new_rubylib)
             end
+
+            require 'rbconfig'
+            ruby_arch    = File.basename(Config::CONFIG['archdir'])
+            candidates = %w{rubylibdir archdir sitelibdir sitearchdir vendorlibdir vendorarchdir}.
+                map { |key| Config::CONFIG[key] }.
+                map { |path| path.gsub(/.*lib(?:32|64)?\/(\w*ruby\/)/, '\\1') }.
+                each do |subdir|
+                    if File.directory?("#{newprefix}/lib/#{subdir}")
+                        env_add_path("RUBYLIB", "#{newprefix}/lib/#{subdir}")
+                    end
+                end
+        end
     end
 end
 
-Autobuild.update_environment '/'
-Autobuild.update_environment '/usr'
-Autobuild.update_environment '/usr/local'
+Autobuild.update_environment '/', ['PKG_CONFIG_PATH']
+Autobuild.update_environment '/usr', ['PKG_CONFIG_PATH']
+Autobuild.update_environment '/usr/local', ['PKG_CONFIG_PATH']
+
