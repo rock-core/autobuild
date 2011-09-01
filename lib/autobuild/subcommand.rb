@@ -97,6 +97,13 @@ module Autobuild
             else
                 @processor_count = processor_ids.size
             end
+        else
+            result = Open3.popen3("sysctl", "-n", "hw.cpu") do |_, io, _|
+                io.read
+            end
+            if !result.empty?
+                @processor_count = Integer(result.chomp.strip)
+            end
         end
 
         # The format of the cpuinfo file is ... let's say not very standardized.
