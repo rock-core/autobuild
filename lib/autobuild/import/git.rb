@@ -71,9 +71,10 @@ module Autobuild
         # #repository is always used for read-only operations
         attr_accessor :push_to
 
-        # If set, git will be configured so that a "git push" pushes by default
-        # to the specified branch, instead of using #branch
-        attr_accessor :push_to_branch
+        # The remote branch to which we should push
+        #
+        # Defaults to #branch
+        attr_writer :remote_branch
 
         # The branch this importer is tracking
         #
@@ -85,8 +86,18 @@ module Autobuild
         # If not set, it defaults to #branch
         attr_writer :local_branch
 
+        # The branch that should be used on the local clone
+        #
+        # Defaults to #branch
         def local_branch
             @local_branch || branch
+        end
+
+        # The remote branch to which we should push
+        #
+        # Defaults to #branch
+        def remote_branch
+            @remote_branch || branch
         end
 
         # The tag we are pointing to. It is a tag name.
@@ -144,9 +155,9 @@ module Autobuild
                 Subprocess.run(package, :import, Autobuild.tool('git'), 'config',
                                "--replace-all", "remote.autobuild.fetch",  "+refs/heads/*:refs/remotes/autobuild/*")
 
-                if push_to_branch
+                if remote_branch && local_branch
                     Subprocess.run(package, :import, Autobuild.tool('git'), 'config',
-                               "--replace-all", "remote.autobuild.push",  "refs/heads/#{local_branch || branch}:refs/heads/#{push_to_branch}")
+                               "--replace-all", "remote.autobuild.push",  "refs/heads/#{local_branch}:refs/heads/#{remote_branch}")
                 else
                     Subprocess.run(package, :import, Autobuild.tool('git'), 'config',
                                "--replace-all", "remote.autobuild.push",  "refs/heads/*:refs/heads/*")
@@ -156,7 +167,7 @@ module Autobuild
                     Subprocess.run(package, :import, Autobuild.tool('git'), 'config',
                                    "--replace-all", "branch.#{local_branch}.remote",  "autobuild")
                     Subprocess.run(package, :import, Autobuild.tool('git'), 'config',
-                                   "--replace-all", "branch.#{local_branch}.merge", "refs/heads/#{branch}")
+                                   "--replace-all", "branch.#{local_branch}.merge", "refs/heads/#{local_branch}")
                 end
 
                 if commit
@@ -340,9 +351,9 @@ module Autobuild
                     Subprocess.run(package, :import, Autobuild.tool('git'), 'config',
                                    "--replace-all", "remote.autobuild.pushurl", push_to)
                 end
-                if push_to_branch
+                if local_branch && remote_branch
                     Subprocess.run(package, :import, Autobuild.tool('git'), 'config',
-                                   "--replace-all", "remote.autobuild.push", "refs/heads/#{local_branch || branch}:refs/heads/#{push_to_branch}")
+                                   "--replace-all", "remote.autobuild.push", "refs/heads/#{local_branch}:refs/heads/#{remote_branch}")
                 end
 
                 # If we are tracking a commit/tag, just check it out
