@@ -284,7 +284,8 @@ module Autobuild::Subprocess
         Autobuild.add_stat(target, phase, duration)
         FileUtils.mkdir_p(Autobuild.logdir)
         File.open(File.join(Autobuild.logdir, "stats.log"), 'a') do |io|
-            io.puts "#{target_name} #{phase} #{duration}"
+            formatted_time = "#{start_time.strftime('%F %H:%M:%S')}.#{'%.03i' % [start_time.tv_usec / 1000]}"
+            io.puts "#{formatted_time} #{target_name} #{phase} #{duration}"
         end
         if target.respond_to?(:add_stat)
             target.add_stat(phase, duration)
