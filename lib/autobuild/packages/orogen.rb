@@ -65,9 +65,15 @@ module Autobuild
             attr_accessor :default_type_export_policy
             # The list of enabled transports as an array of strings (default: typelib, corba)
             attr_reader :transports
+
+            attr_reader :orogen_options
         end
+        @orogen_options = []
         @default_type_export_policy = :used
         @transports = %w{corba typelib}
+        @rtt_scripting = true
+
+        attr_reader :orogen_options
 
         # Path to the orogen tool
         def self.orogen_bin(full_path = false)
@@ -146,6 +152,7 @@ module Autobuild
 
             @orocos_target = nil
             @orogen_file ||= "#{File.basename(name)}.orogen"
+            @orogen_options = []
         end
 
         def prepare_for_forced_build
@@ -217,12 +224,30 @@ module Autobuild
             end
         end
 
+        def add_cmd_to_cmdline(cmd, cmdline)
+            base = nil
+
+            if cmd =~ /^([\w-]+)/
+                cmd_filter = $1
+            else
+                raise ArgumentError, "cannot parse the provided command #{cmd}"
+            end
+
+            cmdline.delete_if { |str| str =~ /^#{cmd_filter}/ }
+            if cmd_filter =~ /^--no-(.*)/
+                cmd_filter = $1
+                cmdline.delete_if { |str| str =~ /^--#{cmd_filter}/ }
+            end
+            cmdline << cmd
+        end
+
         def regen
             cmdline = []
             cmdline << '--corba' if corba
 
             ext_states = extended_states
             if !ext_states.nil?
+                cmdline.delete_if { |str| str =~ /extended-states/ }
                 if ext_states
                     cmdline << '--extended-states'
                 else
@@ -239,8 +264,20 @@ module Autobuild
                     cmdline << "--transports=#{Orogen.transports.sort.uniq.join(",")}"
                 end
             end
+
+            # Now, add raw options
+            #
+            # The raw options take precedence
+            Orogen.orogen_options.each do |cmd|
+                add_cmd_to_cmdline(cmd, cmdline)
+            end
+            orogen_options.each do |cmd|
+                add_cmd_to_cmdline(cmd, cmdline)
+            end
+
             cmdline = cmdline.sort
             cmdline << orogen_file
+            puts cmdline.inspect
 
             needs_regen = Autobuild::Orogen.always_regenerate?
 
