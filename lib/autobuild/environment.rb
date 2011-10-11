@@ -2,14 +2,44 @@ require 'set'
 module Autobuild
     @inherited_environment = Hash.new
     @environment = Hash.new
+    @env_source_files = Set.new
+
     class << self
-        attr_reader :inherited_environment
+        # List of the environment that should be set before calling a subcommand
+        #
+        # It is a map from environment variable name to the corresponding value.
+        # If the value is an array, it is joined using the path separator ':'
         attr_reader :environment
+
+        # In generated environment update shell files, indicates whether an
+        # environment variable should be overriden by the shell script, or
+        # simply updated
+        #
+        # If inherited_environment[varname] is true, the generated shell script
+        # will contain
+        #   
+        #   export VARNAME=new_value:new_value:$VARNAME
+        #
+        # otherwise
+        #
+        #   export VARNAME=new_value:new_value
+        attr_reader :inherited_environment
+
+        # List of files that should be sourced in the generated environment
+        # variable setting shell scripts
+        attr_reader :env_source_files
     end
 
-    def self.env_clear(name)
-        environment[name] = nil
-        inherited_environment[name] = nil
+    # Removes any settings related to the environment varialbe +name+, or for
+    # all environment variables if no name is given
+    def self.env_clear(name = nil)
+        if name
+            environment[name] = nil
+            inherited_environment[name] = nil
+        else
+            environment.clear
+            inherited_environment.clear
+        end
     end
 
     # Set a new environment variable
@@ -17,6 +47,7 @@ module Autobuild
         env_clear(name)
         env_add(name, *values)
     end
+
     # Adds a new value to an environment variable
     def self.env_add(name, *values)
         set = if environment.has_key?(name)
@@ -55,6 +86,39 @@ module Autobuild
 
         if !paths.empty?
             env_add_path(name, *paths)
+        end
+    end
+
+    # Require that generated environment variable scripts source the given shell
+    # script
+    def self.env_source_file(file)
+        @env_source_files << file
+    end
+
+    # Generates a shell script that sets the environment variable listed in
+    # Autobuild.environment, following the inheritance setting listed in
+    # Autobuild.inherited_environment.
+    #
+    # It also sources the files added by Autobuild.env_source_file
+    def self.export_env_sh(io)
+        variables = []
+        Autobuild.environment.each do |name, value|
+            variables << name
+            shell_line = "#{name}=#{value.join(":")}"
+            if Autoproj.env_inherit?(name)
+                if value.empty?
+                    next
+                else
+                    shell_line << ":$#{name}"
+                end
+            end
+            io.puts shell_line
+        end
+        variables.each do |var|
+            io.puts "export #{var}"
+        end
+        env_source_files.each do |path|
+            io.puts ". \"#{path}\""
         end
     end
 
