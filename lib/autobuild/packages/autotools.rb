@@ -112,16 +112,32 @@ module Autobuild
         end
 
         def import
-            @has_checked_out = !File.directory?(srcdir)
+            # We force a regen after the first checkout. The issue is that
+            # autotools is less robust than it should, and very often it is
+            # better to generate the build system for the system on which we
+            # must build
+            #
+            # When we are doing a fresh checkout, a file is touched in the
+            # source directory. That file is then deleted after #prepare gets
+            # called
+            is_checking_out = !File.directory?(srcdir)
+
             super
+
+        ensure
+            if is_checking_out && File.directory?(srcdir)
+                FileUtils.touch File.join(srcdir, ".fresh_checkout")
+            end
         end
 
         def prepare
             super
             autodetect_needed_stages
 
-            if @has_checked_out
+            fresh_checkout_mark = File.join(srcdir, '.fresh_checkout')
+            if File.file?(fresh_checkout_mark)
                 prepare_for_forced_build
+                FileUtils.rm_f fresh_checkout_mark
             end
 
 	    # Check if config.status has been generated with the
