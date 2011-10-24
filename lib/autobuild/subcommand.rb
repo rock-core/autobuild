@@ -175,6 +175,9 @@ module Autobuild::Subprocess
             if Autobuild.keep_oldlogs
                 logfile.puts
             end
+            logfile.puts
+            logfile.puts "#{Time.now}: running"
+            logfile.puts "    #{command.join(" ")}"
 	    logfile.puts "with environment:"
             ENV.keys.sort.each do |key|
                 logfile.puts "  '#{key}'='#{ENV[key]}'"
