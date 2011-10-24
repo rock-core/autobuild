@@ -277,7 +277,6 @@ module Autobuild
 
             cmdline = cmdline.sort
             cmdline << orogen_file
-            puts cmdline.inspect
 
             needs_regen = Autobuild::Orogen.always_regenerate?
 
