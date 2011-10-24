@@ -187,7 +187,7 @@ module Autobuild
                 # Update the remote tag if needs be
                 if branch && commit_id
                     Subprocess.run(package, :import, Autobuild.tool('git'), 'update-ref',
-                                   "-m", "updated by autobuild", "refs/remotes/autobuild/#{branch}", commit_id)
+                                   "-m", "updated by autobuild", "refs/remotes/autobuild/#{remote_branch}", commit_id)
                 end
 
                 commit_id
