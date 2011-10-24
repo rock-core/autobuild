@@ -234,6 +234,8 @@ module Autobuild
 	def import
             if @importer
                 @importer.import(self)
+            elsif Autobuild.do_update
+                progress "%s: no importer defined, doing nothing"
             end
 
             # Add the dependencies declared in spec
