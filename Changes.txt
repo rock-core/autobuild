@@ -1,3 +1,12 @@
+== Version 1.5.52
+* fix local in the git importer
+* in log files, display the command both before and after the environment dump.
+  This makes the browsing of these files easier
+* autotools: fix some issues on package checkout
+* orogen: add raw option support
+* stats: add a timestamp on each log line
+* fix core count detection on MacOSX
+
 == Version 1.5.51
 * quickfix release for broken LD_LIBRARY_PATH update
 
