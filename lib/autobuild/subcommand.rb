@@ -98,7 +98,7 @@ module Autobuild
                 @processor_count = processor_ids.size
             end
         else
-            result = Open3.popen3("sysctl", "-n", "hw.cpu") do |_, io, _|
+            result = Open3.popen3("sysctl", "-n", "hw.ncpu") do |_, io, _|
                 io.read
             end
             if !result.empty?
