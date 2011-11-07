@@ -11,8 +11,6 @@ Utilrb::Rake.hoe do
 
         self.extra_deps <<
             ['rake', '>= 0.7.0'] <<
-            ['rmail', '>= 1.0'] <<
-            ['daemons', '>= 0.0'] <<
             ['utilrb', '>= 1.3.3']
     end
     Rake.clear_tasks(/publish_docs/, /default/)

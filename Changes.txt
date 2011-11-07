@@ -1,3 +1,8 @@
+== Version 1.5.53
+* remove RMail and Daemons from the dependency list of the gem. autobuild can
+  work fine without them, and they are seldom used anyway.
+  The RMail dependency is notified to the user if he uses --mail-to.
+
 == Version 1.5.52
 * fix local in the git importer
 * in log files, display the command both before and after the environment dump.
