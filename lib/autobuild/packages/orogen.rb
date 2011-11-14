@@ -144,14 +144,14 @@ module Autobuild
 
         # Path to the orogen file used for this package
         #
-        # If present, it defaults to the package name with '.orogen' appended
+        # If not set, the class will look for a .orogen file in the package
+        # source directory
         attr_accessor :orogen_file
 
         def initialize(*args, &config)
             super
 
             @orocos_target = nil
-            @orogen_file ||= "#{File.basename(name)}.orogen"
             @orogen_options = []
         end
 
@@ -201,6 +201,17 @@ module Autobuild
             end
 
             file configurestamp => genstamp
+
+            if !orogen_file
+                Dir.glob(File.join(srcdir, '*.orogen')) do |path|
+                    @orogen_file = File.basename(path)
+                    break
+                end
+                if !orogen_file
+                    raise ArgumentError, "cannot find an oroGen specification file in #{srcdir}"
+                end
+            end
+
             file genstamp => File.join(srcdir, orogen_file) do
                 isolate_errors { regen }
             end
