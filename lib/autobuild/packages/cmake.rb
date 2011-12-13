@@ -5,6 +5,7 @@ module Autobuild
         CMake.new(options, &block)
     end
 
+    # Handler class to build CMake-based packages
     class CMake < Configurable
         class << self
             def builddir; @builddir || Configurable.builddir end
@@ -19,6 +20,13 @@ module Autobuild
                 @full_reconfigures
             end
 
+            # Global default for the CMake generator to use. If nil (the
+            # default), the -G option will not be given at all. Will work only
+            # if the generator creates makefiles
+            #
+            # It can be overriden on a per-package basis with CMake.generator=
+            attr_accessor :generator
+
             attr_reader :module_path
         end
         @module_path = []
@@ -32,6 +40,17 @@ module Autobuild
         # 
         # See #full_reconfigures? for more details
         attr_writer :full_reconfigures
+        # Sets a generator explicitely for this component. See #generator and
+        # CMake.generator
+        attr_writer :generator
+        # The CMake generator to use. You must choose one that generates
+        # Makefiles. If not set for this package explicitely, it is using the
+        # global value CMake.generator.
+        def generator
+            if @generator then @generator
+            else CMake.generator
+            end
+        end
 
         # If true, we always remove the CMake cache before reconfiguring. This
         # is to workaround the aggressive caching behaviour of CMake, and is set
@@ -285,6 +304,9 @@ module Autobuild
 
                     defines.each do |name, value|
                         command << "-D#{name}=#{value}"
+                    end
+                    if generator
+                        command << "-G#{generator}"
                     end
                     command << srcdir
                     
