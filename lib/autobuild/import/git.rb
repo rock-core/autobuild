@@ -37,9 +37,6 @@ module Autobuild
             tag    = gitopts[:tag]
             commit = gitopts[:commit]
 
-            if (branch && commit) || (branch && tag) || (tag && commit)
-                raise ConfigException, "you can specify only a branch, tag or commit but not two or three at the same time"
-            end
             @branch = branch || 'master'
             @tag    = tag
             @commit = commit
@@ -142,8 +139,10 @@ module Autobuild
                 # Doing it now is better as it makes sure that we replace the
                 # configuration parameters only if the repository and branch are
                 # OK (i.e. we keep old working configuration instead)
-                if !commit 
+                if branch || tag
                     Subprocess.run(package, :import, Autobuild.tool('git'), 'fetch', repository, branch || tag)
+                elsif commit
+                    Subprocess.run(package, :import, Autobuild.tool('git'), 'fetch', repository)
                 end
 
                 Subprocess.run(package, :import, Autobuild.tool('git'), 'config',
@@ -168,10 +167,6 @@ module Autobuild
                                    "--replace-all", "branch.#{local_branch}.remote",  "autobuild")
                     Subprocess.run(package, :import, Autobuild.tool('git'), 'config',
                                    "--replace-all", "branch.#{local_branch}.merge", "refs/heads/#{local_branch}")
-                end
-
-                if commit
-                    Subprocess.run(package, :import, Autobuild.tool('git'), 'fetch', 'autobuild')
                 end
 
                 # Now get the actual commit ID from the FETCH_HEAD file, and
@@ -229,10 +224,20 @@ module Autobuild
             $?.exitstatus == 0
         end
 
+        def detached_head?
+            `git symbolic-ref HEAD -q`
+            return ($?.exitstatus != 0)
+        end
+
         # Checks if the current branch is the target branch. Expects that the
         # current directory is the package's directory
         def on_target_branch?
-            current_branch = `git symbolic-ref HEAD`.chomp
+            current_branch = `git symbolic-ref HEAD -q`.chomp
+            if $?.exitstatus != 0
+                # HEAD cannot be resolved as a symbol. Assume that we are on a
+                # detached HEAD
+                return false
+            end
             current_branch == "refs/heads/#{local_branch}"
         end
 
@@ -280,9 +285,15 @@ module Autobuild
             end
         end
 
-        def merge_status(fetch_commit)
-            common_commit = `git merge-base HEAD #{fetch_commit}`.chomp
-            head_commit   = `git rev-parse HEAD`.chomp
+        def merge_status(fetch_commit, reference_commit = "HEAD")
+            common_commit = `git merge-base #{reference_commit} #{fetch_commit}`.chomp
+            if $?.exitstatus != 0
+                raise PackageException, "failed to find the merge-base between #{reference_commit} and #{fetch_commit}. Are you sure these commits exist ?"
+            end
+            head_commit   = `git rev-parse #{reference_commit}`.chomp
+            if $?.exitstatus != 0
+                raise PackageException, "failed to resolve #{reference_commit}. Are you sure this commit, branch or tag exists ?"
+            end
 
             status = if common_commit != fetch_commit
                          if common_commit == head_commit
@@ -305,13 +316,45 @@ module Autobuild
             validate_srcdir(package)
             Dir.chdir(package.srcdir) do
                 fetch_commit = fetch_remote(package)
-                if !fetch_commit
-                    return
-                end
 
                 # If we are tracking a commit/tag, just check it out and return
                 if commit || tag
-                    Subprocess.run(package, :import, Autobuild.tool('git'), 'checkout', commit || tag)
+                    target_commit = (commit || tag)
+                    status_to_head = merge_status(target_commit, "HEAD")
+                    if status_to_head.status == Status::UP_TO_DATE
+                        # Check if by any chance we could switch back to a
+                        # proper branch instead of having a detached HEAD
+                        if detached_head?
+                            status_to_remote = merge_status(target_commit, fetch_commit)
+                            if status_to_remote.status != Status::UP_TO_DATE
+                                package.progress "  the package is on a detached HEAD because of commit pinning"
+                                return
+                            end
+                        else
+                            return
+                        end
+                    elsif status_to_head.status != Status::SIMPLE_UPDATE
+                        raise PackageException, "checking out the specified commit #{target_commit} would be a non-simple operation (i.e. the current state of the repository is not a linear relationship with the specified commit), do it manually"
+                    end
+
+                    status_to_remote = merge_status(target_commit, fetch_commit)
+                    if status_to_remote.status != Status::UP_TO_DATE
+                        # Try very hard to avoid creating a detached HEAD
+                        if local_branch
+                            status_to_branch = merge_status(target_commit, local_branch)
+                            if status_to_branch.status == Status::UP_TO_DATE # Checkout the branch
+                                package.progress "  checking out specific commit %s for %s. It will checkout branch %s." % [target_commit.to_s, package.name, local_branch]
+                                Subprocess.run(package, :import, Autobuild.tool('git'), 'checkout', local_branch)
+                                return
+                            end
+                        end
+                        package.progress "  checking out specific commit %s for %s. This will create a detached HEAD." % [target_commit.to_s, package.name]
+                        Subprocess.run(package, :import, Autobuild.tool('git'), 'checkout', target_commit)
+                        return
+                    end
+                end
+
+                if !fetch_commit
                     return
                 end
 
@@ -358,18 +401,20 @@ module Autobuild
 
                 # If we are tracking a commit/tag, just check it out
                 if commit || tag
-                    Subprocess.run(package, :import, Autobuild.tool('git'),
-                        'checkout', commit || tag)
-                    return
-                end
-
-                current_branch = `git symbolic-ref HEAD`.chomp
-                if current_branch == "refs/heads/#{local_branch}"
-                    Subprocess.run(package, :import, Autobuild.tool('git'),
-                        'reset', '--hard', "autobuild/#{branch}")
+                    status = merge_status(commit || tag)
+                    if status.status != Status::UP_TO_DATE
+                        package.progress "  checking out specific commit for %s. This will create a detached HEAD." % [package.name]
+                        Subprocess.run(package, :import, Autobuild.tool('git'), 'checkout', commit || tag)
+                    end
                 else
-                    Subprocess.run(package, :import, Autobuild.tool('git'),
-                        'checkout', '-b', local_branch, "autobuild/#{branch}")
+                    current_branch = `git symbolic-ref HEAD`.chomp
+                    if current_branch == "refs/heads/#{local_branch}"
+                        Subprocess.run(package, :import, Autobuild.tool('git'),
+                            'reset', '--hard', "autobuild/#{branch}")
+                    else
+                        Subprocess.run(package, :import, Autobuild.tool('git'),
+                            'checkout', '-b', local_branch, "autobuild/#{branch}")
+                    end
                 end
             end
         end
