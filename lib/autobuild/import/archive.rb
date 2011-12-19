@@ -136,7 +136,9 @@ module Autobuild
         end
 
         def update(package) # :nodoc:
-            checkout(package) if update_cache(package)
+            if update_cache(package)
+                checkout(package)
+            end
         rescue OpenURI::HTTPError
             raise Autobuild::Exception.new(package.name, :import)
         end
@@ -168,6 +170,11 @@ module Autobuild
                 end
                 Subprocess.run(package, :import, Autobuild.tool('tar'), *cmd)
             end
+
+            # This method can be used to re-checkout an existing package /
+            # directory. If we successfully did that, make sure we delete the
+            # patch list so that it gets re-patched
+            FileUtils.rm_f(patchlist(package))
 
         rescue OpenURI::HTTPError
             raise Autobuild::Exception.new(package.name, :import)
