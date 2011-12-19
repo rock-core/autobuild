@@ -117,7 +117,7 @@ module Autobuild
         def initialize(url, options)
             @options = options.dup
             if !@options.has_key?(:update_cached_file)
-                @options[:update_cached_file] = true
+                @options[:update_cached_file] = false
             end
             @options[:cachedir] ||= "#{Autobuild.prefix}/cache"
 
