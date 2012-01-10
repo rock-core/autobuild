@@ -2,6 +2,11 @@
 * remove RMail and Daemons from the dependency list of the gem. autobuild can
   work fine without them, and they are seldom used anyway.
   The RMail dependency is notified to the user if he uses --mail-to.
+* git: improve the behaviour on commit pinning. The importer avoids creating
+  detached HEAD as much as it can now.
+* archive: fix some issues regarding patching and checkout. The list of patches
+  was not reset when the package was re-checkout, which was leading to errors
+  later.
 
 == Version 1.5.52
 * fix local in the git importer
