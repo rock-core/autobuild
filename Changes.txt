@@ -1,3 +1,9 @@
+== Version 1.5.54
+* quickfix release
+* fix update in zip importer. The zip importer was previously always keeping
+  the current version of the source files. It broke the update / patching
+  process
+
 == Version 1.5.53
 * remove RMail and Daemons from the dependency list of the gem. autobuild can
   work fine without them, and they are seldom used anyway.
