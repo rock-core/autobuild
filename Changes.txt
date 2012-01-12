@@ -1,3 +1,8 @@
+== Version 1.5.55
+* quickfix release
+* really fix update vs. patching problem. The issue was related to patches
+  that create new files
+
 == Version 1.5.54
 * quickfix release
 * fix update in zip importer. The zip importer was previously always keeping
