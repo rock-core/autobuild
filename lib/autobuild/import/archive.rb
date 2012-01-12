@@ -153,7 +153,7 @@ module Autobuild
                            else base_dir
                            end
 
-                cmd = [ '-o', cachefile, '-d', main_dir ]
+                cmd = [ '-u', '-o', cachefile, '-d', main_dir ]
                 Subprocess.run(package, :import, Autobuild.tool('unzip'), *cmd)
                 
                 if archive_dir
