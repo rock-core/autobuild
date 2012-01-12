@@ -145,6 +145,9 @@ module Autobuild
 
         def checkout(package) # :nodoc:
             update_cache(package)
+            # Un-apply any existing patch so that, when the files get
+            # overwritten by the new checkout, the patch are re-applied
+            patch(package, [])
 
             base_dir = File.dirname(package.srcdir)
 
@@ -170,11 +173,6 @@ module Autobuild
                 end
                 Subprocess.run(package, :import, Autobuild.tool('tar'), *cmd)
             end
-
-            # This method can be used to re-checkout an existing package /
-            # directory. If we successfully did that, make sure we delete the
-            # patch list so that it gets re-patched
-            FileUtils.rm_f(patchlist(package))
 
         rescue OpenURI::HTTPError
             raise Autobuild::Exception.new(package.name, :import)

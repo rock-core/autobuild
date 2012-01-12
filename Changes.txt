@@ -1,5 +1,9 @@
 == Version 1.5.55
 * quickfix release
+* last attempt to fix the same issue than in 1.5.55 and 1.5.54
+
+== Version 1.5.55
+* quickfix release
 * really fix update vs. patching problem. The issue was related to patches
   that create new files
 

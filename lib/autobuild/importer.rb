@@ -154,7 +154,7 @@ class Importer
     def apply(package, path);   call_patch(package, false, path) end
     def unapply(package, path); call_patch(package, true, path)   end
 
-    def patch(package)
+    def patch(package, patches = self.patches)
         # Get the list of already applied patches
         patches_file = patchlist(package)
         cur_patches =   if !File.exists?(patches_file) then []
