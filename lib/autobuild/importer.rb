@@ -147,7 +147,7 @@ class Importer
     def call_patch(package, reverse, file)
         patch = Autobuild.tool('patch')
         Dir.chdir(package.srcdir) do
-            Subprocess.run(package, :patch, patch, '-p0', (reverse ? '-R' : nil), :input => file)
+            Subprocess.run(package, :patch, patch, '-p0', (reverse ? '-R' : nil), '--forward', :input => file)
         end
     end
 
