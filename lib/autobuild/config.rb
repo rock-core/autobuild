@@ -55,8 +55,20 @@ module Autobuild
 
     @console = HighLine.new
 
+    class << self
+        attr_writer :color
+        def color?
+            !!@color
+        end
+    end
+    @color = true
+
     def self.color(*args)
-        console.color(*args)
+        if color?
+            console.color(*args)
+        else
+            puts args.first
+        end
     end
 
     DEFAULT_OPTIONS = { :nice => nil,
