@@ -67,7 +67,7 @@ module Autobuild
         if color?
             console.color(*args)
         else
-            puts args.first
+            args.first
         end
     end
 
