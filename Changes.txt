@@ -1,3 +1,7 @@
+== Version 1.5.57
+* added Autobuild.color? and Autobuild.color= to control whether the output
+  should use colors or not
+
 == Version 1.5.55
 * quickfix release
 * last attempt to fix the same issue than in 1.5.55 and 1.5.54
