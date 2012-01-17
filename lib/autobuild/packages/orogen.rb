@@ -146,7 +146,22 @@ module Autobuild
         #
         # If not set, the class will look for a .orogen file in the package
         # source directory
-        attr_accessor :orogen_file
+        attr_writer :orogen_file
+
+        def orogen_file
+            if !@orogen_file
+                return if !File.directory?(srcdir)
+                    
+                Dir.glob(File.join(srcdir, '*.orogen')) do |path|
+                    @orogen_file = File.basename(path)
+                    break
+                end
+                if !@orogen_file
+                    raise ArgumentError, "cannot find an oroGen specification file in #{srcdir}"
+                end
+            end
+            @orogen_file
+        end
 
         def initialize(*args, &config)
             super
