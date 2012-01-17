@@ -142,25 +142,27 @@ module Autobuild
             @extended_states || (@extended_states.nil? && Orogen.extended_states)
         end
 
+        attr_writer :orogen_file
+
         # Path to the orogen file used for this package
         #
         # If not set, the class will look for a .orogen file in the package
-        # source directory
-        attr_writer :orogen_file
-
+        # source directory. It will return nil if the package is not checked out
+        # yet, and raise ArgumentError if the package is indeed present but no
+        # orogen file can be found
+        #
+        # It can be explicitely set with #orogen_file=
         def orogen_file
-            if !@orogen_file
+            if @orogen_file
+                @orogen_file
+            else
                 return if !File.directory?(srcdir)
                     
                 Dir.glob(File.join(srcdir, '*.orogen')) do |path|
-                    @orogen_file = File.basename(path)
-                    break
+                    return File.basename(path)
                 end
-                if !@orogen_file
-                    raise ArgumentError, "cannot find an oroGen specification file in #{srcdir}"
-                end
+                raise ArgumentError, "cannot find an oroGen specification file in #{srcdir}"
             end
-            @orogen_file
         end
 
         def initialize(*args, &config)
@@ -217,15 +219,8 @@ module Autobuild
 
             file configurestamp => genstamp
 
-            if !orogen_file
-                Dir.glob(File.join(srcdir, '*.orogen')) do |path|
-                    @orogen_file = File.basename(path)
-                    break
-                end
-                if !orogen_file
-                    raise ArgumentError, "cannot find an oroGen specification file in #{srcdir}"
-                end
-            end
+            # Cache the orogen file name
+            @orogen_file ||= self.orogen_file
 
             file genstamp => File.join(srcdir, orogen_file) do
                 isolate_errors { regen }
