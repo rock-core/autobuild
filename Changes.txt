@@ -1,3 +1,8 @@
+== Version 1.5.59
+* orogen: try to autodetect the orogen_file value earlier, if not provided
+* added Autobuild.color? and Autobuild.color= to control whether the output
+  should use colors or not
+
 == Version 1.5.57
 * added Autobuild.color? and Autobuild.color= to control whether the output
   should use colors or not
