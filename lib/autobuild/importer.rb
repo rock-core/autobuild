@@ -77,22 +77,79 @@ class Importer
         end
     end
 
+    def perform_update(package)
+        cur_patches = currently_applied_patches(package)
+        needed_patches = self.patches
+        kept_patches = (cur_patches & needed_patches)
+        if kept_patches != cur_patches
+            patch(package, kept_patches)
+        end
+
+        package.progress "updating %s"
+        update(package)
+        patch(package)
+        package.updated = true
+    rescue Interrupt
+        raise
+    rescue ::Exception => original_error
+        # If the package is patched, it might be that the update
+        # failed because we needed to unpatch first. Try it out
+        #
+        # This assumes that importing data with conflict will
+        # make the import fail, but not make the patch
+        # un-appliable. Importers that do not follow this rule
+        # will have to unpatch by themselves.
+        cur_patches = currently_applied_patches(package)
+        if cur_patches.empty?
+            return fallback(original_error, package, :import, package)
+        end
+
+        package.progress "update failed and some patches are applied, retrying after removing all patches first"
+        begin
+            patch(package, [])
+
+        rescue ::Exception => e
+            # The unpatching failed. The importer probably did
+            # change the files in a way that made the patching
+            # impossible to reverse. Just raise the original
+            # error (which hopefully should be the importer
+            # message that says that there are conflicts)
+            raise original_error
+        end
+
+        begin
+            package.progress "updating %s"
+            update(package)
+            patch(package)
+            package.updated = true
+        rescue Interrupt
+            raise
+        rescue ::Exception => e
+            fallback(e, package, :import, package)
+        end
+    end
+
+    def perform_checkout(package)
+        package.progress "checking out %s"
+        checkout(package)
+        patch(package)
+        package.updated = true
+    rescue Autobuild::Exception => e
+        FileUtils.rm_rf package.srcdir
+        fallback(e, package, :import, package)
+    rescue ::Exception
+        package.progress "checkout of %s failed, deleting the source directory #{package.srcdir}"
+        FileUtils.rm_rf package.srcdir
+        raise
+    end
+
     # Performs the import of +package+
     def import(package)
         srcdir = package.srcdir
         if File.directory?(srcdir)
             package.isolate_errors(false) do
                 if Autobuild.do_update
-                    package.progress "updating %s"
-                    begin
-                        update(package)
-                        patch(package)
-                        package.updated = true
-                    rescue Interrupt
-                        raise
-                    rescue ::Exception => e
-                        fallback(e, package, :import, package)
-                    end
+                    perform_update(package)
                 else
                     if Autobuild.verbose
                         puts "  not updating #{package.name}"
@@ -104,21 +161,8 @@ class Importer
         elsif File.exists?(srcdir)
             raise ConfigException, "#{srcdir} exists but is not a directory"
         else
-            begin
-		package.progress "checking out %s"
-                checkout(package)
-                patch(package)
-                package.updated = true
-            rescue Autobuild::Exception => e
-                FileUtils.rm_rf package.srcdir
-                fallback(e, package, :import, package)
-            rescue ::Exception
-                package.progress "checkout of %s failed, deleting the source directory #{package.srcdir}"
-                FileUtils.rm_rf package.srcdir
-                raise
-            end
+            perform_checkout(package)
         end
-
     end
 
     # Tries to find a fallback importer because of the given error.
@@ -154,27 +198,37 @@ class Importer
     def apply(package, path);   call_patch(package, false, path) end
     def unapply(package, path); call_patch(package, true, path)   end
 
+    def currently_applied_patches(package)
+        patches_file = patchlist(package)
+        if !File.exists?(patches_file) then []
+        else
+            File.open(patches_file) do |f| 
+                f.readlines.collect { |path| path.rstrip } 
+            end
+        end
+    end
+
     def patch(package, patches = self.patches)
         # Get the list of already applied patches
-        patches_file = patchlist(package)
-        cur_patches =   if !File.exists?(patches_file) then []
-                        else
-                            File.open(patches_file) do |f| 
-                                f.readlines.collect { |path| path.rstrip } 
-                            end
-                        end
+        cur_patches = currently_applied_patches(package)
 
         if cur_patches == patches
-            return
+            return false
         end
-
-	if !patches.empty?
-	    package.progress "patching %s"
-	end
 
         # Do not be smart, remove all already applied patches
         # and then apply the new ones
         begin
+            apply_count = (patches - cur_patches).size
+            unapply_count = (cur_patches - patches).size
+            if apply_count > 0 && unapply_count > 0
+                package.progress "patching %s: applying #{apply_count} and unapplying #{unapply_count} patch(es)"
+            elsif apply_count > 0
+                package.progress "patching %s: applying #{apply_count} patch(es)"
+            else
+                package.progress "patching %s: unapplying #{unapply_count} patch(es)"
+            end
+
             while p = cur_patches.last
                 unapply(package, p) 
                 cur_patches.pop
@@ -189,6 +243,8 @@ class Importer
                 f.write(cur_patches.join("\n"))
             end
         end
+
+        return true
     end
 end
 end
