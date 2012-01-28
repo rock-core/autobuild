@@ -1,3 +1,13 @@
+== Version 1.5.60
+* patching: fix some more issues regarding the interaction of patching and VCS:
+  * autobuild will now properly remove patches before we try to update
+    This fixes un-updateable systems on which the update would fail before
+    the patch, but autobuild would try to update before removing the patches
+  * if a patch conflicts with a VCS update, the reported error will now be
+    that the patch can't be applied, NOT that the VCS cannot update. The
+    latter behaviour was too confusing.
+* patching: better progress messages.
+
 == Version 1.5.59
 * orogen: try to autodetect the orogen_file value earlier, if not provided
 * added Autobuild.color? and Autobuild.color= to control whether the output
