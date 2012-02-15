@@ -1,3 +1,7 @@
+== Version 1.5.61
+* orogen: fix regeneration logic. Autobuild would not generate an oroGen project
+  if a type definition file contained in the orogen package changed.
+
 == Version 1.5.60
 * patching: fix some more issues regarding the interaction of patching and VCS:
   * autobuild will now properly remove patches before we try to update
