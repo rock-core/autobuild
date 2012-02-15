@@ -222,8 +222,20 @@ module Autobuild
             # Cache the orogen file name
             @orogen_file ||= self.orogen_file
 
-            file genstamp => File.join(srcdir, orogen_file) do
-                isolate_errors { regen }
+            file genstamp => Autobuild.source_tree(srcdir) do
+                needs_regen = true
+                if File.file?(genstamp)
+                    genstamp_mtime = File.stat(genstamp).mtime
+                    dependency_updated = dependencies.any? do |dep|
+                        !File.file?(Package[dep].installstamp) ||
+                            File.stat(Package[dep].installstamp).mtime > genstamp_mtime
+                    end
+                    needs_regen = dependency_updated || !generation_uptodate?
+                end
+
+                if needs_regen
+                    isolate_errors { regen }
+                end
             end
 
             with_doc
@@ -315,14 +327,7 @@ module Autobuild
 
             # Then, if it has already been built, check what the check-uptodate
             # target says
-            needs_regen ||=
-                if File.directory?(builddir)
-                    Dir.chdir(builddir) do
-                        !system("#{Autobuild.tool('make')} check-uptodate > /dev/null 2>&1")
-                    end
-                else
-                    true
-                end
+            needs_regen ||= !generation_uptodate?
 
             # Finally, verify that orogen itself did not change
             needs_regen ||= (Rake::Task[Orogen.orogen_root].timestamp > Rake::Task[genstamp].timestamp)
@@ -339,6 +344,18 @@ module Autobuild
                 progress "no need to regenerate the oroGen project %s"
                 Autobuild.touch_stamp genstamp
             end
+        end
+
+	def generation_uptodate?
+	    if !File.file?(genstamp)
+		true
+	    elsif File.file?(File.join(builddir, 'Makefile'))
+	        Dir.chdir(builddir) do
+			system("#{Autobuild.tool('make')} check-uptodate > /dev/null 2>&1")
+	        end
+	    else
+	        true
+	    end
         end
     end
 end
