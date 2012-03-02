@@ -70,7 +70,7 @@ module Autobuild
         end
         @orogen_options = []
         @default_type_export_policy = :used
-        @transports = %w{corba typelib}
+        @transports = %w{corba typelib mqueue}
         @rtt_scripting = true
 
         attr_reader :orogen_options
