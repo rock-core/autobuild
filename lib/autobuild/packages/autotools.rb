@@ -40,9 +40,10 @@ module Autobuild
         def with_doc(target = 'doc')
             task "#{name}-doc" => configurestamp
             doc_task do
-                Dir.chdir(builddir) do
-                    progress "generating documentation for %s"
-                    Subprocess.run(self, 'doc', Autobuild.tool(:make), "-j#{parallel_build_level}", target)
+                in_dir(builddir) do
+                    progress_start "generating documentation for %s" do
+                        Subprocess.run(self, 'doc', Autobuild.tool(:make), "-j#{parallel_build_level}", target)
+                    end
                     yield if block_given?
                 end
             end
@@ -214,28 +215,29 @@ module Autobuild
 
             file conffile do
                 isolate_errors do
-                Dir.chdir(srcdir) do
+                in_dir(srcdir) do
                     if using[:autogen].nil?
-                        using[:autogen] = %w{autogen autogen.sh}.find { |f| File.exists?(f) }
+                        using[:autogen] = %w{autogen autogen.sh}.find { |f| File.exists?(File.join(srcdir, f)) }
                     end
 
                     autodetect_needed_stages
 
-                    progress "generating build system for %s"
-                    if using[:libtool]
-                        Subprocess.run(self, 'configure', Autobuild.tool('libtoolize'), '--copy')
-                    end
-                    if using[:autogen]
-                        Subprocess.run(self, 'configure', File.expand_path(using[:autogen]))
-                    else
-                        [ :aclocal, :autoconf, :autoheader, :automake ].each do |tool|
-                            if tool_flag = using[tool]
-				tool_program = if tool_flag.respond_to?(:to_str)
-						   tool_flag.to_str
-					       else; Autobuild.tool(tool)
-					       end
+                    progress_start "generating build system for %s" do
+                        if using[:libtool]
+                            Subprocess.run(self, 'configure', Autobuild.tool('libtoolize'), '--copy')
+                        end
+                        if using[:autogen]
+                            Subprocess.run(self, 'configure', File.expand_path(using[:autogen]))
+                        else
+                            [ :aclocal, :autoconf, :autoheader, :automake ].each do |tool|
+                                if tool_flag = using[tool]
+                                    tool_program = if tool_flag.respond_to?(:to_str)
+                                                       tool_flag.to_str
+                                                   else; Autobuild.tool(tool)
+                                                   end
 
-                                Subprocess.run(self, 'configure', tool_program)
+                                    Subprocess.run(self, 'configure', tool_program)
+                                end
                             end
                         end
                     end
@@ -249,7 +251,7 @@ module Autobuild
         # Configure the builddir directory before starting make
         def configure
             super do
-                Dir.chdir(builddir) do
+                in_dir(builddir) do
                     command = [ "#{srcdir}/configure"]
                     if force_config_status
                         command << "--no-create"
@@ -257,29 +259,32 @@ module Autobuild
                     command << "--prefix=#{prefix}"
                     command += Array[*configureflags]
                     
-                    progress "configuring build system for %s"
-                    Subprocess.run(self, 'configure', *command)
+                    progress_start "configuring build system for %s" do
+                        Subprocess.run(self, 'configure', *command)
+                    end
                 end
             end
         end
 
         # Do the build in builddir
         def build
-            Dir.chdir(builddir) do
-                progress "building %s [progress not available]"
-                if force_config_status
-                    Subprocess.run(self, 'build', './config.status')
+            in_dir(builddir) do
+                progress_start "building %s [progress not available]" do
+                    if force_config_status
+                        Subprocess.run(self, 'build', './config.status')
+                    end
+                    Subprocess.run(self, 'build', Autobuild.tool(:make), "-j#{parallel_build_level}")
                 end
-                Subprocess.run(self, 'build', Autobuild.tool(:make), "-j#{parallel_build_level}")
             end
             Autobuild.touch_stamp(buildstamp)
         end
 
         # Install the result in prefix
         def install
-            Dir.chdir(builddir) do
-                progress "installing %s"
-                Subprocess.run(self, 'install', Autobuild.tool(:make), "-j#{parallel_build_level}", 'install')
+            in_dir(builddir) do
+                progress_start "installing %s" do
+                    Subprocess.run(self, 'install', Autobuild.tool(:make), 'install')
+                end
             end
 
             super

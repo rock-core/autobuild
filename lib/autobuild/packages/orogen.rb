@@ -333,15 +333,16 @@ module Autobuild
             needs_regen ||= (Rake::Task[Orogen.orogen_root].timestamp > Rake::Task[genstamp].timestamp)
 
             if needs_regen
-                progress "generating oroGen project %s"
-                Dir.chdir(srcdir) do
-                    Subprocess.run self, 'orogen', guess_ruby_name, self.class.orogen_bin, *cmdline
-                    File.open(genstamp, 'w') do |io|
-                        io.print cmdline.join("\n")
+                progress_start "generating oroGen project %s" do
+                    in_dir(srcdir) do
+                        Subprocess.run self, 'orogen', guess_ruby_name, self.class.orogen_bin, *cmdline
+                        File.open(genstamp, 'w') do |io|
+                            io.print cmdline.join("\n")
+                        end
                     end
                 end
             else
-                progress "no need to regenerate the oroGen project %s"
+                message "no need to regenerate the oroGen project %s"
                 Autobuild.touch_stamp genstamp
             end
         end
@@ -350,9 +351,7 @@ module Autobuild
 	    if !File.file?(genstamp)
 		true
 	    elsif File.file?(File.join(builddir, 'Makefile'))
-	        Dir.chdir(builddir) do
-			system("#{Autobuild.tool('make')} check-uptodate > /dev/null 2>&1")
-	        end
+                system("#{Autobuild.tool('make')} -C #{builddir} check-uptodate > /dev/null 2>&1")
 	    else
 	        true
 	    end

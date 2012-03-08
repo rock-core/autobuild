@@ -133,8 +133,11 @@ module Autobuild::Subprocess
         STDOUT.sync = true
 
         input_streams = []
+        options = Hash.new
         if command.last.kind_of?(Hash)
             options = command.pop
+            options = Kernel.validate_options options,
+                :input => nil, :working_directory => nil
             if options[:input]
                 input_streams = [options[:input]]
             end
@@ -154,6 +157,10 @@ module Autobuild::Subprocess
                      target.logdir
                  else Autobuild.logdir
                  end
+
+        if target.respond_to?(:working_directory)
+            options[:working_directory] ||= target.working_directory
+        end
 
         logname = File.join(logdir, "#{target_name}-#{phase}.log")
         if !File.directory?(File.dirname(logname))
@@ -201,6 +208,10 @@ module Autobuild::Subprocess
             cwrite.fcntl(Fcntl::F_SETFD, Fcntl::FD_CLOEXEC)
 
             pid = fork do
+                if options[:working_directory]
+                    Dir.chdir(options[:working_directory])
+                end
+                logfile.puts "in directory #{Dir.pwd}"
                 begin
                     cwrite.sync = true
                     if Autobuild.nice

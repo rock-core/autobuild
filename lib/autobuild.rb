@@ -27,4 +27,5 @@ require 'autobuild/pkgconfig'
 require 'autobuild/reporting'
 require 'autobuild/subcommand'
 require 'autobuild/timestamps'
+require 'autobuild/parallel'
 

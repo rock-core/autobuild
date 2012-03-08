@@ -15,30 +15,81 @@ require 'autobuild/config'
 require 'autobuild/exceptions'
 
 module Autobuild
-    def self.progress(*args)
-        if @last_msg
-            progress_value(100)
+    def self.message(*args)
+        if !progress_messages.empty?
             puts
         end
-        @last_msg = nil
-
         if args.empty?
             puts
         else
-            puts "  #{color(*args)}"
+            puts "#{color(*args)}"
         end
+        @last_msg = nil
     end
-    def self.progress_with_value(*args)
-        if @last_msg
-            progress_value(100)
-            puts
-        end
-        @last_msg = "  #{color(args[0], *args[1..-1])}"
 
-        print @last_msg
+    class << self
+        attr_reader :progress_messages
     end
-    def self.progress_value(value)
-        print "\r#{@last_msg} (#{value}%)"
+    @progress_messages = Array.new
+
+    def self.progress_start(key, *args)
+        if args.last.kind_of?(Hash)
+            options = Kernel.validate_options args.pop, :done_message => nil
+        else
+            options = Hash.new
+        end
+
+        progress_done(key)
+        progress_messages << [key, color(*args)]
+        display_progress
+
+        if block_given?
+            begin
+                yield
+                if options[:done_message]
+                    progress(key, *options[:done_message])
+                end
+            ensure
+                progress_done(key)
+            end
+        end
+    end
+    def self.progress(key, *args)
+        found = false
+        progress_messages.map! do |msg_key, msg|
+            if msg_key == key
+                found = true
+                [msg_key, color(*args)]
+            else
+                [msg_key, msg]
+            end
+        end
+        if !found
+            progress_messages << [key, color(*args)]
+        end
+        display_progress
+    end
+    def self.progress_done(key)
+        found = false
+        progress_messages.delete_if do |msg_key, msg|
+            if msg_key == key
+                found = true
+            end
+        end
+        if found
+            puts
+            display_progress
+        end
+        found
+    end
+
+    def self.display_progress
+        msg = "#{progress_messages.map(&:last).join(" | ")}"
+        if @last_msg && @last_msg.length > msg.length
+            print "\r" + " " * @last_msg.length
+        end
+        print "\r  #{msg}"
+        @last_msg = msg
     end
 
     # The exception type that is used to report multiple errors that occured

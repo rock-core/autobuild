@@ -1,4 +1,5 @@
 require 'autobuild/configurable'
+require 'autobuild/packages/gnumake'
 
 module Autobuild
     def self.cmake(options, &block)
@@ -202,14 +203,15 @@ module Autobuild
         # Declare that the given target can be used to generate documentation
         def with_doc(target = 'doc')
             doc_task do
-                Dir.chdir(builddir) do
-                    progress "generating documentation for %s"
-                    if internal_doxygen_mode?
-                        run_doxygen
-                    else
-                        Subprocess.run(self, 'doc', Autobuild.tool(:make), "-j#{parallel_build_level}", target)
+                in_dir(builddir) do
+                    progress_start "generating documentation for %s" do
+                        if internal_doxygen_mode?
+                            run_doxygen
+                        else
+                            Subprocess.run(self, 'doc', Autobuild.tool(:make), "-j#{parallel_build_level}", target)
+                        end
+                        yield if block_given?
                     end
-                    yield if block_given?
                 end
             end
         end
@@ -273,9 +275,9 @@ module Autobuild
                             puts "option '#{name}' changed value: '#{old_value}' => '#{value}'"
                         end
                         if old_value
-                            progress "%s: changed value of #{name} from #{old_value} to #{value}"
+                            message "%s: changed value of #{name} from #{old_value} to #{value}"
                         else
-                            progress "%s: setting value of #{name} to #{value}"
+                            message "%s: setting value of #{name} to #{value}"
                         end
                         
                         true
@@ -295,7 +297,7 @@ module Autobuild
         # Configure the builddir directory before starting make
         def configure
             super do
-                Dir.chdir(builddir) do
+                in_dir(builddir) do
                     if !File.file?(File.join(srcdir, 'CMakeLists.txt'))
                         raise ConfigException, "#{srcdir} contains no CMakeLists.txt file"
                     end
@@ -310,25 +312,28 @@ module Autobuild
                     end
                     command << srcdir
                     
-                    progress "configuring CMake build system for %s"
-                    if full_reconfigures?
-                        FileUtils.rm_f cmake_cache
+                    progress_start "configuring CMake build system for %s" do
+                        if full_reconfigures?
+                            FileUtils.rm_f cmake_cache
+                        end
+                        Subprocess.run(self, 'configure', *command)
                     end
-                    Subprocess.run(self, 'configure', *command)
                 end
             end
         end
 
         # Do the build in builddir
         def build
-            Dir.chdir(builddir) do
-                progress_with_value "building %s"
-                if always_reconfigure || !File.file?('Makefile')
-                    Subprocess.run(self, 'build', Autobuild.tool(:cmake), '.')
-                end
-                Subprocess.run(self, 'build', Autobuild.tool(:make), "-j#{parallel_build_level}") do |line|
-                    if line =~ /\[\s+(\d+)%\]/
-                        progress_value Integer($1)
+            in_dir(builddir) do
+                progress_start "building %s", :done_message => "building %s (100%%)" do
+                    if always_reconfigure || !File.file?('Makefile')
+                        Subprocess.run(self, 'build', Autobuild.tool(:cmake), '.')
+                    end
+
+                    Autobuild.make_subcommand(self, 'build') do |line|
+                        if line =~ /\[\s+(\d+)%\]/
+                            progress "building %s (#{Integer($1)}%%)"
+                        end
                     end
                 end
             end
@@ -337,9 +342,10 @@ module Autobuild
 
         # Install the result in prefix
         def install
-            Dir.chdir(builddir) do
-                progress "installing %s"
-                Subprocess.run(self, 'install', Autobuild.tool(:make), "-j#{parallel_build_level}", 'install')
+            in_dir(builddir) do
+                progress_start "installing %s" do
+                    Subprocess.run(self, 'install', Autobuild.tool(:make), "-j#{parallel_build_level}", 'install')
+                end
             end
             super
         end

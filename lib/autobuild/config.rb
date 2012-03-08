@@ -281,8 +281,15 @@ module Autobuild
 
             task "#{buildname}-#{phase}" => targets
         end
-        phases.each do |phase|
-            Rake::Task["#{buildname}-#{phase}"].invoke
+
+        begin
+            invoker = Autobuild::RakeTaskParallelism.new
+            Autobuild.parallel_task_manager = invoker
+            phases.each do |phase|
+                invoker.invoke_parallel([Rake::Task["#{buildname}-#{phase}"]])
+            end
+        ensure
+            Autobuild.parallel_task_manager = nil
         end
     end
 end

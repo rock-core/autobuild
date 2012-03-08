@@ -90,6 +90,7 @@ module Autobuild
                 isolate_errors do
                     ensure_dependencies_installed
                     configure
+                    progress_done # Safety net for forgotten progress_done calls
                 end
             end
             task "#{name}-prepare" => configurestamp
@@ -98,6 +99,7 @@ module Autobuild
                 isolate_errors do
                     ensure_dependencies_installed
                     build
+                    progress_done # Safety net for forgotten progress_done calls
                 end
             end
             task "#{name}-build" => buildstamp

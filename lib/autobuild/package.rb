@@ -108,6 +108,7 @@ module Autobuild
             @statistics     = Hash.new
             @failures = Array.new
             @post_install_blocks = Array.new
+            @in_dir_stack = Array.new
 
 	    if Hash === spec
 		name, depends = spec.to_a.first
@@ -215,9 +216,9 @@ module Autobuild
                     if lines.empty?
                         lines = ["unknown error"]
                     end
-                    progress(lines.shift, :red, :bold)
+                    message(lines.shift, :red, :bold)
                     lines.each do |line|
-                        progress(line)
+                        message(line)
                     end
                     nil
                 else
@@ -235,7 +236,7 @@ module Autobuild
             if @importer
                 @importer.import(self)
             elsif Autobuild.do_update
-                progress "%s: no importer defined, doing nothing"
+                message "%s: no importer defined, doing nothing"
             end
 
             # Add the dependencies declared in spec
@@ -264,46 +265,54 @@ module Autobuild
             task "#{name}-build" => installstamp
         end
 
+        def process_formatting_string(msg)
+            msg % [name]
+        rescue ArgumentError => e
+            msg
+        end
+
         # Display a progress message. %s in the string is replaced by the
         # package name
-        def progress(*args)
+        def message(*args)
             if !args.empty?
-                begin args[0] = args[0] % [name]
-                rescue ArgumentError
-                    # Don't try to format strings that can't be formatted
+                args[0] = "  #{process_formatting_string(args[0])}"
+            end
+            Autobuild.message(*args)
+        end
+
+        def progress_start(*args, &block)
+            args[0] = process_formatting_string(args[0])
+            if args.last.kind_of?(Hash)
+                options, raw_options = Kernel.filter_options args.last, :done_message
+                if options[:done_message]
+                    options[:done_message] = process_formatting_string(options[:done_message])
                 end
-
-                Autobuild.progress(*args)
-            else
-                Autobuild.progress
+                args[-1] = options.merge(raw_options)
             end
+                
+            Autobuild.progress_start(self, *args, &block)
         end
 
-        # Display a progress message, and later on update it with a progress
-        # value. %s in the string is replaced by the package name
-        def progress_with_value(*args)
-            if !args.empty?
-                args[0] = args[0] % [name]
-                Autobuild.progress_with_value(*args)
-            else
-                Autobuild.progress_with_value
-            end
+        def progress(*args)
+            args[0] = process_formatting_string(args[0])
+            Autobuild.progress(self, *args)
         end
 
-        def progress_value(value)
-            Autobuild.progress_value(value)
+        def progress_done
+            Autobuild.progress_done(self)
         end
 
         # Install the result in prefix
         def install
-            Dir.chdir(srcdir) do
-                Autobuild.post_install_handlers.each do |b|
-                    Autobuild.apply_post_install(self, b)
-                end
-                @post_install_blocks.each do |b|
-                    Autobuild.apply_post_install(self, b)
-                end
+            Autobuild.post_install_handlers.each do |b|
+                Autobuild.apply_post_install(self, b)
             end
+            @post_install_blocks.each do |b|
+                Autobuild.apply_post_install(self, b)
+            end
+            # Safety net for forgotten progress_done
+            progress_done
+
             Autobuild.touch_stamp(installstamp)
             update_environment
         end
@@ -532,6 +541,18 @@ module Autobuild
             else
                 @parallel_build_level
             end
+        end
+
+        def working_directory
+            @in_dir_stack.last
+        end
+
+        def in_dir(directory)
+            @in_dir_stack << directory
+            yield
+
+        ensure
+            @in_dir_stack.pop
         end
     end
 

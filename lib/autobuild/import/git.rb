@@ -327,7 +327,7 @@ module Autobuild
                         if detached_head?
                             status_to_remote = merge_status(target_commit, fetch_commit)
                             if status_to_remote.status != Status::UP_TO_DATE
-                                package.progress "  the package is on a detached HEAD because of commit pinning"
+                                package.message "  the package is on a detached HEAD because of commit pinning"
                                 return
                             end
                         else
@@ -343,12 +343,12 @@ module Autobuild
                         if local_branch
                             status_to_branch = merge_status(target_commit, local_branch)
                             if status_to_branch.status == Status::UP_TO_DATE # Checkout the branch
-                                package.progress "  checking out specific commit %s for %s. It will checkout branch %s." % [target_commit.to_s, package.name, local_branch]
+                                package.message "  checking out specific commit %s for %s. It will checkout branch %s." % [target_commit.to_s, package.name, local_branch]
                                 Subprocess.run(package, :import, Autobuild.tool('git'), 'checkout', local_branch)
                                 return
                             end
                         end
-                        package.progress "  checking out specific commit %s for %s. This will create a detached HEAD." % [target_commit.to_s, package.name]
+                        package.message "  checking out specific commit %s for %s. This will create a detached HEAD." % [target_commit.to_s, package.name]
                         Subprocess.run(package, :import, Autobuild.tool('git'), 'checkout', target_commit)
                         return
                     end
@@ -362,10 +362,10 @@ module Autobuild
                     # Check if the target branch already exists. If it is the
                     # case, check it out. Otherwise, create it.
                     if system("git", "show-ref", "--verify", "--quiet", "refs/heads/#{local_branch}")
-                        package.progress "  switching branch of %s to %s" % [package.name, local_branch]
+                        package.message "  switching branch of %s to %s" % [package.name, local_branch]
                         Subprocess.run(package, :import, Autobuild.tool('git'), 'checkout', local_branch)
                     else
-                        package.progress "  checking out branch %s for %s" % [local_branch, package.name]
+                        package.message "  checking out branch %s for %s" % [local_branch, package.name]
                         Subprocess.run(package, :import, Autobuild.tool('git'), 'checkout', '-b', local_branch, "FETCH_HEAD")
                     end
                 end
@@ -403,7 +403,7 @@ module Autobuild
                 if commit || tag
                     status = merge_status(commit || tag)
                     if status.status != Status::UP_TO_DATE
-                        package.progress "  checking out specific commit for %s. This will create a detached HEAD." % [package.name]
+                        package.message "  checking out specific commit for %s. This will create a detached HEAD." % [package.name]
                         Subprocess.run(package, :import, Autobuild.tool('git'), 'checkout', commit || tag)
                     end
                 else

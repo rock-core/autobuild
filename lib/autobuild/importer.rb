@@ -85,9 +85,10 @@ class Importer
             patch(package, kept_patches)
         end
 
-        package.progress "updating %s"
-        update(package)
-        patch(package)
+        package.progress_start "updating %s" do
+            update(package)
+            patch(package)
+        end
         package.updated = true
     rescue Interrupt
         raise
@@ -104,7 +105,7 @@ class Importer
             return fallback(original_error, package, :import, package)
         end
 
-        package.progress "update failed and some patches are applied, retrying after removing all patches first"
+        package.message "update failed and some patches are applied, retrying after removing all patches first"
         begin
             patch(package, [])
 
@@ -118,9 +119,10 @@ class Importer
         end
 
         begin
-            package.progress "updating %s"
-            update(package)
-            patch(package)
+            package.progress_start "updating %s" do
+                update(package)
+                patch(package)
+            end
             package.updated = true
         rescue Interrupt
             raise
@@ -130,15 +132,16 @@ class Importer
     end
 
     def perform_checkout(package)
-        package.progress "checking out %s"
-        checkout(package)
-        patch(package)
+        package.progress_start "checking out %s" do
+            checkout(package)
+            patch(package)
+        end
         package.updated = true
     rescue Autobuild::Exception => e
         FileUtils.rm_rf package.srcdir
         fallback(e, package, :import, package)
     rescue ::Exception
-        package.progress "checkout of %s failed, deleting the source directory #{package.srcdir}"
+        package.message "checkout of %s failed, deleting the source directory #{package.srcdir}"
         FileUtils.rm_rf package.srcdir
         raise
     end
@@ -222,11 +225,11 @@ class Importer
             apply_count = (patches - cur_patches).size
             unapply_count = (cur_patches - patches).size
             if apply_count > 0 && unapply_count > 0
-                package.progress "patching %s: applying #{apply_count} and unapplying #{unapply_count} patch(es)"
+                package.message "patching %s: applying #{apply_count} and unapplying #{unapply_count} patch(es)"
             elsif apply_count > 0
-                package.progress "patching %s: applying #{apply_count} patch(es)"
+                package.message "patching %s: applying #{apply_count} patch(es)"
             else
-                package.progress "patching %s: unapplying #{unapply_count} patch(es)"
+                package.message "patching %s: unapplying #{unapply_count} patch(es)"
             end
 
             while p = cur_patches.last
