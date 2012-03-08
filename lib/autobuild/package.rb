@@ -197,8 +197,8 @@ module Autobuild
             return if failed?
 
             begin
-                do_isolate = Autobuild.ignore_errors
-                Autobuild.ignore_errors = false
+                toplevel = !Thread.current[:isolate_errors]
+                Thread.current[:isolate_errors] = true
                 yield
             rescue Interrupt
                 raise
@@ -208,7 +208,7 @@ module Autobuild
                     @failed = true
                 end
 
-                if do_isolate
+                if Autobuild.ignore_errors
                     lines = e.to_s.split("\n")
                     if lines.empty?
                         lines = e.message.split("\n")
@@ -225,7 +225,9 @@ module Autobuild
                     raise
                 end
             ensure
-                Autobuild.ignore_errors = do_isolate
+                if toplevel
+                    Thread.current[:isolate_errors] = false
+                end
             end
         end
 
