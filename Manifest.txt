@@ -21,9 +21,11 @@ lib/autobuild/packages/autotools.rb
 lib/autobuild/packages/cmake.rb
 lib/autobuild/packages/dummy.rb
 lib/autobuild/packages/genom.rb
+lib/autobuild/packages/gnumake.rb
 lib/autobuild/packages/import.rb
 lib/autobuild/packages/orogen.rb
 lib/autobuild/packages/pkgconfig.rb
+lib/autobuild/parallel.rb
 lib/autobuild/pkgconfig.rb
 lib/autobuild/reporting.rb
 lib/autobuild/subcommand.rb

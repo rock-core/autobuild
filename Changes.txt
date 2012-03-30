@@ -1,3 +1,10 @@
+== Version 1.6.0
+* implement cross-package parallelism. Autobuild is now able to build packages
+  in parallel when parallel_build_level is greater than 1, better distributing
+  the workload. Additionally, if GNUmake is in use, this interfaces with the
+  GNUmake job server mechanism to allow the different make jobs to dynamically
+  distribute jobs among themselves (and with the main autoproj process)
+
 == Version 1.5.61
 * orogen: fix regeneration logic. Autobuild would not generate an oroGen project
   if a type definition file contained in the orogen package changed.
