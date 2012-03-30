@@ -16,15 +16,15 @@ require 'autobuild/exceptions'
 
 module Autobuild
     def self.message(*args)
-        if !progress_messages.empty?
+        if @last_progress_msg
             puts
+            @last_progress_msg = nil
         end
         if args.empty?
             puts
         else
             puts "#{color(*args)}"
         end
-        @last_msg = nil
     end
 
     class << self
@@ -85,11 +85,11 @@ module Autobuild
 
     def self.display_progress
         msg = "#{progress_messages.map(&:last).join(" | ")}"
-        if @last_msg && @last_msg.length > msg.length
-            print "\r" + " " * @last_msg.length
+        if @last_progress_msg && @last_progress_msg.length > msg.length
+            print "\r" + " " * @last_progress_msg.length
         end
         print "\r  #{msg}"
-        @last_msg = msg
+        @last_progress_msg = msg
     end
 
     # The exception type that is used to report multiple errors that occured
