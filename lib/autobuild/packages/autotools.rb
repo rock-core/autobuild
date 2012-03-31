@@ -227,7 +227,7 @@ module Autobuild
                             Subprocess.run(self, 'configure', Autobuild.tool('libtoolize'), '--copy')
                         end
                         if using[:autogen]
-                            Subprocess.run(self, 'configure', File.expand_path(using[:autogen]))
+                            Subprocess.run(self, 'configure', File.expand_path(using[:autogen], srcdir))
                         else
                             [ :aclocal, :autoconf, :autoheader, :automake ].each do |tool|
                                 if tool_flag = using[tool]

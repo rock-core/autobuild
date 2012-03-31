@@ -147,7 +147,7 @@ module Autobuild
                     # since the generation takes care of rebuilding configure
                     # if .gen has changed
                     progress_start "generating build system for %s" do
-                        in_dir(srcdir) { Subprocess.run(self, 'genom', File.expand_path('autogen')) }
+                        in_dir(srcdir) { Subprocess.run(self, 'genom', File.expand_path('autogen',  srcdir)) }
                     end
                 end
             end
