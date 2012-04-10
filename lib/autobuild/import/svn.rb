@@ -42,15 +42,15 @@ module Autobuild
 		ENV['LC_ALL'] = old_lang
 		unless url = svninfo.grep(/^URL: /).first
 		    if svninfo.grep(/is not a working copy/).empty?
-			raise ConfigException, "#{package.srcdir} is not a Subversion working copy"
+			raise ConfigException.new(package, 'import'), "#{package.srcdir} is not a Subversion working copy"
 		    else
-			raise ConfigException, "Bug: cannot get SVN information for #{package.srcdir}"
+			raise ConfigException.new(package, 'import'), "Bug: cannot get SVN information for #{package.srcdir}"
 		    end
 		end
 		url.chomp =~ /URL: (.+)/
 		source = $1
 		if source != @source
-		    raise ConfigException, "current checkout found at #{package.srcdir} is from #{source}, was expecting #{@source}"
+		    raise ConfigException.new(package, 'import'), "current checkout found at #{package.srcdir} is from #{source}, was expecting #{@source}"
 		end
                 Subprocess.run(package, :import, @program, 'up', "--non-interactive", *@options_up)
             }

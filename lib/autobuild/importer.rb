@@ -162,7 +162,7 @@ class Importer
             end
 
         elsif File.exists?(srcdir)
-            raise ConfigException, "#{srcdir} exists but is not a directory"
+            raise ConfigException.new(package, 'import'), "#{srcdir} exists but is not a directory"
         else
             perform_checkout(package)
         end

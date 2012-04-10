@@ -210,7 +210,7 @@ module Autobuild
 	    elsif confext = %w{.ac .in}.find { |ext| File.exists?("#{conffile}#{ext}") }
 		file conffile => "#{conffile}#{confext}"
 	    else
-		raise PackageException.new(name), "neither configure.ac nor configure.in present in #{srcdir}"
+		raise PackageException.new(self, 'prepare'), "neither configure.ac nor configure.in present in #{srcdir}"
 	    end
 
             file conffile do

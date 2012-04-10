@@ -44,8 +44,8 @@ module Autobuild
         @builddir = 'build'
         
         def builddir=(new)
-            raise ConfigException, "absolute builddirs are not supported" if (Pathname.new(new).absolute?)
-            raise ConfigException, "builddir must be non-empty" if new.empty?
+            raise ConfigException.new(self), "absolute builddirs are not supported" if (Pathname.new(new).absolute?)
+            raise ConfigException.new(self), "builddir must be non-empty" if new.empty?
             @builddir = new
         end
         # Returns the absolute builddir
@@ -109,7 +109,7 @@ module Autobuild
         # Configure the builddir directory before starting make
         def configure
             if File.exists?(builddir) && !File.directory?(builddir)
-                raise ConfigException, "#{builddir} already exists but is not a directory"
+                raise ConfigException.new(self, 'configure'), "#{builddir} already exists but is not a directory"
             end
             FileUtils.mkdir_p builddir if !File.directory?(builddir)
 

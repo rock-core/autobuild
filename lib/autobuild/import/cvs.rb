@@ -41,7 +41,7 @@ module Autobuild
         def update(package) # :nodoc:
             Dir.chdir(package.srcdir) do
 		if !File.exists?("#{package.srcdir}/CVS/Root")
-		    raise ConfigException, "#{package.srcdir} is not a CVS working copy"
+		    raise ConfigException.new(package, 'import'), "#{package.srcdir} is not a CVS working copy"
 		end
 
 		root = File.open("#{package.srcdir}/CVS/Root") { |io| io.read }.chomp
@@ -55,7 +55,7 @@ module Autobuild
 		expected_root = expected_root.gsub /:/, ''
 
 		if root != expected_root || mod != @module
-		    raise ConfigException, "checkout in #{package.srcdir} is from #{root}:#{mod}, was expecting #{expected_root}:#{@module}"
+		    raise ConfigException.new(package, 'import'), "checkout in #{package.srcdir} is from #{root}:#{mod}, was expecting #{expected_root}:#{@module}"
 		end
                 Subprocess.run(package, :import, @program, 'up', *@options_up)
 	    end

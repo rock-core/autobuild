@@ -15,10 +15,22 @@ module Autobuild
 
         alias :exception_message :to_s 
         def to_s
+            dir =
+                if target.respond_to?(:srcdir)
+                    "(#{target.srcdir})"
+                else
+                    puts target.inspect
+                end
+            target_name =
+                if target.respond_to?(:name)
+                    target.name
+                else target.to_str
+                end
+
             if target && phase
-                "#{target}: failed in #{phase} phase\n    #{super}"
+                "#{target_name}#{dir}: failed in #{phase} phase\n    #{super}"
             elsif target
-                "#{target}: #{super}"
+                "#{target_name}#{dir}: #{super}"
             else
                 super
             end

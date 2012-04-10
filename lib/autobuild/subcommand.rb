@@ -306,7 +306,7 @@ module Autobuild::Subprocess
         end
 
     rescue Failed => e
-        error = Autobuild::SubcommandFailed.new(target_name, command.join(" "), logname, e.status)
+        error = Autobuild::SubcommandFailed.new(target, command.join(" "), logname, e.status)
         error.phase = phase
         raise error, e.message
     end

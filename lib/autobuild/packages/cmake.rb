@@ -299,7 +299,7 @@ module Autobuild
             super do
                 in_dir(builddir) do
                     if !File.file?(File.join(srcdir, 'CMakeLists.txt'))
-                        raise ConfigException, "#{srcdir} contains no CMakeLists.txt file"
+                        raise ConfigException.new(self, 'configure'), "#{srcdir} contains no CMakeLists.txt file"
                     end
 
                     command = [ "cmake", "-DCMAKE_INSTALL_PREFIX=#{prefix}", "-DCMAKE_MODULE_PATH=#{CMake.module_path.join(";")}" ]

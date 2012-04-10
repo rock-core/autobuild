@@ -454,11 +454,11 @@ module Autobuild
         # and installed.
 	def depends_on(*packages)
 	    packages.each do |p|
-                raise ConfigException, "#{p.inspect} should be a string" if !p.respond_to? :to_str
+                raise ArgumentError, "#{p.inspect} should be a string" if !p.respond_to? :to_str
 		p = p.to_str
 		next if p == name
 		unless pkg = Package[p]
-		    raise ConfigException.new(name), "package #{p} not defined"
+		    raise ConfigException.new(self), "package #{p}, listed as a dependency of #{self.name}, is not defined"
 		end
 
                 next if @dependencies.include?(pkg.name)
@@ -478,7 +478,7 @@ module Autobuild
         # listed in +packages+ are aliases for this package.
 	def provides(*packages)
 	    packages.each do |p|
-                raise ConfigException, "#{p.inspect} should be a string" if !p.respond_to? :to_str
+                raise ArgumentError, "#{p.inspect} should be a string" if !p.respond_to? :to_str
 		p = p.to_str
 		next if p == name
                 next if @provides.include?(name)

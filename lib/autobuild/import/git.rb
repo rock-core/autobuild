@@ -119,7 +119,7 @@ module Autobuild
         # repository
         def validate_srcdir(package)
             if !File.directory?(File.join(package.srcdir, '.git'))
-                raise ConfigException, "while importing #{package.name}, #{package.srcdir} is not a git repository"
+                raise ConfigException.new(package, 'import'), "while importing #{package.name}, #{package.srcdir} is not a git repository"
             end
         end
 
@@ -288,11 +288,11 @@ module Autobuild
         def merge_status(fetch_commit, reference_commit = "HEAD")
             common_commit = `git merge-base #{reference_commit} #{fetch_commit}`.chomp
             if $?.exitstatus != 0
-                raise PackageException, "failed to find the merge-base between #{reference_commit} and #{fetch_commit}. Are you sure these commits exist ?"
+                raise PackageException.new(package, 'import'), "failed to find the merge-base between #{reference_commit} and #{fetch_commit}. Are you sure these commits exist ?"
             end
             head_commit   = `git rev-parse #{reference_commit}`.chomp
             if $?.exitstatus != 0
-                raise PackageException, "failed to resolve #{reference_commit}. Are you sure this commit, branch or tag exists ?"
+                raise PackageException.new(package, 'import'), "failed to resolve #{reference_commit}. Are you sure this commit, branch or tag exists ?"
             end
 
             status = if common_commit != fetch_commit
@@ -334,7 +334,7 @@ module Autobuild
                             return
                         end
                     elsif status_to_head.status != Status::SIMPLE_UPDATE
-                        raise PackageException, "checking out the specified commit #{target_commit} would be a non-simple operation (i.e. the current state of the repository is not a linear relationship with the specified commit), do it manually"
+                        raise PackageException.new(package, 'import'), "checking out the specified commit #{target_commit} would be a non-simple operation (i.e. the current state of the repository is not a linear relationship with the specified commit), do it manually"
                     end
 
                     status_to_remote = merge_status(target_commit, fetch_commit)
@@ -373,7 +373,7 @@ module Autobuild
                 status = merge_status(fetch_commit)
                 if status.needs_update?
                     if !merge? && status.status == Status::NEEDS_MERGE
-                        raise PackageException, "the local branch '#{local_branch}' and the remote branch #{branch} of #{package.name} have diverged, and I therefore refuse to update automatically. Go into #{package.srcdir} and either reset the local branch or merge the remote changes"
+                        raise PackageException.new(package, 'import'), "the local branch '#{local_branch}' and the remote branch #{branch} of #{package.name} have diverged, and I therefore refuse to update automatically. Go into #{package.srcdir} and either reset the local branch or merge the remote changes"
                     end
                     Subprocess.run(package, :import, Autobuild.tool('git'), 'merge', fetch_commit)
                 end

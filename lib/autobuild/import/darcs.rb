@@ -24,7 +24,7 @@ module Autobuild
 
         def update(package) # :nodoc:
 	    if !File.directory?( File.join(package.srcdir, '_darcs') )
-		raise ConfigException, "#{package.srcdir} is not a Darcs repository"
+		raise ConfigException.new(package, 'import'), "#{package.srcdir} is not a Darcs repository"
 	    end
 
 	    Subprocess.run(package, :import, @program, 
