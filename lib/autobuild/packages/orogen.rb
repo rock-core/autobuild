@@ -252,7 +252,7 @@ module Autobuild
             if Autobuild.programs['ruby']
                 Autobuild.tool('ruby')
             else
-                ruby_bin = Config::CONFIG['RUBY_INSTALL_NAME']
+                ruby_bin = RbConfig::CONFIG['RUBY_INSTALL_NAME']
                 Autobuild.programs['ruby'] = ruby_bin
             end
         end

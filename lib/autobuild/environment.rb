@@ -218,9 +218,9 @@ module Autobuild
             end
 
             require 'rbconfig'
-            ruby_arch    = File.basename(Config::CONFIG['archdir'])
+            ruby_arch    = File.basename(RbConfig::CONFIG['archdir'])
             candidates = %w{rubylibdir archdir sitelibdir sitearchdir vendorlibdir vendorarchdir}.
-                map { |key| Config::CONFIG[key] }.
+                map { |key| RbConfig::CONFIG[key] }.
                 map { |path| path.gsub(/.*lib(?:32|64)?\/(\w*ruby\/)/, '\\1') }.
                 each do |subdir|
                     if File.directory?("#{newprefix}/lib/#{subdir}")
