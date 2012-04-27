@@ -198,7 +198,7 @@ module Autobuild::Subprocess
             if !input_streams.empty?
                 pread, pwrite = IO.pipe # to feed subprocess stdin 
             end
-            if block_given? # the caller wants the stdout/stderr stream of the process, git it to him
+            if Autobuild.verbose || block_given? # the caller wants the stdout/stderr stream of the process, git it to him
                 outread, outwrite = IO.pipe
                 outread.sync = true
                 outwrite.sync = true
@@ -279,6 +279,10 @@ module Autobuild::Subprocess
                         STDOUT.print line
                     end
                     logfile.puts line
+                    # Do not yield the line if Autobuild.verbose is true, as it
+                    # would mix the progress output with the actual command
+                    # output. Assume that if the user wants the command output,
+                    # the autobuild progress output is unnecessary
                     if !Autobuild.verbose && block_given?
                         yield(line)
                     end
