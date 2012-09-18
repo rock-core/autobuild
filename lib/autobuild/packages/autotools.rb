@@ -40,12 +40,10 @@ module Autobuild
         def with_doc(target = 'doc')
             task "#{name}-doc" => configurestamp
             doc_task do
-                in_dir(builddir) do
-                    progress_start "generating documentation for %s" do
-                        Subprocess.run(self, 'doc', Autobuild.tool(:make), "-j#{parallel_build_level}", target)
-                    end
-                    yield if block_given?
+                progress_start "generating documentation for %s" do
+                    Subprocess.run(self, 'doc', Autobuild.tool(:make), "-j#{parallel_build_level}", target, :working_directory => builddir)
                 end
+                yield if block_given?
             end
         end
 

@@ -366,9 +366,7 @@ module Autobuild
                 @installed_doc = false
                 catch(:doc_disabled) do
                     begin
-                        Dir.chdir(srcdir) do
-                            yield if block_given?
-                        end
+                        yield if block_given?
 
                         unless @installed_doc
                             install_doc
