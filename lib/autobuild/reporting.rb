@@ -32,6 +32,17 @@ module Autobuild
     end
     @progress_messages = Array.new
 
+    # Displays an error message
+    def self.error(message)
+        Autoproj.message("  ERROR: #{message}", :red, :bold)
+    end
+
+    # Displays a warning message
+    def self.warn(message)
+        Autoproj.message("  WARN: #{message}", :magenta)
+    end
+
+
     def self.progress_start(key, *args)
         if args.last.kind_of?(Hash)
             options = Kernel.validate_options args.pop, :done_message => nil

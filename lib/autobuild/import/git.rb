@@ -21,11 +21,11 @@ module Autobuild
             end
 
             if branch
-                STDERR.puts "WARN: the git importer now expects you to provide the branch as a named option"
-                STDERR.puts "WARN: this form is deprecated:"
-                STDERR.puts "WARN:    Autobuild.git 'git://gitorious.org/rock/buildconf.git', 'master'"
-                STDERR.puts "WARN: and should be replaced by"
-                STDERR.puts "WARN:    Autobuild.git 'git://gitorious.org/rock/buildconf.git', :branch => 'master'"
+                Autobuild.warn "the git importer now expects you to provide the branch as a named option"
+                Autobuild.warn "this form is deprecated:"
+                Autobuild.warn "   Autobuild.git 'git://gitorious.org/rock/buildconf.git', 'master'"
+                Autobuild.warn "and should be replaced by"
+                Autobuild.warn "   Autobuild.git 'git://gitorious.org/rock/buildconf.git', :branch => 'master'"
             end
 
             gitopts, common = Kernel.filter_options options, :push_to => nil, :branch => nil, :tag => nil, :commit => nil
