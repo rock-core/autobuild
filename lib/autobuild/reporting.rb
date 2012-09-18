@@ -87,7 +87,7 @@ module Autobuild
                 found = true
             end
         end
-        if found
+        if found && @last_progress_msg
             puts
             display_progress
         end
