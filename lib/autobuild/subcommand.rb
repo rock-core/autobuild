@@ -208,7 +208,7 @@ module Autobuild::Subprocess
             cwrite.fcntl(Fcntl::F_SETFD, Fcntl::FD_CLOEXEC)
 
             pid = fork do
-                if options[:working_directory]
+                if options[:working_directory] && (options[:working_directory] != Dir.pwd)
                     Dir.chdir(options[:working_directory])
                 end
                 logfile.puts "in directory #{Dir.pwd}"
