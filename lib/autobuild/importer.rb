@@ -65,7 +65,26 @@ class Importer
     # [:patches] a list of patch to apply after import
     #
     # More options are specific to each importer type.
-    def initialize(options); @options = options end
+    def initialize(options)
+        @options = options.dup
+    end
+
+    # The number of times update / checkout should be retried before giving up.
+    # The default is 0 (do not retry)
+    #
+    # Set either with #retry_count= or by setting the :retry_count option when
+    # constructing this importer
+    def retry_count
+        @options[:retry_count] || 0
+    end
+
+    # Sets the number of times update / checkout should be retried before giving
+    # up. 0 (the default) disables retrying.
+    #
+    # See also #retry_count
+    def retry_count=(count)
+        @options[:retry_count] = count
+    end
 
     def patches
         if @options[:patches].respond_to?(:to_ary)
@@ -85,65 +104,79 @@ class Importer
             patch(package, kept_patches)
         end
 
-        package.progress_start "updating %s" do
-            update(package)
-            patch(package)
-        end
-        package.updated = true
-    rescue Interrupt
-        raise
-    rescue ::Exception => original_error
-        # If the package is patched, it might be that the update
-        # failed because we needed to unpatch first. Try it out
-        #
-        # This assumes that importing data with conflict will
-        # make the import fail, but not make the patch
-        # un-appliable. Importers that do not follow this rule
-        # will have to unpatch by themselves.
-        cur_patches = currently_applied_patches(package)
-        if cur_patches.empty?
-            return fallback(original_error, package, :import, package)
-        end
-
-        package.message "update failed and some patches are applied, retrying after removing all patches first"
-        begin
-            patch(package, [])
-
-        rescue ::Exception => e
-            # The unpatching failed. The importer probably did
-            # change the files in a way that made the patching
-            # impossible to reverse. Just raise the original
-            # error (which hopefully should be the importer
-            # message that says that there are conflicts)
-            raise original_error
-        end
-
+        retry_count = 0
         begin
             package.progress_start "updating %s" do
                 update(package)
-                patch(package)
             end
-            package.updated = true
         rescue Interrupt
             raise
-        rescue ::Exception => e
-            fallback(e, package, :import, package)
+        rescue ::Exception => original_error
+            # If the package is patched, it might be that the update
+            # failed because we needed to unpatch first. Try it out
+            #
+            # This assumes that importing data with conflict will
+            # make the import fail, but not make the patch
+            # un-appliable. Importers that do not follow this rule
+            # will have to unpatch by themselves.
+            cur_patches = currently_applied_patches(package)
+            if !cur_patches.empty?
+                package.message "update failed and some patches are applied, retrying after removing all patches first"
+                begin
+                    patch(package, [])
+                    return perform_update(package)
+                rescue Interrupt
+                    raise
+                rescue ::Exception
+                    raise original_error
+                end
+            end
+
+            retry_count += 1
+            if retry_count > self.retry_count
+                raise
+            end
+            package.message "update failed in #{package.srcdir}, retrying (#{retry_count}/#{self.retry_count})"
+            retry
         end
+
+        patch(package)
+        package.updated = true
+    rescue Interrupt
+        raise
+    rescue Autobuild::Exception => e
+        fallback(e, package, :import, package)
     end
 
     def perform_checkout(package)
         package.progress_start "checking out %s" do
-            checkout(package)
-            patch(package)
+            retry_count = 0
+            begin
+                checkout(package)
+            rescue Interrupt
+                raise
+            rescue ::Exception
+                retry_count += 1
+                if retry_count > self.retry_count
+                    raise
+                end
+                package.message "checkout of %s failed, deleting the source directory #{package.srcdir} and retrying (#{retry_count}/#{self.retry_count})"
+                FileUtils.rm_rf package.srcdir
+                retry
+            end
         end
+
+        patch(package)
         package.updated = true
-    rescue Autobuild::Exception => e
-        FileUtils.rm_rf package.srcdir
-        fallback(e, package, :import, package)
+    rescue Interrupt
+        raise
     rescue ::Exception
         package.message "checkout of %s failed, deleting the source directory #{package.srcdir}"
         FileUtils.rm_rf package.srcdir
         raise
+    rescue Autobuild::Exception => e
+        FileUtils.rm_rf package.srcdir
+        fallback(e, package, :import, package)
     end
 
     # Performs the import of +package+
