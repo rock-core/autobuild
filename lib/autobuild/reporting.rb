@@ -15,15 +15,22 @@ require 'autobuild/config'
 require 'autobuild/exceptions'
 
 module Autobuild
+    class << self
+        attr_reader :display_lock
+    end
+    @display_lock = Mutex.new
+
     def self.message(*args)
-        if @last_progress_msg
-            puts
-            @last_progress_msg = nil
-        end
-        if args.empty?
-            puts
-        else
-            puts "#{color(*args)}"
+        display_lock.synchronize do
+            if @last_progress_msg
+                puts
+                @last_progress_msg = nil
+            end
+            if args.empty?
+                puts
+            else
+                puts "#{color(*args)}"
+            end
         end
     end
 
@@ -50,9 +57,11 @@ module Autobuild
             options = Hash.new
         end
 
-        progress_done(key)
-        progress_messages << [key, color(*args)]
-        display_progress
+        display_lock.synchronize do
+            progress_done(key)
+            progress_messages << [key, color(*args)]
+            display_progress
+        end
 
         if block_given?
             begin
@@ -67,29 +76,33 @@ module Autobuild
     end
     def self.progress(key, *args)
         found = false
-        progress_messages.map! do |msg_key, msg|
-            if msg_key == key
-                found = true
-                [msg_key, color(*args)]
-            else
-                [msg_key, msg]
+        display_lock.synchronize do
+            progress_messages.map! do |msg_key, msg|
+                if msg_key == key
+                    found = true
+                    [msg_key, color(*args)]
+                else
+                    [msg_key, msg]
+                end
             end
+            if !found
+                progress_messages << [key, color(*args)]
+            end
+            display_progress
         end
-        if !found
-            progress_messages << [key, color(*args)]
-        end
-        display_progress
     end
     def self.progress_done(key)
         found = false
-        progress_messages.delete_if do |msg_key, msg|
-            if msg_key == key
-                found = true
+        display_lock.synchronize do
+            progress_messages.delete_if do |msg_key, msg|
+                if msg_key == key
+                    found = true
+                end
             end
-        end
-        if found && @last_progress_msg
-            puts
-            display_progress
+            if found && @last_progress_msg
+                puts
+                display_progress
+            end
         end
         found
     end
