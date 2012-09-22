@@ -42,13 +42,9 @@ module Autobuild
 
         def process_finished_task(task, processed, queue)
             processed << task
-            #puts "finished #{task} (#{task.object_id}), considering dependencies"
             reverse_dependencies[task].each do |candidate|
                 if candidate.prerequisite_tasks.all? { |t| processed.include?(t) }
-                    #puts "  adding #{candidate}"
                     queue << candidate
-                else
-                    #puts "  rejecting #{candidate} (#{candidate.prerequisite_tasks.find_all { |t| !processed.include?(t) }.map(&:name).join(", ")})"
                 end
             end
         end
@@ -70,7 +66,6 @@ module Autobuild
 
         def discover_dependencies(t)
             return if tasks.include?(t) # already discovered or being discovered
-            #puts "adding #{t}"
             tasks << t
 
             t.prerequisite_tasks.each do |dep_t|
@@ -88,12 +83,6 @@ module Autobuild
                 discover_dependencies(t)
             end
             @roots = tasks.find_all { |t| t.prerequisite_tasks.empty? }.to_set
-
-            #puts "roots:"
-            roots.each do |t|
-                #puts "  #{t}"
-            end
-            #puts
             
             # Build a reverse dependency graph (i.e. a mapping from a task to
             # the tasks that depend on it)
@@ -122,7 +111,6 @@ module Autobuild
                 end
 
                 pending_task = queue.pop
-                #puts "#{processed.size} tasks processed so far, #{tasks.size} total"
                 if pending_task.instance_variable_get(:@already_invoked) || !pending_task.needed?
                     process_finished_task(pending_task, processed, queue)
                     next
@@ -144,20 +132,11 @@ module Autobuild
                 end
 
                 worker = available_workers.pop
-                #puts "queueing #{pending_task}"
                 worker.queue(pending_task)
             end
 
             if processed.size != tasks.size
                 with_cycle = tasks.to_set
-                (tasks.to_set - processed).each do |pending_task|
-                    pending_task.prerequisite_tasks.each do |t|
-                        if !processed.include?(t)
-                            #puts "#{pending_task} => #{t}"
-                        end
-                    end
-                end
-                raise "cycle in task graph"
                 raise "cycle in task graph: #{with_cycle.map(&:name).sort.join(", ")}"
             end
         end

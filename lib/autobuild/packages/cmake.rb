@@ -162,7 +162,6 @@ module Autobuild
 
             doxyfile_in = File.join(srcdir, "Doxyfile.in")
             if !File.file?(doxyfile_in)
-                puts "NO INTERNAL: #{name}"
                 return false
             end
             File.readlines(doxyfile_in).each do |line|

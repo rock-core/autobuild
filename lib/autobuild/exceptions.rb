@@ -18,8 +18,6 @@ module Autobuild
             dir =
                 if target.respond_to?(:srcdir)
                     "(#{target.srcdir})"
-                else
-                    puts target.inspect
                 end
             target_name =
                 if target.respond_to?(:name)
