@@ -57,8 +57,8 @@ module Autobuild
             options = Hash.new
         end
 
+        progress_done(key)
         display_lock.synchronize do
-            progress_done(key)
             progress_messages << [key, color(*args)]
             display_progress
         end
