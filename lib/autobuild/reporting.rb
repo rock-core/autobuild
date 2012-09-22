@@ -99,8 +99,11 @@ module Autobuild
         if @last_progress_msg && @last_progress_msg.length > msg.length
             print "\r" + " " * @last_progress_msg.length
         end
-        print "\r  #{msg}"
-        @last_progress_msg = msg
+        print "\r  #{msg}\r"
+        @last_progress_msg =
+            if msg.empty? then nil
+            else msg
+            end
     end
 
     # The exception type that is used to report multiple errors that occured
