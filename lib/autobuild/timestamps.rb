@@ -32,7 +32,7 @@ module Autobuild
 	exclude.each { |rx| raise unless Regexp === rx }
         exclude << (/#{Regexp.quote(STAMPFILE)}$/)
 
-        puts "getting tree timestamp for #{path}" if Autobuild.debug
+        Autobuild.message "getting tree timestamp for #{path}" if Autobuild.debug
         latest = Time.at(0)
         latest_file = ""
 
@@ -40,7 +40,7 @@ module Autobuild
             Find.prune if File.basename(p) =~ /^\./
             exclude.each { |pattern| 
                 if p =~ pattern
-                    puts "  excluding #{p}" if Autobuild.debug
+                    Autobuild.message "  excluding #{p}" if Autobuild.debug
                     Find.prune
                 end
             }
@@ -53,7 +53,7 @@ module Autobuild
             end
         }
 
-        puts "  newest file: #{latest_file} at #{latest}" if Autobuild.debug
+        Autobuild.message "  newest file: #{latest_file} at #{latest}" if Autobuild.debug
         return latest_file, latest
     end
 
@@ -97,7 +97,7 @@ module Autobuild
     end
 
     def self.touch_stamp(stampfile)
-        puts "Touching #{stampfile}" if Autobuild.debug
+        Autobuild.message "Touching #{stampfile}" if Autobuild.debug
         dir = File.dirname(stampfile)
         if File.exists?(dir) && !File.directory?(dir)
             raise "#{dir} exists and is not a directory"

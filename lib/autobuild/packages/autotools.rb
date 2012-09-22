@@ -163,7 +163,7 @@ module Autobuild
 		new_opt = testflags.find { |o| !options.include?(o) }
 		if old_opt || new_opt
                     if Autobuild.verbose
-                        STDERR.puts "  forcing reconfiguration of #{name} (#{old_opt} != #{new_opt})"
+                        Autobuild.message "forcing reconfiguration of #{name} (#{old_opt} != #{new_opt})"
                     end
 		    FileUtils.rm_f configurestamp # to force reconfiguration
 		end

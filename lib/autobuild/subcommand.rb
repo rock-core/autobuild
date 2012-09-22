@@ -110,7 +110,7 @@ module Autobuild
         # If the cpuinfo detection fails, inform the user and set it to 1
         if !@processor_count
             # Hug... What kind of system is it ?
-            STDERR.puts "INFO: cannot autodetect the number of CPUs on this sytem"
+            Autobuild.message "INFO: cannot autodetect the number of CPUs on this sytem"
             @processor_count = 1
         end
 
@@ -168,7 +168,7 @@ module Autobuild::Subprocess
         end
 
 	if Autobuild.verbose
-	    puts "#{target_name}: running #{command.join(" ")}\n    (output goes to #{logname})"
+	    Autobuild.message "#{target_name}: running #{command.join(" ")}\n    (output goes to #{logname})"
 	end
 
         open_flag = if Autobuild.keep_oldlogs then 'a'

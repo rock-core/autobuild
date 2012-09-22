@@ -272,7 +272,7 @@ module Autobuild
                     old_value = cache_line.split("=")[1].chomp if cache_line
                     if !old_value || !equivalent_option_value?(old_value, value)
                         if Autobuild.debug
-                            puts "option '#{name}' changed value: '#{old_value}' => '#{value}'"
+                            message "%s: option '#{name}' changed value: '#{old_value}' => '#{value}'"
                         end
                         if old_value
                             message "%s: changed value of #{name} from #{old_value} to #{value}"
@@ -285,7 +285,7 @@ module Autobuild
                 end
                 if did_change
                     if Autobuild.debug
-                        puts "CMake configuration changed, forcing a reconfigure"
+                        message "%s: CMake configuration changed, forcing a reconfigure"
                     end
                     FileUtils.rm_f cmake_cache
                 end

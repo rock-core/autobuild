@@ -275,6 +275,18 @@ module Autobuild
 
         # Display a progress message. %s in the string is replaced by the
         # package name
+        def warn(warning_string)
+            message("  WARN: #{warning_string}", :magenta)
+        end
+
+        # Display a progress message. %s in the string is replaced by the
+        # package name
+        def error(error_string)
+            message("  ERROR: #{error_string}", :red, :bold)
+        end
+
+        # Display a progress message. %s in the string is replaced by the
+        # package name
         def message(*args)
             if !args.empty?
                 args[0] = "  #{process_formatting_string(args[0])}"
@@ -378,11 +390,11 @@ module Autobuild
                         if Autobuild.doc_errors
                             raise
                         else
-                            STDERR.puts "W: failed to generate documentation for #{name}"
+                            warn "%s: failed to generate documentation"
                             if e.kind_of?(SubcommandFailed)
-                                STDERR.puts "W: see #{e.logfile} for more details"
+                                warn "%s: see #{e.logfile} for more details"
                             else
-                                STDERR.puts "W: #{e.message}"
+                                warn "%s: #{e.message}"
                             end
                         end
                     end
@@ -462,7 +474,7 @@ module Autobuild
                 next if @dependencies.include?(pkg.name)
 
                 if Autobuild.verbose
-                    STDERR.puts "  #{name} depends on #{pkg.name}"
+                    Autobuild.message "#{name} depends on #{pkg.name}"
                 end
 
 		task "#{name}-import"  => "#{pkg.name}-import"
@@ -484,7 +496,7 @@ module Autobuild
 		@@provides[p] = self 
 
                 if Autobuild.verbose
-                    STDERR.puts "  #{name} provides #{p}"
+                    Autobuild.message "#{name} provides #{p}"
                 end
 
 		task p => name

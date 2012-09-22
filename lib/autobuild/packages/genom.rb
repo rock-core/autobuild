@@ -67,7 +67,7 @@ module Autobuild
                             currentBuffer = nil
                         elsif currentBuffer =~ /^\s*(?:codels_)?requires.*;$/
                             # Check that the regexp is not too strict
-                            STDERR.puts "failed to match #{currentBuffer}"
+                            warn "%s: failed to match #{currentBuffer}"
                         end
                     end
                 end

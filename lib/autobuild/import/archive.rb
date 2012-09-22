@@ -59,13 +59,13 @@ module Autobuild
                 if mtime && size
                     do_update = (size != cached_size || mtime > cached_mtime)
                 elsif mtime
-                    $stderr.puts "WARNING: size is not available for #{@url}, relying on modification time"
+                    package.warn "%s: archive size is not available for #{@url}, relying on modification time"
                     do_update = (mtime > cached_mtime)
                 elsif size
-                    $stderr.puts "WARNING: modification time is not available for #{@url}, relying on size"
+                    package.warn "%s: archive modification time is not available for #{@url}, relying on size"
                     do_update = (size != cached_size)
                 else
-                    $stderr.puts "WARNING: neither size nor modification time available for #{@url}, will always update"
+                    package.warn "%s: neither the archive size nor its modification time available for #{@url}, will always update"
                     do_update = true
                 end
             end

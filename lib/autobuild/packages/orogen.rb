@@ -198,7 +198,7 @@ module Autobuild
             # and if so add it into our dependency list
             if rtt = Autobuild::Package["pkgconfig/orocos-rtt-#{orocos_target}"]
                 if Autobuild.verbose
-                    STDERR.puts "orogen: found #{rtt.name} which provides the RTT"
+                    message "orogen: found #{rtt.name} which provides the RTT"
                 end
                 depends_on rtt.name
             end

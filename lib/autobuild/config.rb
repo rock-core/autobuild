@@ -242,7 +242,7 @@ module Autobuild
     def self.apply(packages, buildname = "autobuild")
         if Autobuild.mail[:to]
             if !Autobuild::HAS_RMAIL
-                STDERR.puts "RMail is not available. Mail notification is disabled"
+                Autobuild.warn "RMail is not available. Mail notification is disabled"
             else
                 Reporting << MailReporter.new(Autobuild.mail)
             end

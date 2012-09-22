@@ -188,7 +188,7 @@ class Importer
                     perform_update(package)
                 else
                     if Autobuild.verbose
-                        puts "  not updating #{package.name}"
+                        package.message "%s: not updating"
                     end
                     return
                 end
