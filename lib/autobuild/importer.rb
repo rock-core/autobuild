@@ -105,10 +105,9 @@ class Importer
         end
 
         retry_count = 0
+        package.progress_start "updating %s"
         begin
-            package.progress_start "updating %s" do
-                update(package)
-            end
+            update(package)
         rescue Interrupt
             raise
         rescue ::Exception => original_error
@@ -121,6 +120,7 @@ class Importer
             # will have to unpatch by themselves.
             cur_patches = currently_applied_patches(package)
             if !cur_patches.empty?
+                package.progress_done
                 package.message "update failed and some patches are applied, retrying after removing all patches first"
                 begin
                     patch(package, [])
@@ -138,6 +138,8 @@ class Importer
             end
             package.message "update failed in #{package.srcdir}, retrying (#{retry_count}/#{self.retry_count})"
             retry
+        ensure
+            package.progress_done
         end
 
         patch(package)
@@ -261,7 +263,7 @@ class Importer
                 package.message "patching %s: applying #{apply_count} and unapplying #{unapply_count} patch(es)"
             elsif apply_count > 0
                 package.message "patching %s: applying #{apply_count} patch(es)"
-            else
+            elsif unapply_count > 0
                 package.message "patching %s: unapplying #{unapply_count} patch(es)"
             end
 
