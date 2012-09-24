@@ -109,14 +109,16 @@ module Autobuild
 
     def self.display_progress
         msg = "#{progress_messages.map(&:last).join(" | ")}"
-        if @last_progress_msg && @last_progress_msg.length > msg.length
+        if @last_progress_msg 
             print "\r" + " " * @last_progress_msg.length
         end
-        print "\r  #{msg}\r"
-        @last_progress_msg =
-            if msg.empty? then nil
-            else msg
-            end
+
+        if msg.empty?
+            @last_progress_msg = nil
+        else
+            print "\r  #{msg}"
+            @last_progress_msg = msg
+        end
     end
 
     # The exception type that is used to report multiple errors that occured
