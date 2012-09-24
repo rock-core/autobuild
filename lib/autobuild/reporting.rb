@@ -13,6 +13,7 @@ require 'find'
 
 require 'autobuild/config'
 require 'autobuild/exceptions'
+require 'thread'
 
 module Autobuild
     class << self
