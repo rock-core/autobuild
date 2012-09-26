@@ -18,10 +18,16 @@ require 'thread'
 module Autobuild
     class << self
         attr_reader :display_lock
+        def silent?
+            @silent
+        end
+        attr_writer :silent
     end
     @display_lock = Mutex.new
+    @silent = false
 
     def self.message(*args)
+        return if silent?
         display_lock.synchronize do
             if @last_progress_msg
                 puts
@@ -111,13 +117,16 @@ module Autobuild
     def self.display_progress
         msg = "#{progress_messages.map(&:last).join(" | ")}"
         if @last_progress_msg 
-            print "\r" + " " * @last_progress_msg.length
+            if !silent?
+                print "\r" + " " * @last_progress_msg.length
+            end
         end
 
         if msg.empty?
+            print "\r" if !silent?
             @last_progress_msg = nil
         else
-            print "\r  #{msg}"
+            print "\r  #{msg}" if !silent?
             @last_progress_msg = msg
         end
     end
