@@ -2,7 +2,8 @@ require 'set'
 module Autobuild
     @inherited_environment = Hash.new
     @environment = Hash.new
-    @env_source_files = Set.new
+    @env_source_before = Set.new
+    @env_source_after = Set.new
 
     class << self
         # List of the environment that should be set before calling a subcommand
@@ -27,7 +28,11 @@ module Autobuild
 
         # List of files that should be sourced in the generated environment
         # variable setting shell scripts
-        attr_reader :env_source_files
+        attr_reader :env_source_before
+
+        # List of files that should be sourced in the generated environment
+        # variable setting shell scripts
+        attr_reader :env_source_after
     end
 
     # Removes any settings related to the environment varialbe +name+, or for
@@ -92,7 +97,19 @@ module Autobuild
     # Require that generated environment variable scripts source the given shell
     # script
     def self.env_source_file(file)
-        @env_source_files << file
+        env_source_after(file)
+    end
+
+    # Require that generated environment variable scripts source the given shell
+    # script
+    def self.env_source_before(file)
+        @env_source_before << file
+    end
+
+    # Require that generated environment variable scripts source the given shell
+    # script
+    def self.env_source_after(file)
+        @env_source_after << file
     end
 
     # Generates a shell script that sets the environment variable listed in
@@ -101,6 +118,10 @@ module Autobuild
     #
     # It also sources the files added by Autobuild.env_source_file
     def self.export_env_sh(io)
+        env_source_before.each do |path|
+            io.puts ". \"#{path}\""
+        end
+
         variables = []
         Autobuild.environment.each do |name, value|
             variables << name
@@ -117,7 +138,7 @@ module Autobuild
         variables.each do |var|
             io.puts "export #{var}"
         end
-        env_source_files.each do |path|
+        env_source_after.each do |path|
             io.puts ". \"#{path}\""
         end
     end
