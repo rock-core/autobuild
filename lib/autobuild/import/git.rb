@@ -47,13 +47,7 @@ module Autobuild
         #
         # This is meant for display purposes
         def repository_id
-            result = "git:#{repository} branch=#{branch}"
-            if commit
-                result << " commit=#{commit}"
-            elsif tag
-                result << " tag=#{tag}"
-            end
-            result
+            "git:#{repository}"
         end
 
         # The remote repository URL.
