@@ -118,7 +118,7 @@ module Autobuild
     #
     # It also sources the files added by Autobuild.env_source_file
     def self.export_env_sh(io)
-        env_source_before.each do |path|
+        @env_source_before.each do |path|
             io.puts ". \"#{path}\""
         end
 
@@ -138,7 +138,7 @@ module Autobuild
         variables.each do |var|
             io.puts "export #{var}"
         end
-        env_source_after.each do |path|
+        @env_source_after.each do |path|
             io.puts ". \"#{path}\""
         end
     end
