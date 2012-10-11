@@ -303,6 +303,11 @@ module Autobuild
 
                     command = [ "cmake", "-DCMAKE_INSTALL_PREFIX=#{prefix}", "-DCMAKE_MODULE_PATH=#{CMake.module_path.join(";")}" ]
 
+					if(RbConfig::CONFIG["host_os"] =~%r!(msdos|mswin|djgpp|mingw|[Ww]indows)!)
+						command << '-G' 
+						command << "MSYS Makefiles"
+					end
+					
                     defines.each do |name, value|
                         command << "-D#{name}=#{value}"
                     end

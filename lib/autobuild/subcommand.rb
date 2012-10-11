@@ -70,6 +70,11 @@ module Autobuild
         if @processor_count
             return @processor_count
         end
+		
+		#No parralel build on windows yet, since CPU detection is not easy do able
+		if(RbConfig::CONFIG["host_os"] =~%r!(msdos|mswin|djgpp|mingw|[Ww]indows)!)
+			return 1
+		end
 
         if File.file?('/proc/cpuinfo')
             cpuinfo = File.readlines('/proc/cpuinfo')
@@ -163,7 +168,7 @@ module Autobuild::Subprocess
             options[:working_directory] ||= target.working_directory
         end
 
-        logname = File.join(logdir, "#{target_name}-#{phase}.log")
+		logname = File.join(logdir, "#{target_name.gsub(/[:]/,'_')}-#{phase.to_s.gsub(/[:]/,'_')}.log")
         if !File.directory?(File.dirname(logname))
             FileUtils.mkdir_p File.dirname(logname)
         end
@@ -206,7 +211,23 @@ module Autobuild::Subprocess
             end
             cread, cwrite = IO.pipe # to control that exec goes well
 
-            cwrite.fcntl(Fcntl::F_SETFD, Fcntl::FD_CLOEXEC)
+			if Autoproj::OSDependencies.operating_system[0].include?("windows")
+				olddir = Dir.pwd
+				if options[:working_directory] && (options[:working_directory] != Dir.pwd)
+					Dir.chdir(options[:working_directory])
+				end
+				system(*command)
+				result=$?.success?
+				if(!result)
+					error = Autobuild::SubcommandFailed.new(target, command.join(" "), logname, "Systemcall")
+					error.phase = phase
+					raise error
+				end
+				Dir.chdir(olddir)
+				return
+			end
+			
+			cwrite.fcntl(Fcntl::F_SETFD, Fcntl::FD_CLOEXEC)
 
             pid = fork do
                 begin
@@ -323,4 +344,6 @@ module Autobuild::Subprocess
     end
 
 end
+
+
 

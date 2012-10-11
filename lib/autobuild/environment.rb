@@ -1,10 +1,42 @@
 require 'set'
+require 'rbconfig'
+
 module Autobuild
     @inherited_environment = Hash.new
     @environment = Hash.new
     @env_source_before = Set.new
     @env_source_after = Set.new
 
+    @windows = RbConfig::CONFIG["host_os"] =~%r!(msdos|mswin|djgpp|mingw|[Ww]indows)!
+    def self.windows?
+        @windows
+    end
+
+    ENV_LIST_SEPARATOR =
+        if windows? then ';'
+        else ':'
+        end
+    SHELL_VAR_EXPANSION =
+        if windows? then "%%%s%%"
+        else "$%s"
+        end
+    SHELL_SET_COMMAND =
+        if windows? then "set %s=%s"
+        else "%s=%s"
+        end
+    SHELL_UNSET_COMMAND =
+        if windows? then "unset %s"
+        else "unset %s"
+        end
+    SHELL_EXPORT_COMMAND =
+        if windows? then "set %s"
+        else "export %s"
+        end
+    SHELL_SOURCE_SCRIPT =
+        if windows? then "%s"
+        else ". \"%s\""
+        end
+	
     class << self
         # List of the environment that should be set before calling a subcommand
         #
@@ -88,7 +120,7 @@ module Autobuild
 
     def self.env_init_from_env(name)
         if env_inherit?(name) && (parent_env = ENV[name])
-            inherited_environment[name] = parent_env.split(':')
+            inherited_environment[name] = parent_env.split(ENV_LIST_SEPARATOR)
         else
             inherited_environment[name] = Array.new
         end
@@ -124,7 +156,7 @@ module Autobuild
         @environment[name] = values
 
         inherited = inherited_environment[name] || Array.new
-        ENV[name] = (values + inherited).join(":")
+        ENV[name] = (values + inherited).join(ENV_LIST_SEPARATOR)
     end
 
     def self.env_add_path(name, *paths)
@@ -176,31 +208,31 @@ module Autobuild
     # It also sources the files added by Autobuild.env_source_file
     def self.export_env_sh(io)
         @env_source_before.each do |path|
-            io.puts ". \"#{path}\""
+            io.puts SHELL_SOURCE_SCRIPT % path
         end
 
         variables = []
         Autobuild.environment.each do |name, value|
             variables << name
             if value
-                shell_line = "#{name}=#{value.join(":")}"
+                shell_line = SHELL_SET_COMMAND % [name, value.join(ENV_LIST_SEPARATOR)]
             else
-                shell_line = "unset #{name}"
+                shell_line = SHELL_UNSET_COMMAND % [name]
             end
             if env_inherit?(name)
                 if value.empty?
                     next
                 else
-                    shell_line << ":$#{name}"
+                    shell_line << "#{ENV_LIST_SEPARATOR}$#{name}"
                 end
             end
             io.puts shell_line
         end
         variables.each do |var|
-            io.puts "export #{var}"
+            io.puts SHELL_VAR_EXPANSION % [var]
         end
         @env_source_after.each do |path|
-            io.puts ". \"#{path}\""
+            io.puts SHELL_SOURCE_SCRIPT % [path]
         end
     end
 
