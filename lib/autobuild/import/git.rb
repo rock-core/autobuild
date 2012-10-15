@@ -279,6 +279,15 @@ module Autobuild
             end
         end
 
+        # Computes the update status to update a branch whose tip is at
+        # reference_commit (which can be a symbolic reference) using the
+        # fetch_commit commit
+        #
+        # I.e. this compute what happens if one would do
+        #
+        #   git checkout reference_commit
+        #   git merge fetch_commit
+        #
         def merge_status(package, fetch_commit, reference_commit = "HEAD")
             common_commit = `git merge-base #{reference_commit} #{fetch_commit}`.chomp
             if $?.exitstatus != 0
