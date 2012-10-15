@@ -101,7 +101,7 @@ module Autobuild
         # false.
         def updated?; !!@updated end
 
-	def initialize(spec)
+	def initialize(spec = Hash.new)
 	    @dependencies   = Array.new
 	    @provides       = Array.new
             @parallel_build_level = nil
@@ -374,27 +374,31 @@ module Autobuild
         # In general, specific package types define a meaningful #with_doc
         # method which calls this method internally.
         def doc_task
-            task "#{name}-doc" do
-                @installed_doc = false
-                catch(:doc_disabled) do
-                    begin
-                        yield if block_given?
+            @doc_task = task "#{name}-doc" do
+                # This flag allows to disable documentation generation
+                # once doc_task has been called
+                if generates_doc?
+                    @installed_doc = false
+                    catch(:doc_disabled) do
+                        begin
+                            yield if block_given?
 
-                        unless @installed_doc
-                            install_doc
-                        end
+                            unless @installed_doc
+                                install_doc
+                            end
 
-                    rescue Interrupt
-                        raise
-                    rescue ::Exception => e
-                        if Autobuild.doc_errors
+                        rescue Interrupt
                             raise
-                        else
-                            warn "%s: failed to generate documentation"
-                            if e.kind_of?(SubcommandFailed)
-                                warn "%s: see #{e.logfile} for more details"
+                        rescue ::Exception => e
+                            if Autobuild.doc_errors
+                                raise
                             else
-                                warn "%s: #{e.message}"
+                                warn "%s: failed to generate documentation"
+                                if e.kind_of?(SubcommandFailed)
+                                    warn "%s: see #{e.logfile} for more details"
+                                else
+                                    warn "%s: #{e.message}"
+                                end
                             end
                         end
                     end
@@ -402,6 +406,30 @@ module Autobuild
             end
 
             task :doc => "#{name}-doc"
+        end
+
+        # True if some documentation will be generated and false otherwise.
+        #
+        # This will return true only if a documentation task has been defined by
+        # calling #doc_task _and_ #disable_doc has not been called (or if
+        # #enable_doc has been called after the last call to #disable_doc).
+        def generates_doc?
+            if @doc_disabled
+                return false
+            else
+                return !!@doc_task
+            end
+        end
+
+        # Re-enables documentation generation after #disable_doc has been called
+        def enable_doc
+            @doc_disabled = false
+        end
+
+        # Disables any documentation generation, regardless of whether doc_task
+        # has been called or not.
+        def disable_doc
+            @doc_disabled = true
         end
 
         def install_doc
