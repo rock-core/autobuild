@@ -203,7 +203,7 @@ module Autobuild
                     end
                 end
 
-                status = merge_status(remote_commit)
+                status = merge_status(package, remote_commit)
                 `git diff --quiet`
                 if $?.exitstatus != 0
                     status.uncommitted_code = true
@@ -279,7 +279,7 @@ module Autobuild
             end
         end
 
-        def merge_status(fetch_commit, reference_commit = "HEAD")
+        def merge_status(package, fetch_commit, reference_commit = "HEAD")
             common_commit = `git merge-base #{reference_commit} #{fetch_commit}`.chomp
             if $?.exitstatus != 0
                 raise PackageException.new(package, 'import'), "failed to find the merge-base between #{reference_commit} and #{fetch_commit}. Are you sure these commits exist ?"
@@ -314,12 +314,12 @@ module Autobuild
                 # If we are tracking a commit/tag, just check it out and return
                 if commit || tag
                     target_commit = (commit || tag)
-                    status_to_head = merge_status(target_commit, "HEAD")
+                    status_to_head = merge_status(package, target_commit, "HEAD")
                     if status_to_head.status == Status::UP_TO_DATE
                         # Check if by any chance we could switch back to a
                         # proper branch instead of having a detached HEAD
                         if detached_head?
-                            status_to_remote = merge_status(target_commit, fetch_commit)
+                            status_to_remote = merge_status(package, target_commit, fetch_commit)
                             if status_to_remote.status != Status::UP_TO_DATE
                                 package.message "  the package is on a detached HEAD because of commit pinning"
                                 return
@@ -331,11 +331,11 @@ module Autobuild
                         raise PackageException.new(package, 'import'), "checking out the specified commit #{target_commit} would be a non-simple operation (i.e. the current state of the repository is not a linear relationship with the specified commit), do it manually"
                     end
 
-                    status_to_remote = merge_status(target_commit, fetch_commit)
+                    status_to_remote = merge_status(package, target_commit, fetch_commit)
                     if status_to_remote.status != Status::UP_TO_DATE
                         # Try very hard to avoid creating a detached HEAD
                         if local_branch
-                            status_to_branch = merge_status(target_commit, local_branch)
+                            status_to_branch = merge_status(package, target_commit, local_branch)
                             if status_to_branch.status == Status::UP_TO_DATE # Checkout the branch
                                 package.message "  checking out specific commit %s for %s. It will checkout branch %s." % [target_commit.to_s, package.name, local_branch]
                                 Subprocess.run(package, :import, Autobuild.tool('git'), 'checkout', local_branch)
@@ -364,7 +364,7 @@ module Autobuild
                     end
                 end
 
-                status = merge_status(fetch_commit)
+                status = merge_status(package, fetch_commit)
                 if status.needs_update?
                     if !merge? && status.status == Status::NEEDS_MERGE
                         raise PackageException.new(package, 'import'), "the local branch '#{local_branch}' and the remote branch #{branch} of #{package.name} have diverged, and I therefore refuse to update automatically. Go into #{package.srcdir} and either reset the local branch or merge the remote changes"
@@ -395,7 +395,7 @@ module Autobuild
 
                 # If we are tracking a commit/tag, just check it out
                 if commit || tag
-                    status = merge_status(commit || tag)
+                    status = merge_status(package, commit || tag)
                     if status.status != Status::UP_TO_DATE
                         package.message "  checking out specific commit for %s. This will create a detached HEAD." % [package.name]
                         Subprocess.run(package, :import, Autobuild.tool('git'), 'checkout', commit || tag)
