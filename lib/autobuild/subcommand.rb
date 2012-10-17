@@ -129,6 +129,7 @@ module Autobuild::Subprocess
 
     CONTROL_COMMAND_NOT_FOUND = 1
     CONTROL_UNEXPECTED = 2
+    CONTROL_INTERRUPT = 3
     def self.run(target, phase, *command)
         STDOUT.sync = true
 
@@ -208,11 +209,12 @@ module Autobuild::Subprocess
             cwrite.fcntl(Fcntl::F_SETFD, Fcntl::FD_CLOEXEC)
 
             pid = fork do
-                if options[:working_directory] && (options[:working_directory] != Dir.pwd)
-                    Dir.chdir(options[:working_directory])
-                end
-                logfile.puts "in directory #{Dir.pwd}"
                 begin
+                    if options[:working_directory] && (options[:working_directory] != Dir.pwd)
+                        Dir.chdir(options[:working_directory])
+                    end
+                    logfile.puts "in directory #{Dir.pwd}"
+
                     cwrite.sync = true
                     if Autobuild.nice
                         Process.setpriority(Process::PRIO_PROCESS, 0, Autobuild.nice)
@@ -235,10 +237,13 @@ module Autobuild::Subprocess
                     exec(*command)
                 rescue Errno::ENOENT
                     cwrite.write([CONTROL_COMMAND_NOT_FOUND].pack('I'))
-                    raise
+                    exit(100)
+                rescue Interrupt
+                    cwrite.write([CONTROL_INTERRUPT].pack('I'))
+                    exit(100)
                 rescue ::Exception
                     cwrite.write([CONTROL_UNEXPECTED].pack('I'))
-                    raise
+                    exit(100)
                 end
             end
 
@@ -265,6 +270,8 @@ module Autobuild::Subprocess
                 value = value.unpack('I').first
                 if value == CONTROL_COMMAND_NOT_FOUND
                     raise Failed.new, "command '#{command.first}' not found"
+                elsif value == CONTROL_INTERRUPT
+                    raise Interrupt, "command '#{command.first}': interrupted by user"
                 else
                     raise Failed.new, "something unexpected happened"
                 end

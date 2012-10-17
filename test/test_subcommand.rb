@@ -3,12 +3,10 @@ $LOAD_PATH.unshift File.expand_path(File.dirname(__FILE__))
 require 'test/unit'
 require 'tools'
 
-require 'autobuild/config'
-require 'autobuild/subcommand'
+require 'autobuild'
 require 'tmpdir'
 require 'fileutils'
-
-include Autobuild
+require 'flexmock/test_unit'
 
 class TC_Subcommand < Test::Unit::TestCase
 EXAMPLE_1 = <<EOF
@@ -31,29 +29,25 @@ EOF
         @source2 = File.join(tmpdir, 'source2')
         File.open(source1, 'w+') { |f| f.write(EXAMPLE_1) }
         File.open(source2, 'w+') { |f| f.write(EXAMPLE_2) }
+
+        super
     end
 
     def teardown
+        super
         TestTools.clean
     end
 
-    def test_logfiles
-        assert_raise(SubcommandFailed) { || Subprocess.run('test', 'copy', 'cat', 'bla') }
-        
-        Subprocess.run('test', 'simple', 'cat', nil, '', source1)
-	result_content = File.readlines(File.join(tmpdir, 'test-simple.log'))[1..-1].join
-        assert_equal(EXAMPLE_1, result_content)
-
-        Subprocess.run('test', 'use-lt', 'cat', "<#{source1}")
-	result_content = File.readlines(File.join(tmpdir, 'test-use-lt.log'))[1..-1].join
-        assert_equal(EXAMPLE_1, result_content)
-
-        Subprocess.run('test', 'use-both', 'cat', source1, '-', "<#{source2}")
-        result = File.open( File.join(tmpdir, 'test-use-both.log') ) do |f|
-            f.readlines
-        end
-	result = result[1..-1].join
-        assert_equal(EXAMPLE_1 + EXAMPLE_2, result)
+    def test_behaviour_on_unexpected_error
+        flexmock(Autobuild::Subprocess).should_receive(:exec).and_raise(::Exception)
+        assert_raises(Autobuild::SubcommandFailed) { Autobuild::Subprocess.run('test', 'test', 'does_not_exist') }
+    end
+    def test_behaviour_on_inexistent_command
+        assert_raises(Autobuild::SubcommandFailed) { Autobuild::Subprocess.run('test', 'test', 'does_not_exist') }
+    end
+    def test_behaviour_on_interrupt
+        flexmock(Autobuild::Subprocess).should_receive(:exec).and_raise(Interrupt)
+        assert_raises(Interrupt) { Autobuild::Subprocess.run('test', 'test', 'does_not_exist') }
     end
 end
 
