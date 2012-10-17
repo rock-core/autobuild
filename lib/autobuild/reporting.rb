@@ -26,6 +26,14 @@ module Autobuild
     @display_lock = Mutex.new
     @silent = false
 
+    def self.silent
+        Autobuild.silent, silent = true, Autobuild.silent?
+        yield
+    ensure
+        Autobuild.silent = silent
+    end
+
+
     def self.message(*args)
         return if silent?
         display_lock.synchronize do
