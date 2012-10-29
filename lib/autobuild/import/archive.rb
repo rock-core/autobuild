@@ -115,7 +115,7 @@ module Autobuild
         # [:no_subdirectory] the archive does not have the custom archive
         #       subdirectory.
         def initialize(url, options)
-            @options = options.dup
+            super(options)
             if !@options.has_key?(:update_cached_file)
                 @options[:update_cached_file] = false
             end
@@ -159,7 +159,8 @@ module Autobuild
                 cmd = [ '-o', cachefile, '-d', main_dir ]
                 Subprocess.run(package, :import, Autobuild.tool('unzip'), *cmd)
                 
-                if archive_dir
+                archive_dir = (self.archive_dir || File.basename(package.name))
+                if archive_dir != File.basename(package.srcdir)
                     FileUtils.rm_rf File.join(package.srcdir)
                     FileUtils.mv File.join(base_dir, archive_dir), package.srcdir
                 elsif !File.directory?(package.srcdir)
