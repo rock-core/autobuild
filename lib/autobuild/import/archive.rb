@@ -111,7 +111,7 @@ module Autobuild
 	# [:cachedir] the cache directory. Defaults to "#{Autobuild.prefix}/cache"
         # [:archive_dir] the directory contained in the archive file. If set,
         #       the importer will rename that directory to make it match
-        #       Package#srcdir
+        #       Package#importdir
         # [:no_subdirectory] the archive does not have the custom archive
         #       subdirectory.
         def initialize(url, options)
@@ -149,10 +149,10 @@ module Autobuild
             # overwritten by the new checkout, the patch are re-applied
             patch(package, [])
 
-            base_dir = File.dirname(package.srcdir)
+            base_dir = File.dirname(package.importdir)
 
             if mode == Zip
-                main_dir = if @options[:no_subdirectory] then package.srcdir
+                main_dir = if @options[:no_subdirectory] then package.importdir
                            else base_dir
                            end
 
@@ -160,15 +160,15 @@ module Autobuild
                 Subprocess.run(package, :import, Autobuild.tool('unzip'), *cmd)
                 
                 archive_dir = (self.archive_dir || File.basename(package.name))
-                if archive_dir != File.basename(package.srcdir)
-                    FileUtils.rm_rf File.join(package.srcdir)
-                    FileUtils.mv File.join(base_dir, archive_dir), package.srcdir
-                elsif !File.directory?(package.srcdir)
-                    raise Autobuild::Exception, "#{cachefile} does not contain directory called #{File.basename(package.srcdir)}. Did you forget to use the :archive_dir option ?"
+                if archive_dir != File.basename(package.importdir)
+                    FileUtils.rm_rf File.join(package.importdir)
+                    FileUtils.mv File.join(base_dir, archive_dir), package.importdir
+                elsif !File.directory?(package.importdir)
+                    raise Autobuild::Exception, "#{cachefile} does not contain directory called #{File.basename(package.importdir)}. Did you forget to use the :archive_dir option ?"
                 end
             else
-                FileUtils.mkdir_p package.srcdir
-                cmd = ["x#{TAR_OPTION[mode]}f", cachefile, '-C', package.srcdir]
+                FileUtils.mkdir_p package.importdir
+                cmd = ["x#{TAR_OPTION[mode]}f", cachefile, '-C', package.importdir]
                 if !@options[:no_subdirectory]
                     cmd << '--strip-components=1'
                 end

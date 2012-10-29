@@ -23,22 +23,22 @@ module Autobuild
         private
 
         def update(package) # :nodoc:
-	    if !File.directory?( File.join(package.srcdir, '_darcs') )
-		raise ConfigException.new(package, 'import'), "#{package.srcdir} is not a Darcs repository"
+	    if !File.directory?( File.join(package.importdir, '_darcs') )
+		raise ConfigException.new(package, 'import'), "#{package.importdir} is not a Darcs repository"
 	    end
 
 	    Subprocess.run(package, :import, @program, 
-	       'pull', '--all', "--repodir=#{package.srcdir}", '--set-scripts-executable', @source, *@pull)
+	       'pull', '--all', "--repodir=#{package.importdir}", '--set-scripts-executable', @source, *@pull)
         end
 
         def checkout(package) # :nodoc:
-	    basedir = File.dirname(package.srcdir)
+	    basedir = File.dirname(package.importdir)
 	    unless File.directory?(basedir)
 		FileUtils.mkdir_p(basedir)
 	    end
 
 	    Subprocess.run(package, :import, @program, 
-	       'get', '--set-scripts-executable', @source, package.srcdir, *@get)
+	       'get', '--set-scripts-executable', @source, package.importdir, *@get)
         end
     end
 

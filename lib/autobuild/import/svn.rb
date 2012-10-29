@@ -36,28 +36,28 @@ module Autobuild
         private
 
         def update(package) # :nodoc:
-            Dir.chdir(package.srcdir) {
+            Dir.chdir(package.importdir) {
 		old_lang, ENV['LC_ALL'] = ENV['LC_ALL'], 'C'
 		svninfo = IO.popen("svn info") { |io| io.readlines }
 		ENV['LC_ALL'] = old_lang
 		unless url = svninfo.grep(/^URL: /).first
 		    if svninfo.grep(/is not a working copy/).empty?
-			raise ConfigException.new(package, 'import'), "#{package.srcdir} is not a Subversion working copy"
+			raise ConfigException.new(package, 'import'), "#{package.importdir} is not a Subversion working copy"
 		    else
-			raise ConfigException.new(package, 'import'), "Bug: cannot get SVN information for #{package.srcdir}"
+			raise ConfigException.new(package, 'import'), "Bug: cannot get SVN information for #{package.importdir}"
 		    end
 		end
 		url.chomp =~ /URL: (.+)/
 		source = $1
 		if source != @source
-		    raise ConfigException.new(package, 'import'), "current checkout found at #{package.srcdir} is from #{source}, was expecting #{@source}"
+		    raise ConfigException.new(package, 'import'), "current checkout found at #{package.importdir} is from #{source}, was expecting #{@source}"
 		end
                 Subprocess.run(package, :import, @program, 'up', "--non-interactive", *@options_up)
             }
         end
 
         def checkout(package) # :nodoc:
-            options = [ @program, 'co', "--non-interactive" ] + @options_co + [ @source, package.srcdir ]
+            options = [ @program, 'co', "--non-interactive" ] + @options_co + [ @source, package.importdir ]
             Subprocess.run(package, :import, *options)
         end
     end
