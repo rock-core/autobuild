@@ -117,17 +117,16 @@ module Autobuild
         ENV[name] = (values + inherited).join(":")
     end
 
-    def self.env_add_path(name, path, *paths)
-        oldpath = environment[name]
-        if !oldpath || !oldpath.include?(path)
+    def self.env_add_path(name, *paths)
+        oldpath = environment[name] || Array.new
+        paths.reverse.each do |path|
+            next if oldpath.include?(path)
+
             env_add(name, path)
+            oldpath << path
             if name == 'RUBYLIB'
                 $LOAD_PATH.unshift path
             end
-        end
-
-        if !paths.empty?
-            env_add_path(name, *paths)
         end
     end
 
