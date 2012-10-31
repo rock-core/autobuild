@@ -53,6 +53,47 @@ module Autobuild
         env_add(name, *values)
     end
 
+    @env_inherit = true
+    @env_inherited_variables = Set.new
+
+    # Returns true if the given environment variable must not be reset by the
+    # env.sh script, but that new values should simply be prepended to it.
+    #
+    # See Autoproj.env_inherit
+    def self.env_inherit?(name)
+        @env_inherit && @env_inherited_variables.include?(name)
+    end
+
+    # If true (the default), the environment variables that are marked as
+    # inherited will be inherited from the global environment (during the
+    # build as well as in the generated env.sh files)
+    #
+    # Otherwise, only the environment that is explicitely set in autobuild
+    # will be passed on to subcommands, and saved in the environment
+    # scripts.
+    def self.env_inherit=(value)
+        @env_inherit = value
+        inherited_environment.keys.each do |env_name|
+            env_init_from_env(env_name)
+        end
+    end
+
+    # Declare that the given environment variable must not be reset by the
+    # env.sh script, but that new values should simply be prepended to it.
+    #
+    # See Autoproj.env_inherit?
+    def self.env_inherit(*names)
+        @env_inherited_variables |= names
+    end
+
+    def self.env_init_from_env(name)
+        if env_inherit?(name) && (parent_env = ENV[name])
+            inherited_environment[name] = parent_env.split(':')
+        else
+            inherited_environment[name] = Array.new
+        end
+    end
+
     # Adds a new value to an environment variable
     def self.env_add(name, *values)
         set = if environment.has_key?(name)
@@ -60,11 +101,7 @@ module Autobuild
               end
 
         if !inherited_environment.has_key?(name)
-            if parent_env = ENV[name]
-                inherited_environment[name] = parent_env.split(':')
-            else
-                inherited_environment[name] = Array.new
-            end
+            env_init_from_env(name)
         end
 
         if !set
@@ -126,7 +163,7 @@ module Autobuild
         Autobuild.environment.each do |name, value|
             variables << name
             shell_line = "#{name}=#{value.join(":")}"
-            if Autoproj.env_inherit?(name)
+            if env_inherit?(name)
                 if value.empty?
                     next
                 else
