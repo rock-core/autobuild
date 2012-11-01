@@ -52,9 +52,9 @@ module Autobuild
             else 0
             end
 
-        puts "\r  #{msg}#{" " * [size - msg.size, 0].max}"
+        puts "\r#{msg}#{" " * [size - msg.size, 0].max}"
         if @last_progress_msg
-            print "  #{@last_progress_msg}"
+            print "#{@last_progress_msg}"
         end
     end
 
@@ -127,7 +127,7 @@ module Autobuild
                 end
             end
             if found && @last_progress_msg
-                display_message(last_msg) if display_last
+                display_message("  #{last_msg}") if display_last && last_msg
                 display_progress
             end
         end
@@ -146,7 +146,8 @@ module Autobuild
             print "\r" if !silent?
             @last_progress_msg = nil
         else
-            print "\r  #{msg}" if !silent?
+            msg = "  #{msg}"
+            print "\r#{msg}" if !silent?
             @last_progress_msg = msg
         end
     end
