@@ -40,7 +40,7 @@ module Autobuild
         def with_doc(target = 'doc')
             task "#{name}-doc" => configurestamp
             doc_task do
-                progress_start "generating documentation for %s" do
+                progress_start "generating documentation for %s", :done_message => 'generated_documentation for %s' do
                     Subprocess.run(self, 'doc', Autobuild.tool(:make), "-j#{parallel_build_level}", target, :working_directory => builddir)
                 end
                 yield if block_given?
@@ -220,7 +220,7 @@ module Autobuild
 
                     autodetect_needed_stages
 
-                    progress_start "generating build system for %s" do
+                    progress_start "generating build system for %s", :done_message => 'generated build system for %s' do
                         if using[:libtool]
                             Subprocess.run(self, 'configure', Autobuild.tool('libtoolize'), '--copy')
                         end
@@ -257,7 +257,7 @@ module Autobuild
                     command << "--prefix=#{prefix}"
                     command += Array[*configureflags]
                     
-                    progress_start "configuring build system for %s" do
+                    progress_start "configuring build system for %s", :done_message => 'configured build system for %s' do
                         Subprocess.run(self, 'configure', *command)
                     end
                 end
@@ -267,7 +267,7 @@ module Autobuild
         # Do the build in builddir
         def build
             in_dir(builddir) do
-                progress_start "building %s [progress not available]" do
+                progress_start "building %s [progress not available]", :done_message => 'built %s' do
                     if force_config_status
                         Subprocess.run(self, 'build', './config.status')
                     end
@@ -280,7 +280,7 @@ module Autobuild
         # Install the result in prefix
         def install
             in_dir(builddir) do
-                progress_start "installing %s" do
+                progress_start "installing %s", :done_message => 'installed %s' do
                     Subprocess.run(self, 'install', Autobuild.tool(:make), 'install')
                 end
             end

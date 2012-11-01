@@ -37,15 +37,24 @@ module Autobuild
     def self.message(*args)
         return if silent?
         display_lock.synchronize do
-            if @last_progress_msg
-                puts
-                @last_progress_msg = nil
+            display_message(*args)
+        end
+    end
+
+    def self.display_message(*args)
+        msg =
+            if args.empty? then ""
+            else "#{color(*args)}"
             end
-            if args.empty?
-                puts
-            else
-                puts "#{color(*args)}"
+
+        size =
+            if @last_progress_msg then @last_progress_msg.size
+            else 0
             end
+
+        puts "\r  #{msg}#{" " * [size - msg.size, 0].max}"
+        if @last_progress_msg
+            print "  #{@last_progress_msg}"
         end
     end
 
@@ -84,8 +93,9 @@ module Autobuild
                 if options[:done_message]
                     progress(key, *options[:done_message])
                 end
-            ensure
-                progress_done(key)
+                progress_done(key, true)
+            rescue Exception => e
+                progress_done(key, false)
             end
         end
     end
@@ -106,16 +116,18 @@ module Autobuild
             display_progress
         end
     end
-    def self.progress_done(key)
+    def self.progress_done(key, display_last = true)
         found = false
         display_lock.synchronize do
+            last_msg = nil
             progress_messages.delete_if do |msg_key, msg|
                 if msg_key == key
                     found = true
+                    last_msg = msg
                 end
             end
             if found && @last_progress_msg
-                puts
+                display_message(last_msg) if display_last
                 display_progress
             end
         end
@@ -123,7 +135,7 @@ module Autobuild
     end
 
     def self.display_progress
-        msg = "#{progress_messages.map(&:last).join(" | ")}"
+        msg = "#{progress_messages.map(&:last).sort.join(" | ")}"
         if @last_progress_msg 
             if !silent?
                 print "\r" + " " * @last_progress_msg.length

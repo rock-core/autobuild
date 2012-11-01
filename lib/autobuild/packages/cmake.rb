@@ -203,7 +203,7 @@ module Autobuild
         def with_doc(target = 'doc')
             doc_task do
                 in_dir(builddir) do
-                    progress_start "generating documentation for %s" do
+                    progress_start "generating documentation for %s", :done_message => 'generated documentation for %s' do
                         if internal_doxygen_mode?
                             run_doxygen
                         else
@@ -311,7 +311,7 @@ module Autobuild
                     end
                     command << srcdir
                     
-                    progress_start "configuring CMake build system for %s" do
+                    progress_start "configuring CMake build system for %s", :done_message => "configured CMake build system for %s" do
                         if full_reconfigures?
                             FileUtils.rm_f cmake_cache
                         end
@@ -324,7 +324,7 @@ module Autobuild
         # Do the build in builddir
         def build
             in_dir(builddir) do
-                progress_start "building %s", :done_message => "building %s (100%%)" do
+                progress_start "building %s", :done_message => "built %s" do
                     if always_reconfigure || !File.file?('Makefile')
                         Subprocess.run(self, 'build', Autobuild.tool(:cmake), '.')
                     end
@@ -342,7 +342,7 @@ module Autobuild
         # Install the result in prefix
         def install
             in_dir(builddir) do
-                progress_start "installing %s" do
+                progress_start "installing %s", :done_message => 'installed %s' do
                     Subprocess.run(self, 'install', Autobuild.tool(:make), "-j#{parallel_build_level}", 'install')
                 end
             end

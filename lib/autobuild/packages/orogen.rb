@@ -333,7 +333,7 @@ module Autobuild
             needs_regen ||= (Rake::Task[Orogen.orogen_root].timestamp > Rake::Task[genstamp].timestamp)
 
             if needs_regen
-                progress_start "generating oroGen project %s" do
+                progress_start "generating oroGen project %s", :done_message => 'generated oroGen project %s' do
                     in_dir(srcdir) do
                         Subprocess.run self, 'orogen', guess_ruby_name, self.class.orogen_bin, *cmdline
                         File.open(genstamp, 'w') do |io|

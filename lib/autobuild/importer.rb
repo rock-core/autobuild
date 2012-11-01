@@ -139,7 +139,7 @@ class Importer
             package.message "update failed in #{package.importdir}, retrying (#{retry_count}/#{self.retry_count})"
             retry
         ensure
-            package.progress_done
+            package.progress_done "updated %s"
         end
 
         patch(package)
@@ -151,7 +151,7 @@ class Importer
     end
 
     def perform_checkout(package)
-        package.progress_start "checking out %s" do
+        package.progress_start "checking out %s", :done_message => 'checked out %s' do
             retry_count = 0
             begin
                 checkout(package)

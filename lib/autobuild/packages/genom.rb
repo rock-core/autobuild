@@ -133,7 +133,7 @@ module Autobuild
             file genomstamp => srcdir do
                 isolate_errors do
                     in_dir(srcdir) do
-                        progress_start "generating GenoM files for %s" do
+                        progress_start "generating GenoM files for %s", :done_message => 'generated GenoM files for %s' do
                             Subprocess.run(self, 'genom', *cmdline)
                         end
                     end
@@ -146,7 +146,7 @@ module Autobuild
                     # configure does not depend on the .gen file
                     # since the generation takes care of rebuilding configure
                     # if .gen has changed
-                    progress_start "generating build system for %s" do
+                    progress_start "generating build system for %s", :done_message => 'generated build system for %s' do
                         in_dir(srcdir) { Subprocess.run(self, 'genom', File.expand_path('autogen',  srcdir)) }
                     end
                 end
