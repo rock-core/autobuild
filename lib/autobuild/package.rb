@@ -320,7 +320,7 @@ module Autobuild
 
         def progress_done(done_message = nil)
             if done_message
-                Autobuild.progress(done_message)
+                progress(done_message)
             end
             Autobuild.progress_done(self)
         end
