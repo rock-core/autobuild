@@ -182,7 +182,11 @@ module Autobuild
         variables = []
         Autobuild.environment.each do |name, value|
             variables << name
-            shell_line = "#{name}=#{value.join(":")}"
+            if value
+                shell_line = "#{name}=#{value.join(":")}"
+            else
+                shell_line = "unset #{name}"
+            end
             if env_inherit?(name)
                 if value.empty?
                     next
