@@ -136,7 +136,7 @@ class Importer
             if retry_count > self.retry_count
                 raise
             end
-            package.message "update failed in #{package.importdir}, retrying (#{retry_count}/#{self.retry_count})"
+            package.message "update failed in #{package.srcdir}, retrying (#{retry_count}/#{self.retry_count})"
             retry
         ensure
             package.progress_done "updated %s"
@@ -162,8 +162,8 @@ class Importer
                 if retry_count > self.retry_count
                     raise
                 end
-                package.message "checkout of %s failed, deleting the source directory #{package.importdir} and retrying (#{retry_count}/#{self.retry_count})"
-                FileUtils.rm_rf package.importdir
+                package.message "checkout of %s failed, deleting the source directory #{package.srcdir} and retrying (#{retry_count}/#{self.retry_count})"
+                FileUtils.rm_rf package.srcdir
                 retry
             end
         end
@@ -173,17 +173,17 @@ class Importer
     rescue Interrupt
         raise
     rescue ::Exception
-        package.message "checkout of %s failed, deleting the source directory #{package.importdir}"
-        FileUtils.rm_rf package.importdir
+        package.message "checkout of %s failed, deleting the source directory #{package.srcdir}"
+        FileUtils.rm_rf package.srcdir
         raise
     rescue Autobuild::Exception => e
-        FileUtils.rm_rf package.importdir
+        FileUtils.rm_rf package.srcdir
         fallback(e, package, :import, package)
     end
 
     # Performs the import of +package+
     def import(package)
-        srcdir = package.importdir
+        srcdir = package.srcdir
         if File.directory?(srcdir)
             package.isolate_errors(false) do
                 if Autobuild.do_update
@@ -220,15 +220,15 @@ class Importer
 
     private
     
-    # We assume that package.importdir already exists (checkout is supposed to
+    # We assume that package.srcdir already exists (checkout is supposed to
     # have been called)
     def patchlist(package)
-        File.join(package.importdir, "patches-autobuild-stamp")
+        File.join(package.srcdir, "patches-autobuild-stamp")
     end
 
     def call_patch(package, reverse, file)
         patch = Autobuild.tool('patch')
-        Dir.chdir(package.importdir) do
+        Dir.chdir(package.srcdir) do
             Subprocess.run(package, :patch, patch, '-p0', (reverse ? '-R' : nil), '--forward', :input => file)
         end
     end

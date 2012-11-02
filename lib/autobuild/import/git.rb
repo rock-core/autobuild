@@ -111,9 +111,9 @@ module Autobuild
 
         # Raises ConfigException if the current directory is not a git
         # repository
-        def validate_importdir(package)
-            if !File.directory?(File.join(package.importdir, '.git'))
-                raise ConfigException.new(package, 'import'), "while importing #{package.name}, #{package.importdir} is not a git repository"
+        def validate_srcdir(package)
+            if !File.directory?(File.join(package.srcdir, '.git'))
+                raise ConfigException.new(package, 'import'), "while importing #{package.name}, #{package.srcdir} is not a git repository"
             end
         end
 
@@ -121,8 +121,8 @@ module Autobuild
         # ID on success, nil on failure. Expects the current directory to be the
         # package's source directory.
         def fetch_remote(package)
-            validate_importdir(package)
-            Dir.chdir(package.importdir) do
+            validate_srcdir(package)
+            Dir.chdir(package.srcdir) do
                 # If we are checking out a specific commit, we don't know which
                 # branch to refer to in git fetch. So, we have to set up the
                 # remotes and call git fetch directly (so that all branches get
@@ -186,8 +186,8 @@ module Autobuild
         # Returns a Importer::Status object that represents the status of this
         # package w.r.t. the root repository
         def status(package, only_local = false)
-            Dir.chdir(package.importdir) do
-                validate_importdir(package)
+            Dir.chdir(package.srcdir) do
+                validate_srcdir(package)
                 remote_commit = nil
                 if only_local
                     remote_commit = `git show-ref -s refs/remotes/autobuild/#{remote_branch}`.chomp
@@ -316,8 +316,8 @@ module Autobuild
         end
 
         def update(package)
-            validate_importdir(package)
-            Dir.chdir(package.importdir) do
+            validate_srcdir(package)
+            Dir.chdir(package.srcdir) do
                 fetch_commit = fetch_remote(package)
 
                 # If we are tracking a commit/tag, just check it out and return
@@ -376,7 +376,7 @@ module Autobuild
                 status = merge_status(package, fetch_commit)
                 if status.needs_update?
                     if !merge? && status.status == Status::NEEDS_MERGE
-                        raise PackageException.new(package, 'import'), "the local branch '#{local_branch}' and the remote branch #{branch} of #{package.name} have diverged, and I therefore refuse to update automatically. Go into #{package.importdir} and either reset the local branch or merge the remote changes"
+                        raise PackageException.new(package, 'import'), "the local branch '#{local_branch}' and the remote branch #{branch} of #{package.name} have diverged, and I therefore refuse to update automatically. Go into #{package.srcdir} and either reset the local branch or merge the remote changes"
                     end
                     Subprocess.run(package, :import, Autobuild.tool('git'), 'merge', fetch_commit)
                 end
@@ -384,15 +384,15 @@ module Autobuild
         end
 
         def checkout(package)
-            base_dir = File.expand_path('..', package.importdir)
+            base_dir = File.expand_path('..', package.srcdir)
             if !File.directory?(base_dir)
                 FileUtils.mkdir_p base_dir
             end
 
             Subprocess.run(package, :import,
-                Autobuild.tool('git'), 'clone', '-o', 'autobuild', repository, package.importdir)
+                Autobuild.tool('git'), 'clone', '-o', 'autobuild', repository, package.srcdir)
 
-            Dir.chdir(package.importdir) do
+            Dir.chdir(package.srcdir) do
                 if push_to
                     Subprocess.run(package, :import, Autobuild.tool('git'), 'config',
                                    "--replace-all", "remote.autobuild.pushurl", push_to)
