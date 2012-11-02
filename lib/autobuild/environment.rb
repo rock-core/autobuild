@@ -94,6 +94,16 @@ module Autobuild
         end
     end
 
+    def self.env_push(name, *values)
+        if current = environment[name]
+            current = current.dup
+            env_set(name, *values)
+            env_add(name, *current)
+        else
+            env_add(name, *values)
+        end
+    end
+
     # Adds a new value to an environment variable
     def self.env_add(name, *values)
         set = if environment.has_key?(name)
@@ -127,6 +137,17 @@ module Autobuild
             if name == 'RUBYLIB'
                 $LOAD_PATH.unshift path
             end
+        end
+    end
+
+    def self.env_push_path(name, *values)
+        if current = environment[name]
+            current = current.dup
+            env_clear(name)
+            env_add_path(name, *values)
+            env_add_path(name, *current)
+        else
+            env_add_path(name, *values)
         end
     end
 
