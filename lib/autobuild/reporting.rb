@@ -96,6 +96,7 @@ module Autobuild
                 progress_done(key, true)
             rescue Exception => e
                 progress_done(key, false)
+                raise
             end
         end
     end
