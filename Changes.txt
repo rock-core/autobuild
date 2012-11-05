@@ -1,3 +1,19 @@
+== Version 1.6.3
+* quickfix: force ordering of doc and build tasks (see commit b5efd01 for
+  details)
+
+== Version 1.6.2
+* implement a generic retry_count option for all importers
+* fix concurrent display of progress messages
+* implement env_source_before and env_source_after (env_source calls
+  env_source_after for backward compatibility reasons)
+* in subcommand, properly handle Interrupt when within the fork (before the
+  exec)
+
+== Version 1.6.1
+* workaround "recursive call to Dir.chdir" warnings from subcommand by not changing
+  directory if Dir.pwd is already the target directory
+
 == Version 1.6.0
 * implement cross-package parallelism. Autobuild is now able to build packages
   in parallel when parallel_build_level is greater than 1, better distributing
