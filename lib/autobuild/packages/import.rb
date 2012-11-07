@@ -23,7 +23,7 @@ module Autobuild
                 exclude << Regexp.new("^#{Regexp.quote(doc_dir)}")
             end
 
-            Autobuild.source_tree(srcdir) do |pkg|
+            source_tree(srcdir) do |pkg|
 		pkg.exclude.concat exclude
 		exclude.freeze
 	    end

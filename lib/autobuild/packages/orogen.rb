@@ -206,7 +206,7 @@ module Autobuild
             # Find out where orogen is, and make sure the configurestamp depend
             # on it. Ignore if orogen is too old to have a --base-dir option
             if orogen_root = self.class.orogen_root
-                orogen_tree = Autobuild.source_tree(orogen_root)
+                orogen_tree = source_tree(orogen_root)
             end
 
             # Check if there is an orogen package registered. If it is the case,
@@ -222,7 +222,7 @@ module Autobuild
             # Cache the orogen file name
             @orogen_file ||= self.orogen_file
 
-            file genstamp => Autobuild.source_tree(srcdir) do
+            file genstamp => source_tree(srcdir) do
                 needs_regen = true
                 if File.file?(genstamp)
                     genstamp_mtime = File.stat(genstamp).mtime

@@ -12,10 +12,6 @@ module Autobuild
 
         attr_reader :job_server
 
-        attr_reader :roots
-        attr_reader :tasks
-        attr_reader :reverse_dependencies
-
         class JobServer
             attr_reader :rio
             attr_reader :wio
@@ -40,16 +36,7 @@ module Autobuild
 
         end
 
-        def process_finished_task(task, processed, queue)
-            processed << task
-            reverse_dependencies[task].each do |candidate|
-                if candidate.prerequisite_tasks.all? { |t| processed.include?(t) }
-                    queue << candidate
-                end
-            end
-        end
-
-        def wait_for_worker_to_end(processed, queue)
+        def wait_for_worker_to_end(state)
             w = finished_workers.pop
             finished_task, error = w.last_result
             available_workers << w
@@ -61,28 +48,71 @@ module Autobuild
                 raise error
             end
 
-            process_finished_task(finished_task, processed, queue)
+            state.process_finished_task(finished_task)
         end
 
-        def discover_dependencies(t)
-            return if tasks.include?(t) # already discovered or being discovered
-            tasks << t
+        def discover_dependencies(all_tasks, reverse_dependencies, t)
+            return if all_tasks.include?(t) # already discovered or being discovered
+            all_tasks << t
 
             t.prerequisite_tasks.each do |dep_t|
                 reverse_dependencies[dep_t] << t
-                discover_dependencies(dep_t)
+                discover_dependencies(all_tasks, reverse_dependencies, dep_t)
+            end
+        end
+
+        class ProcessingState
+            attr_reader :reverse_dependencies
+            attr_reader :processed
+            attr_reader :active_packages
+            attr_reader :queue
+
+            def initialize(reverse_dependencies, initial_queue = Array.new)
+                @reverse_dependencies = reverse_dependencies
+                @processed = Set.new
+                @active_packages = Set.new
+                @queue = initial_queue.to_set
+            end
+
+            def pop
+                candidate = queue.find do |task|
+                    if task.respond_to?(:package)
+                        !active_packages.include?(task.package)
+                    else true
+                    end
+                end
+                queue.delete(candidate)
+                candidate
+            end
+
+            def mark_as_active(pending_task)
+                if pending_task.respond_to?(:package)
+                    active_packages << pending_task.package
+                end
+            end
+
+            def process_finished_task(task)
+                if task.respond_to?(:package)
+                    active_packages.delete(task.package)
+                end
+                processed << task
+                reverse_dependencies[task].each do |candidate|
+                    if candidate.prerequisite_tasks.all? { |t| processed.include?(t) }
+                        queue << candidate
+                    end
+                end
             end
         end
 
         # Invokes the provided tasks. Unlike the rake code, this is a toplevel
         # algorithm that does not use recursion
         def invoke_parallel(required_tasks)
-            @tasks = Set.new
-            @reverse_dependencies = Hash.new { |h, k| h[k] = Set.new }
+            tasks = Set.new
+            reverse_dependencies = Hash.new { |h, k| h[k] = Set.new }
             required_tasks.each do |t|
-                discover_dependencies(t)
+                discover_dependencies(tasks, reverse_dependencies, t)
             end
-            @roots = tasks.find_all { |t| t.prerequisite_tasks.empty? }.to_set
+            roots = tasks.find_all { |t| t.prerequisite_tasks.empty? }.to_set
             
             # Build a reverse dependency graph (i.e. a mapping from a task to
             # the tasks that depend on it)
@@ -94,25 +124,25 @@ module Autobuild
             # The queue is the set of tasks for which all prerequisites have
             # been successfully executed (or where not needed). I.e. it is the
             # set of tasks that can be queued for execution.
-            queue = roots.to_a
-            processed = Set.new
+            state = ProcessingState.new(reverse_dependencies, roots.to_a)
             while true
-                if queue.empty?
+                pending_task = state.pop
+                if !pending_task
                     # If we have pending workers, wait for one to be finished
                     # until either they are all finished or the queue is not
                     # empty anymore
-                    while queue.empty? && available_workers.size != workers.size
-                        wait_for_worker_to_end(processed, queue)
+                    while !pending_task && available_workers.size != workers.size
+                        wait_for_worker_to_end(state)
+                        pending_task = state.pop
                     end
 
-                    if queue.empty? && available_workers.size == workers.size
+                    if !pending_task && available_workers.size == workers.size
                         break
                     end
                 end
 
-                pending_task = queue.pop
                 if pending_task.instance_variable_get(:@already_invoked) || !pending_task.needed?
-                    process_finished_task(pending_task, processed, queue)
+                    state.process_finished_task(pending_task)
                     next
                 end
 
@@ -120,7 +150,7 @@ module Autobuild
                 job_server.get
 
                 while !finished_workers.empty?
-                    wait_for_worker_to_end(processed, queue)
+                    wait_for_worker_to_end(state)
                 end
 
                 # We do have a job server token, so we are allowed to allocate a
@@ -132,10 +162,11 @@ module Autobuild
                 end
 
                 worker = available_workers.pop
+                state.mark_as_active(pending_task)
                 worker.queue(pending_task)
             end
 
-            if processed.size != tasks.size
+            if state.processed.size != tasks.size
                 with_cycle = tasks.to_set
                 raise "cycle in task graph: #{with_cycle.map(&:name).sort.join(", ")}"
             end
