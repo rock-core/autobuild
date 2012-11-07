@@ -64,6 +64,7 @@ module Autobuild
         class ProcessingState
             attr_reader :reverse_dependencies
             attr_reader :processed
+            attr_reader :started_packages
             attr_reader :active_packages
             attr_reader :queue
 
@@ -71,16 +72,28 @@ module Autobuild
                 @reverse_dependencies = reverse_dependencies
                 @processed = Set.new
                 @active_packages = Set.new
+                @started_packages = Set.new
                 @queue = initial_queue.to_set
             end
 
-            def pop
-                candidate = queue.find do |task|
+            def find_task
+                possible_task = nil
+                queue.each do |task|
                     if task.respond_to?(:package)
-                        !active_packages.include?(task.package)
-                    else true
+                        if !active_packages.include?(task.package)
+                            if started_packages.include?(task.package)
+                                return task
+                            end
+                            possible_task ||= task
+                        end
+                    else possible_task ||= task
                     end
                 end
+                possible_task
+            end
+
+            def pop
+                candidate = find_task
                 queue.delete(candidate)
                 candidate
             end
@@ -88,6 +101,7 @@ module Autobuild
             def mark_as_active(pending_task)
                 if pending_task.respond_to?(:package)
                     active_packages << pending_task.package
+                    started_packages << pending_task.package
                 end
             end
 
