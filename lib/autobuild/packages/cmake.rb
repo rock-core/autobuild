@@ -339,6 +339,24 @@ module Autobuild
                             progress "building %s (#{Integer($1)}%%)"
                         end
                     end
+
+                    warning = String.new
+                    Autobuild.make_subcommand(self, 'build') do |line|
+                        iswarning = false
+                        if line =~ /\[\s*(\d+)%\]/
+                            progress "building %s (#{Integer($1)}%%)"
+                        elsif (line =~
+/^(Linking)|^(Scanning)|^(Building)|^(Built)/) == nil
+                            warning += line
+                            iswarning = true
+                        end
+                        if(!iswarning && !warning.empty?)
+                            line.split("\n").each do |line|
+                                message "%s: #{line}", :magenta
+                            end
+                            warning.clear
+                        end
+                    end
                 end
             end
             Autobuild.touch_stamp(buildstamp)
