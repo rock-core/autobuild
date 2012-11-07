@@ -229,7 +229,7 @@ module Autobuild
             io.puts shell_line
         end
         variables.each do |var|
-            io.puts SHELL_VAR_EXPANSION % [var]
+            io.puts SHELL_EXPORT_COMMAND % [var]
         end
         @env_source_after.each do |path|
             io.puts SHELL_SOURCE_SCRIPT % [path]
