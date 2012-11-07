@@ -12,6 +12,10 @@ module Autobuild
         @windows
     end
 
+    ORIGINAL_ENV = Hash.new
+    ENV.each do |k, v|
+        ORIGINAL_ENV[k] = v
+    end
     ENV_LIST_SEPARATOR =
         if windows? then ';'
         else ':'
@@ -67,21 +71,42 @@ module Autobuild
         attr_reader :env_source_after
     end
 
-    # Removes any settings related to the environment varialbe +name+, or for
-    # all environment variables if no name is given
+    # Resets the value of +name+ to its original value. If it is inherited from
+    # the 
+    def self.env_reset(name = nil)
+        if name
+            environment.delete(name)
+            inherited_environment.delete(name)
+            env_init_from_env(name)
+        else
+            environment.keys.each do |name|
+                env_reset(name)
+            end
+        end
+    end
+
+    # Unsets any value on the environment variable +name+, including inherited
+    # value.
+    #
+    # In a bourne shell, this would be equivalent to doing
+    #   
+    #   unset name
+    #
     def self.env_clear(name = nil)
         if name
             environment[name] = nil
             inherited_environment[name] = nil
+            env_update_var(name)
         else
-            environment.clear
-            inherited_environment.clear
+            environment.keys.each do |name|
+                env_clear(name)
+            end
         end
     end
 
     # Set a new environment variable
     def self.env_set(name, *values)
-        env_clear(name)
+        env_reset(name)
         env_add(name, *values)
     end
 
@@ -116,14 +141,18 @@ module Autobuild
     # See Autoproj.env_inherit?
     def self.env_inherit(*names)
         @env_inherited_variables |= names
+        names.each do |env_name|
+            env_init_from_env(env_name)
+        end
     end
 
     def self.env_init_from_env(name)
-        if env_inherit?(name) && (parent_env = ENV[name])
+        if env_inherit?(name) && (parent_env = ORIGINAL_ENV[name])
             inherited_environment[name] = parent_env.split(ENV_LIST_SEPARATOR)
         else
             inherited_environment[name] = Array.new
         end
+        env_update_var(name)
     end
 
     def self.env_push(name, *values)
@@ -154,9 +183,11 @@ module Autobuild
 
         values.concat(set)
         @environment[name] = values
+        env_update_var(name)
+    end
 
-        inherited = inherited_environment[name] || Array.new
-        ENV[name] = (values + inherited).join(ENV_LIST_SEPARATOR)
+    def self.env_update_var(name)
+        ENV[name] = ((environment[name] || []) + (inherited_environment[name] || [])).join(ENV_LIST_SEPARATOR)
     end
 
     def self.env_add_path(name, *paths)
