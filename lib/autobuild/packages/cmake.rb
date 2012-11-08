@@ -351,10 +351,10 @@ module Autobuild
                             iswarning = true
                         end
                         if(!iswarning && !warning.empty?)
-                            line.split("\n").each do |line|
-                                message "%s: #{line}", :magenta
+                            warning.split("\n").each do |l|
+                                message "%s: #{l}", :magenta
                             end
-                            warning.clear
+                            warning = ""
                         end
                     end
                 end
