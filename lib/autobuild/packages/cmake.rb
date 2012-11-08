@@ -336,7 +336,7 @@ module Autobuild
 
                     Autobuild.make_subcommand(self, 'build') do |line|
                         if line =~ /\[\s+(\d+)%\]/
-                            progress "building %s (#{Integer($1)}%%)"
+                            progress "building %s (#{Integer($1)}%)"
                         end
                     end
 
@@ -344,7 +344,7 @@ module Autobuild
                     Autobuild.make_subcommand(self, 'build') do |line|
                         iswarning = false
                         if line =~ /\[\s*(\d+)%\]/
-                            progress "building %s (#{Integer($1)}%%)"
+                            progress "building %s (#{Integer($1)}%)"
                         elsif (line =~
 /^(Linking)|^(Scanning)|^(Building)|^(Built)/) == nil
                             warning += line
