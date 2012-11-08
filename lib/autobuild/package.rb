@@ -404,7 +404,7 @@ module Autobuild
         # In general, specific package types define a meaningful #with_doc
         # method which calls this method internally.
         def doc_task
-            @doc_task = task "#{name}-doc" do
+            @doc_task = task "#{name}-doc" => "#{name}-build" do
                 # This flag allows to disable documentation generation
                 # once doc_task has been called
                 if generates_doc?
