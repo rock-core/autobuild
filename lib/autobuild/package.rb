@@ -267,10 +267,23 @@ module Autobuild
             task "#{name}-build" => installstamp
         end
 
-        def process_formatting_string(msg)
-            msg % [name]
-        rescue ArgumentError => e
-            msg
+        def process_formatting_string(msg, prefix_style = nil)
+            prefix, suffix = [], []
+            msg.split(" ").each do |token|
+                if token == "%s"
+                    suffix << name
+                elsif suffix.empty?
+                    prefix << token
+                else suffix << token
+                end
+            end
+            if suffix.empty?
+                return msg
+            elsif !prefix_style
+                return (prefix + suffix).join(" ")
+            else
+                return [Autobuild.color(prefix.join(" "), *prefix_style), *suffix].join(" ")
+            end
         end
 
         # Display a progress message. %s in the string is replaced by the
@@ -295,7 +308,7 @@ module Autobuild
         end
 
         def progress_start(*args, &block)
-            args[0] = process_formatting_string(args[0])
+            args[0] = process_formatting_string(args[0], :bold)
             if args.last.kind_of?(Hash)
                 options, raw_options = Kernel.filter_options args.last, :done_message
                 if options[:done_message]
@@ -308,7 +321,7 @@ module Autobuild
         end
 
         def progress(*args)
-            args[0] = process_formatting_string(args[0])
+            args[0] = process_formatting_string(args[0], :bold)
             Autobuild.progress(self, *args)
         end
 

@@ -316,7 +316,7 @@ module Autobuild
                     end
                     command << srcdir
                     
-                    progress_start "configuring CMake build system for %s", :done_message => "configured CMake build system for %s" do
+                    progress_start "configuring CMake for %s", :done_message => "configured CMake for %s" do
                         if full_reconfigures?
                             FileUtils.rm_f cmake_cache
                         end

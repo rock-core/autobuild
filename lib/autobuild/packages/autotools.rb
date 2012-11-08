@@ -220,7 +220,7 @@ module Autobuild
 
                     autodetect_needed_stages
 
-                    progress_start "generating build system for %s", :done_message => 'generated build system for %s' do
+                    progress_start "generating autotools for %s", :done_message => 'generated autotools for %s' do
                         if using[:libtool]
                             Subprocess.run(self, 'configure', Autobuild.tool('libtoolize'), '--copy')
                         end
@@ -257,7 +257,7 @@ module Autobuild
                     command << "--prefix=#{prefix}"
                     command += Array[*configureflags]
                     
-                    progress_start "configuring build system for %s", :done_message => 'configured build system for %s' do
+                    progress_start "configuring autotools for %s", :done_message => 'configured autotools for %s' do
                         Subprocess.run(self, 'configure', *command)
                     end
                 end
