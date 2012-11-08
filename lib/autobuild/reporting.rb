@@ -135,8 +135,72 @@ module Autobuild
         found
     end
 
+    def self.find_common_prefix(msg, other_msg)
+        msg = msg.split(" ")
+        other_msg = other_msg.split(" ")
+        msg.each_with_index do |token, idx|
+            if other_msg[idx] != token
+                prefix = msg[0..(idx - 1)].join(" ")
+                if !prefix.empty?
+                    prefix << " "
+                end
+                return prefix
+            end
+        end
+        return msg
+    end
+
+    def self.format_progress_message(messages)
+        messages = messages.sort
+
+        groups = Array.new
+        groups << ["", (0...messages.size)]
+        messages.each_with_index do |msg, idx|
+            prefix, grouping = nil, false
+            messages[(idx + 1)..-1].each_with_index do |other_msg, other_idx|
+                other_idx += idx + 1
+                prefix ||= find_common_prefix(msg, other_msg)
+                break if !other_msg.start_with?(prefix)
+
+                if grouping
+                    break if prefix != groups.last[0]
+                    groups.last[1] << other_idx
+                else
+                    current_prefix, current_group = groups.last
+                    if prefix.size > current_prefix.size # create a new group from there
+                        groups.last[1] = (current_group.first..[idx-1,current_group.last].min)
+                        groups << [prefix, [idx, other_idx]]
+                        grouping = true
+                    else break
+                    end
+                end
+            end
+        end
+        if groups.last.last.last < messages.size
+            groups << ["", (groups.last.last.last + 1)...(messages.size)]
+        end
+
+        result = []
+        groups.each do |prefix, indexes|
+            if prefix.empty?
+                indexes.each do |index|
+                    result << messages[index]
+                end
+            else
+                grouped_messages = []
+                indexes.each do |index|
+                    grouped_messages << messages[index][(prefix.size)..-1]
+                end
+                if !grouped_messages.empty?
+                    result << "#{prefix}#{grouped_messages.join(", ")}"
+                end
+            end
+        end
+        result.join(" | ")
+    end
+
     def self.display_progress
-        msg = "#{progress_messages.map(&:last).sort.join(" | ")}"
+        msg = format_progress_message(progress_messages.map(&:last))
         if @last_progress_msg 
             if !silent?
                 print "\r" + " " * @last_progress_msg.length
