@@ -42,7 +42,7 @@ module Autobuild
             available_workers << w
             if error
                 if available_workers.size != workers.size
-                    Autobuild.message "got an error doing parallel processing, waiting for pending jobs to end"
+                    Autobuild.error "got an error doing parallel processing, waiting for pending jobs to end"
                 end
                 finish_pending_work
                 raise error
