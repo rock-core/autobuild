@@ -637,6 +637,18 @@ module Autobuild
         ensure
             @in_dir_stack.pop
         end
+
+        # Make sure that this package will be ignored in the build
+        def disable
+            %w{import prepare build doc}.each do |phase|
+                task "#{name}-#{phase}"
+                t = Rake::Task["#{name}-#{phase}"]
+                def t.needed?; false end
+            end
+            task(installstamp)
+            t = Rake::Task[installstamp]
+            def t.needed?; false end
+        end
     end
 
     def self.package_set(spec)
