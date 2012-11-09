@@ -201,18 +201,17 @@ module Autobuild
 
     def self.display_progress
         msg = format_progress_message(progress_messages.map(&:last))
-        if @last_progress_msg 
-            if !silent?
-                print "\r" + " " * @last_progress_msg.length
+        last_msg_length =
+            if @last_progress_msg then @last_progress_msg.length
+            else 0
             end
-        end
 
         if msg.empty?
-            print "\r" if !silent?
+            print "\r" + " " * last_msg_length if !silent?
             @last_progress_msg = nil
         else
             msg = "  #{msg}"
-            print "\r#{msg}" if !silent?
+            print "\r#{msg}#{" " * [last_msg_length - msg.length, 0].max}" if !silent?
             @last_progress_msg = msg
         end
     end
