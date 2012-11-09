@@ -267,11 +267,11 @@ module Autobuild
             task "#{name}-build" => installstamp
         end
 
-        def process_formatting_string(msg, prefix_style = nil)
+        def process_formatting_string(msg, *prefix_style)
             prefix, suffix = [], []
             msg.split(" ").each do |token|
-                if token == "%s"
-                    suffix << name
+                if token =~ /%s/
+                    suffix << token.gsub(/%s/, name)
                 elsif suffix.empty?
                     prefix << token
                 else suffix << token
@@ -279,7 +279,7 @@ module Autobuild
             end
             if suffix.empty?
                 return msg
-            elsif !prefix_style
+            elsif prefix_style.empty?
                 return (prefix + suffix).join(" ")
             else
                 return [Autobuild.color(prefix.join(" "), *prefix_style), *suffix].join(" ")
@@ -327,7 +327,7 @@ module Autobuild
 
         def progress_done(done_message = nil)
             if done_message
-                progress(done_message)
+                progress(process_formatting_string(done_message))
             end
             Autobuild.progress_done(self)
         end
