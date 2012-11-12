@@ -12,6 +12,11 @@ module Autobuild
         @windows
     end
 
+    @macos =  RbConfig::CONFIG["host_os"] = ~%r!([Dd]arwin)!
+    def self.macos?
+        @macos
+    end
+
     ORIGINAL_ENV = Hash.new
     ENV.each do |k, v|
         ORIGINAL_ENV[k] = v

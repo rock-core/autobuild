@@ -32,6 +32,8 @@ module Autobuild
         def initialize(options)
             @using = Hash.new
 	    @configureflags = []
+            
+            Autobuild.programs['automake'] = "glibtoolize" if Autobuild.macos?
 
             super
         end
