@@ -187,7 +187,11 @@ module Autobuild
     end
 
     def self.env_update_var(name)
-        ENV[name] = ((environment[name] || []) + (inherited_environment[name] || [])).join(ENV_LIST_SEPARATOR)
+        if !environment[name] && !inherited_environment[name]
+            ENV.delete(name)
+        else
+            ENV[name] = ((environment[name] || []) + (inherited_environment[name] || [])).join(ENV_LIST_SEPARATOR)
+        end
     end
 
     def self.env_add_path(name, *paths)
