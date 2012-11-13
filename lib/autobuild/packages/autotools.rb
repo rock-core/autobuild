@@ -11,6 +11,10 @@ module Autobuild
         Autotools.new(opts, &proc)
     end
         
+    if Autobuild.macos?
+        Autobuild.programs['libtoolize'] = "glibtoolize"
+    end
+
     # 
     # ==== Handles autotools-based packages
     #
@@ -33,8 +37,6 @@ module Autobuild
             @using = Hash.new
 	    @configureflags = []
             
-            Autobuild.programs['automake'] = "glibtoolize" if Autobuild.macos?
-
             super
         end
         
