@@ -638,16 +638,23 @@ module Autobuild
             @in_dir_stack.pop
         end
 
+        def disabled?
+            @disabled
+        end
+
         # Make sure that this package will be ignored in the build
         def disable
+            @disabled = true
             %w{import prepare build doc}.each do |phase|
                 task "#{name}-#{phase}"
                 t = Rake::Task["#{name}-#{phase}"]
                 def t.needed?; false end
+                t.instance_variable_set :@already_invoked, true
             end
             task(installstamp)
             t = Rake::Task[installstamp]
             def t.needed?; false end
+            t.instance_variable_set :@already_invoked, true
         end
     end
 
