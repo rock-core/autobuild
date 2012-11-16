@@ -87,12 +87,28 @@ class Importer
     end
 
     def patches
-        if @options[:patches].respond_to?(:to_ary)
-            @options[:patches]
-        elsif !@options[:patches]
-            []
+        patches =
+            if @options[:patches].respond_to?(:to_ary)
+                @options[:patches]
+            elsif !@options[:patches]
+                []
+            else
+                [[@options[:patches], 0]]
+            end
+
+        if patches.size == 2 && patches[0].respond_to?(:to_str) && patches[1].respond_to?(:to_int)
+            patches = [patches]
         else
-            [@options[:patches]]
+            patches.map do |obj|
+                if obj.respond_to?(:to_str)
+                    [obj, 0]
+                elsif obj.respond_to?(:to_ary)
+                    obj
+                else
+                    raise Arguments, "wrong patch specification #{obj.inspect}"
+                    obj
+                end
+            end
         end
     end
 
@@ -226,23 +242,35 @@ class Importer
         File.join(package.srcdir, "patches-autobuild-stamp")
     end
 
-    def call_patch(package, reverse, file)
+    def call_patch(package, reverse, file, patch_level)
         patch = Autobuild.tool('patch')
         Dir.chdir(package.srcdir) do
-            Subprocess.run(package, :patch, patch, '-p0', (reverse ? '-R' : nil), '--forward', :input => file)
+            Subprocess.run(package, :patch, patch, "-p#{patch_level}", (reverse ? '-R' : nil), '--forward', :input => file)
         end
     end
 
-    def apply(package, path);   call_patch(package, false, path) end
-    def unapply(package, path); call_patch(package, true, path)   end
+    def apply(package, path, patch_level = 0);   call_patch(package, false, path, patch_level) end
+    def unapply(package, path, patch_level = 0); call_patch(package, true, path, patch_level)   end
 
     def currently_applied_patches(package)
         patches_file = patchlist(package)
         if !File.exists?(patches_file) then []
         else
+            current_patches = []
             File.open(patches_file) do |f| 
-                f.readlines.collect { |path| path.rstrip } 
+                f.readlines.each do |line|
+                    line = line.rstrip
+                    if line =~ /^(.*)\s+(\d+)$/
+                        path = $1
+                        level = Integer($2)
+                    else
+                        path = line
+                        level = 0
+                    end
+                    current_patches << [path, level]
+                end
             end
+            current_patches
         end
     end
 
@@ -268,17 +296,18 @@ class Importer
             end
 
             while p = cur_patches.last
-                unapply(package, p) 
+                p, level = *p
+                unapply(package, p, level)
                 cur_patches.pop
             end
 
-            patches.to_a.each do |p| 
-                apply(package, p) 
-                cur_patches << p
+            patches.to_a.each do |p, level|
+                apply(package, p, level)
+                cur_patches << [p, level]
 	    end
         ensure
             File.open(patchlist(package), 'w+') do |f|
-                f.write(cur_patches.join("\n"))
+                f.write(cur_patches.map { |p, l| "#{p} #{l}" }.join("\n"))
             end
         end
 
