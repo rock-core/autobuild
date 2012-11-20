@@ -11,7 +11,8 @@ Utilrb::Rake.hoe do
 
         self.extra_deps <<
             ['rake', '>= 0.7.0'] <<
-            ['utilrb', '>= 1.3.3']
+            ['utilrb', '>= 1.3.3'] <<
+            ['highline', '>= 0']
     end
     Rake.clear_tasks(/publish_docs/, /default/)
 end
