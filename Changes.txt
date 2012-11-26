@@ -1,3 +1,6 @@
+== Version 1.6.4
+* quickfix: add missing dependency on highline
+
 == Version 1.6.3
 * quickfix: force ordering of doc and build tasks (see commit b5efd01 for
   details)
