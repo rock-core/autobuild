@@ -33,6 +33,15 @@ module Autobuild
         Autobuild.silent = silent
     end
 
+    def self.progress_display_enabled?
+        @progress_display_enabled
+    end
+
+    def self.progress_display_enabled=(value)
+        @progress_display_enabled = value
+    end
+
+    @progress_display_enabled = true
 
     def self.message(*args)
         return if silent?
@@ -46,6 +55,11 @@ module Autobuild
             if args.empty? then ""
             else "#{color(*args)}"
             end
+
+        if !Autobuild.progress_display_enabled?
+            puts msg
+            return
+        end
 
         size =
             if @last_progress_msg then @last_progress_msg.size
@@ -84,7 +98,11 @@ module Autobuild
         progress_done(key)
         display_lock.synchronize do
             progress_messages << [key, color(*args)]
-            display_progress
+            if Autobuild.progress_display_enabled?
+                display_progress
+            else
+                display_message("  " + color(*args))
+            end
         end
 
         if block_given?
@@ -114,9 +132,13 @@ module Autobuild
             if !found
                 progress_messages << [key, color(*args)]
             end
+
+            return if !Autobuild.progress_display_enabled?
+
             display_progress
         end
     end
+
     def self.progress_done(key, display_last = true)
         found = false
         display_lock.synchronize do
@@ -127,9 +149,13 @@ module Autobuild
                     last_msg = msg
                 end
             end
-            if found && @last_progress_msg
-                display_message("  #{last_msg}") if display_last && last_msg
-                display_progress
+            if found
+                if display_last
+                    display_message("  #{last_msg}")
+                end
+                if @last_progress_msg
+                    display_progress
+                end
             end
         end
         found
@@ -207,12 +233,21 @@ module Autobuild
             end
 
         if msg.empty?
-            print "\r" + " " * last_msg_length if !silent?
+            blank = " " * last_msg_length
             @last_progress_msg = nil
         else
             msg = "  #{msg}"
-            print "\r#{msg}#{" " * [last_msg_length - msg.length, 0].max}" if !silent?
+            blank = " " * [last_msg_length - msg.length, 0].max
             @last_progress_msg = msg
+        end
+
+        if !silent?
+            if Autobuild.progress_display_enabled?
+                print "\r#{msg}#{blank}"
+                print "\r#{msg}"
+            elsif @last_progress_msg
+                puts msg
+            end
         end
     end
 
