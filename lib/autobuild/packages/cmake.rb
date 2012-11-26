@@ -326,6 +326,25 @@ module Autobuild
             end
         end
 
+        def show_make_messages?
+            if !@show_make_messages.nil?
+                @show_make_messages
+            else CMake.show_make_messages?
+            end
+        end
+
+        def show_make_messages=(value)
+            @show_make_messages = value
+        end
+
+        def self.show_make_messages?
+            @show_make_messages
+        end
+
+        def self.show_make_messages=(value)
+            @show_make_messages = value
+        end
+
         # Do the build in builddir
         def build
             in_dir(builddir) do
@@ -340,21 +359,23 @@ module Autobuild
                         end
                     end
 
-                    warning = String.new
-                    Autobuild.make_subcommand(self, 'build') do |line|
-                        iswarning = false
-                        if line =~ /\[\s*(\d+)%\]/
-                            progress "building %s (#{Integer($1)}%)"
-                        elsif (line =~
-/^(Linking)|^(Scanning)|^(Building)|^(Built)/) == nil
-                            warning += line
-                            iswarning = true
-                        end
-                        if(!iswarning && !warning.empty?)
-                            warning.split("\n").each do |l|
-                                message "%s: #{l}", :magenta
+                    if show_make_messages?
+                        warning = String.new
+                        Autobuild.make_subcommand(self, 'build') do |line|
+                            iswarning = false
+                            if line =~ /\[\s*(\d+)%\]/
+                                progress "building %s (#{Integer($1)}%)"
+                            elsif (line =~
+    /^(Linking)|^(Scanning)|^(Building)|^(Built)/) == nil
+                                warning += line
+                                iswarning = true
                             end
-                            warning = ""
+                            if(!iswarning && !warning.empty?)
+                                warning.split("\n").each do |l|
+                                    message "%s: #{l}", :magenta
+                                end
+                                warning = ""
+                            end
                         end
                     end
                 end
