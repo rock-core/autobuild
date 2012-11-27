@@ -1,3 +1,6 @@
+== Version 1.6.5
+* bump required rake version
+
 == Version 1.6.4
 * quickfix: add missing dependency on highline
 
