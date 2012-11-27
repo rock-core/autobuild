@@ -10,8 +10,8 @@ Utilrb::Rake.hoe do
         self.email = %q{rock-dev@dfki.de}
 
         self.extra_deps <<
-            ['rake', '>= 0.7.0'] <<
-            ['utilrb', '>= 1.3.3'] <<
+            ['rake', '>= 0.9.0'] <<
+            ['utilrb', '>= 1.6.0'] <<
             ['highline', '>= 0']
     end
     Rake.clear_tasks(/publish_docs/, /default/)
