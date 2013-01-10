@@ -84,7 +84,13 @@ module Autobuild
 	# Absolute path to the installation directory. See #prefix=
 	def prefix; File.expand_path(@prefix || '', Autobuild.prefix) end
         # Absolute path to the log directory for this package. See #logdir=
-        def logdir; File.expand_path(@logdir || 'log', prefix) end
+        def logdir
+            if @logdir
+                File.expand_path(@logdir, prefix)
+            else
+                Autobuild.logdir
+            end
+        end
 
 	# The file which marks when the last sucessful install
 	# has finished. The path is absolute
