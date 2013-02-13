@@ -1,4 +1,5 @@
 require 'autobuild/importer'
+require 'digest/sha1'
 require 'open-uri'
 require 'fileutils'
 
@@ -131,14 +132,22 @@ module Autobuild
                     raise
                 end
                 FileUtils.mv "#{cachefile}.partial", cachefile
-                true
             end
+
+            @cachefile_digest = Digest::SHA1.base64digest File.read(cachefile)
+
+            do_update
         end
 
 	# The source URL
         attr_reader :url
 	# The local file (either a downloaded file if +url+ is not local, or +url+ itself)
 	attr_reader :cachefile
+        # The SHA1 digest of the current cachefile. It is updated only once the
+        # cachefile has been downloaded
+        #
+        # @return [String] base64-encoded SHA1 digest of the file
+        attr_reader :cachefile_digest
 	# The unpack mode. One of Zip, Bzip, Gzip or Plain
 	attr_reader :mode
 	# The directory in which remote files are cached
@@ -195,8 +204,39 @@ module Autobuild
             raise Autobuild::Exception.new(package.name, :import)
         end
 
+        def checkout_digest_stamp(package)
+            File.join(package.srcdir, "autobuild-archive-stamp")
+        end
+
+        # Returns true if the archive that has been used to checkout this
+        # package is different from the one we are supposed to checkout now
+        def archive_changed?(package)
+            if !File.exists?(checkout_digest_stamp)
+                return false
+            end
+
+            checkout_digest = File.read(archive_stamp_path).strip
+            checkout_digest != cachefile_digest
+        end
+
         def checkout(package) # :nodoc:
             update_cache(package)
+
+            # Check whether the archive file changed, and if that is the case
+            # then ask the user about deleting the folder
+            if archive_changed?(package)
+                Autobuild.message "the archive #{@url.to_s} is different from the one currently checked out at #{package.srcdir}"
+                Autobuild.message "I will have to delete the current folder to go on with the update"
+                response = HighLine.ask "Continue ? (if no, this update will be ignored, which can lead to build problems)", [TrueClass,FalseClass]
+                if !response
+                    Autobuild.message "Not updating #{package.srcdir}"
+                    return
+                else
+                    Autobuild.message "Deleting #{package.srcdir}"
+                    FileUtils.rm_rf package.srcdir
+                end
+            end
+
             # Un-apply any existing patch so that, when the files get
             # overwritten by the new checkout, the patch are re-applied
             patch(package, [])
@@ -230,6 +270,10 @@ module Autobuild
                 else
                     Subprocess.run(package, :import, Autobuild.tool('tar'), *cmd)
                 end
+            end
+
+            File.open(checkout_digest_stamp, 'w') do |io|
+                io.write cachefile_digest
             end
 
         rescue OpenURI::HTTPError
