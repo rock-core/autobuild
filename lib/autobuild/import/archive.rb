@@ -47,44 +47,42 @@ module Autobuild
 
 		
 	def get_url_on_windows(url, filename)
-		uri = URI(url)		
-		STDOUT.puts("Host: #{uri.host} Port: #{uri.port} url: #{url}")
-		
-		http = Net::HTTP.new(uri.host,uri.port)
-		http.use_ssl = true if uri.port == 443
-		http.verify_mode = OpenSSL::SSL::VERIFY_NONE  #Unsure, critical?, Review this
-		resp = http.get(uri.request_uri)
-		
-		if resp.code == "301" or resp.code == "302"
-			get_url_on_windows(resp.header['location'],filename)
-		else
-			if(resp.message != 'OK')
-				raise "Could not get File from url \"#{url}\", got response #{resp.message} (#{resp.code})"
-			end
-			open(filename, "wb") do |file|
-				file.write(resp.body)
-			end
-		end
+            uri = URI(url)		
+
+            http = Net::HTTP.new(uri.host,uri.port)
+            http.use_ssl = true if uri.port == 443
+            http.verify_mode = OpenSSL::SSL::VERIFY_NONE  #Unsure, critical?, Review this
+            resp = http.get(uri.request_uri)
+
+            if resp.code == "301" or resp.code == "302"
+                get_url_on_windows(resp.header['location'],filename)
+            else
+                if resp.message != 'OK'
+                    raise "Could not get File from url \"#{url}\", got response #{resp.message} (#{resp.code})"
+                end
+                open(filename, "wb") do |file|
+                    file.write(resp.body)
+                end
+            end
 	end
 	
-	def extract_tar_on_windows(filename,target)
-	
-		Gem::Package::TarReader.new(Zlib::GzipReader.open(filename)).each do |entry|
-			newname = File.join(target,entry.full_name.slice(entry.full_name.index('/'),entry.full_name.size))
-			if(entry.directory?)
-				FileUtils.mkdir_p(newname)
-			end
-			if(entry.file?)
-				dir = newname.slice(0,newname.rindex('/'))
-				if(!File.directory?(dir))
-					FileUtils.mkdir_p(dir)
-				end
-				open(newname, "wb") do |file|
-					file.write(entry.read)
-				end
-			end
-		end
-	end
+        def extract_tar_on_windows(filename,target)
+            Gem::Package::TarReader.new(Zlib::GzipReader.open(filename)).each do |entry|
+                newname = File.join(target,entry.full_name.slice(entry.full_name.index('/'),entry.full_name.size))
+                if(entry.directory?)
+                    FileUtils.mkdir_p(newname)
+                end
+                if(entry.file?)
+                    dir = newname.slice(0,newname.rindex('/'))
+                    if(!File.directory?(dir))
+                        FileUtils.mkdir_p(dir)
+                    end
+                    open(newname, "wb") do |file|
+                        file.write(entry.read)
+                    end
+                end
+            end
+        end
 	
 	# Updates the downloaded file in cache only if it is needed
         def update_cache(package)
@@ -123,11 +121,11 @@ module Autobuild
             if do_update
                 FileUtils.mkdir_p(cachedir)
                 begin
-					if(WINDOWS)
-						get_url_on_windows(@url, "#{cachefile}.partial")
-					else
-						Subprocess.run(package, :import, Autobuild.tool('wget'), '-q', '-P', cachedir, @url, '-O', "#{cachefile}.partial")
-					end
+                    if(WINDOWS)
+                        get_url_on_windows(@url, "#{cachefile}.partial")
+                    else
+                        Subprocess.run(package, :import, Autobuild.tool('wget'), '-q', '-P', cachedir, @url, '-O', "#{cachefile}.partial")
+                    end
                 rescue Exception
                     FileUtils.rm_f "#{cachefile}.partial"
                     raise
@@ -227,17 +225,17 @@ module Autobuild
                     cmd << '--strip-components=1'
                 end
 				
-				if(WINDOWS)
-					extract_tar_on_windows(cachefile,package.srcdir)
-				else
-					Subprocess.run(package, :import, Autobuild.tool('tar'), *cmd)
-				end
+                if(WINDOWS)
+                    extract_tar_on_windows(cachefile,package.srcdir)
+                else
+                    Subprocess.run(package, :import, Autobuild.tool('tar'), *cmd)
+                end
             end
 
         rescue OpenURI::HTTPError
             raise Autobuild::Exception.new(package.name, :import)
         rescue SubcommandFailed
-			FileUtils.rm_f cachefile
+            FileUtils.rm_f cachefile
             raise
         end
     end
