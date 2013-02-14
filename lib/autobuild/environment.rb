@@ -385,7 +385,3 @@ module Autobuild
     end
 end
 
-Autobuild.update_environment '/', ['PKG_CONFIG_PATH']
-Autobuild.update_environment '/usr', ['PKG_CONFIG_PATH']
-Autobuild.update_environment '/usr/local', ['PKG_CONFIG_PATH']
-
