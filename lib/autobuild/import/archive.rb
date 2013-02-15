@@ -197,7 +197,11 @@ module Autobuild
         end
 
         def update(package) # :nodoc:
-            if update_cache(package)
+            if !File.file?(checkout_digest_stamp(package))
+                write_checkout_digest_stamp(package)
+            end
+
+            if update_cache(package) || archive_changed?(package)
                 checkout(package)
             end
         rescue OpenURI::HTTPError
@@ -205,17 +209,23 @@ module Autobuild
         end
 
         def checkout_digest_stamp(package)
-            File.join(package.srcdir, "autobuild-archive-stamp")
+            File.join(package.srcdir, "archive-autobuild-stamp")
+        end
+
+        def write_checkout_digest_stamp(package)
+            File.open(checkout_digest_stamp(package), 'w') do |io|
+                io.write cachefile_digest
+            end
         end
 
         # Returns true if the archive that has been used to checkout this
         # package is different from the one we are supposed to checkout now
         def archive_changed?(package)
-            if !File.exists?(checkout_digest_stamp)
+            if !File.exists?(checkout_digest_stamp(package))
                 return false
             end
 
-            checkout_digest = File.read(archive_stamp_path).strip
+            checkout_digest = File.read(checkout_digest_stamp(package)).strip
             checkout_digest != cachefile_digest
         end
 
@@ -225,15 +235,22 @@ module Autobuild
             # Check whether the archive file changed, and if that is the case
             # then ask the user about deleting the folder
             if archive_changed?(package)
-                Autobuild.message "the archive #{@url.to_s} is different from the one currently checked out at #{package.srcdir}"
-                Autobuild.message "I will have to delete the current folder to go on with the update"
-                response = HighLine.ask "Continue ? (if no, this update will be ignored, which can lead to build problems)", [TrueClass,FalseClass]
-                if !response
-                    Autobuild.message "Not updating #{package.srcdir}"
+                package.progress_done
+                package.message "The archive #{@url.to_s} is different from the one currently checked out at #{package.srcdir}", :bold
+                package.message "  I will have to delete the current folder to go on with the update"
+                response = HighLine.new.ask "  Continue (yes or no) ? If no, this update will be ignored, which can lead to build problems.", String do |q|
+                    q.overwrite = true
+                    q.in = ['yes', 'no']
+                    q.default = 'yes'
+                    q.case = :downcase
+                end
+                if response == "no"
+                    package.message "  Not updating #{package.srcdir}"
                     return
                 else
-                    Autobuild.message "Deleting #{package.srcdir}"
+                    package.message "  Deleting #{package.srcdir}"
                     FileUtils.rm_rf package.srcdir
+                    package.progress "checking out %s"
                 end
             end
 
@@ -271,10 +288,7 @@ module Autobuild
                     Subprocess.run(package, :import, Autobuild.tool('tar'), *cmd)
                 end
             end
-
-            File.open(checkout_digest_stamp, 'w') do |io|
-                io.write cachefile_digest
-            end
+            write_checkout_digest_stamp(package)
 
         rescue OpenURI::HTTPError
             raise Autobuild::Exception.new(package.name, :import)
