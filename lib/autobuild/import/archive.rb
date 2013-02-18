@@ -134,7 +134,7 @@ module Autobuild
                 FileUtils.mv "#{cachefile}.partial", cachefile
             end
 
-            @cachefile_digest = Digest::SHA1.base64digest File.read(cachefile)
+            @cachefile_digest = Digest::SHA1.hexdigest File.read(cachefile)
 
             do_update
         end
@@ -146,7 +146,7 @@ module Autobuild
         # The SHA1 digest of the current cachefile. It is updated only once the
         # cachefile has been downloaded
         #
-        # @return [String] base64-encoded SHA1 digest of the file
+        # @return [String] hexadecimal SHA1 digest of the file
         attr_reader :cachefile_digest
 	# The unpack mode. One of Zip, Bzip, Gzip or Plain
 	attr_reader :mode
