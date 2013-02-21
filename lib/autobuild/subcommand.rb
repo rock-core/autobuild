@@ -303,6 +303,9 @@ module Autobuild::Subprocess
             if outread
                 outwrite.close
                 outread.each_line do |line|
+                    if line.respond_to?(:force_encoding)
+                        line.force_encoding('BINARY')
+                    end
                     if Autobuild.verbose
                         STDOUT.print line
                     end
