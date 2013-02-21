@@ -1,3 +1,17 @@
+== Version 1.7.1
+* fix problems with encoding of subcommand output
+
+== Version 1.7.0
+* improved parallel build output. Autobuild tries to compress the output as much
+  as possible
+* integrated CMake parsing to output non-progress messages such as compiler
+  warnings / errors. It is disabled by default for now
+* cleaned behaviour of various env_* methods. In particular, env_clear now
+  causes the whole environment variable to be unset; env_inherit can be called
+  at anytime without loss of information
+* experimental support for Windows and MacOSX
+* allow to completely disable a package by calling #disable
+
 == Version 1.6.5
 * bump required rake version
 
