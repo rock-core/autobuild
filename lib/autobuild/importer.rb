@@ -67,6 +67,7 @@ class Importer
     # More options are specific to each importer type.
     def initialize(options)
         @options = options.dup
+        @options[:retry_count] = Integer(@options[:retry_count] || 0)
     end
 
     # The number of times update / checkout should be retried before giving up.
@@ -83,7 +84,7 @@ class Importer
     #
     # See also #retry_count
     def retry_count=(count)
-        @options[:retry_count] = count
+        @options[:retry_count] = Integer(count)
     end
 
     def patches
