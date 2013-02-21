@@ -181,6 +181,9 @@ module Autobuild::Subprocess
                     elsif Autobuild.registered_logfile?(logname) then 'a'
                     else 'w'
                     end
+        if defined? Encoding
+            open_flag << ":BINARY"
+        end
 
         Autobuild.register_logfile(logname)
 
