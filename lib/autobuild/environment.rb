@@ -12,7 +12,7 @@ module Autobuild
         @windows
     end
 
-    @macos =  RbConfig::CONFIG["host_os"] = ~%r!([Dd]arwin)!
+    @macos =  RbConfig::CONFIG["host_os"] =~%r!([Dd]arwin)!
     def self.macos?
         @macos
     end
