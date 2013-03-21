@@ -197,11 +197,13 @@ module Autobuild
         end
 
         def update(package) # :nodoc:
+            needs_update = update_cache(package)
+
             if !File.file?(checkout_digest_stamp(package))
                 write_checkout_digest_stamp(package)
             end
 
-            if update_cache(package) || archive_changed?(package)
+            if needs_update || archive_changed?(package)
                 checkout(package)
             end
         rescue OpenURI::HTTPError
