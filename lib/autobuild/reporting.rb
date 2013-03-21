@@ -83,8 +83,8 @@ module Autobuild
     end
 
     # Displays a warning message
-    def self.warn(message)
-        Autobuild.message("  WARN: #{message}", :magenta)
+    def self.warn(message, *style)
+        Autobuild.message("  WARN: #{message}", :magenta, *style)
     end
 
 
