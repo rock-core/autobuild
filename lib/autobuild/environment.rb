@@ -212,6 +212,13 @@ module Autobuild
         end
     end
 
+    def self.env_remove_path(name, *paths)
+        paths.each do |p|
+            environment[name].delete(p)
+        end
+        env_update_var(name)
+    end
+
     def self.env_push_path(name, *values)
         if current = environment[name]
             current = current.dup
