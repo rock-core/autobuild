@@ -53,6 +53,10 @@ module Autobuild
 	# set the source directory. If a relative path is given,
 	# it is relative to Autobuild.srcdir. Defaults to #name
 	attr_writer     :srcdir
+        # set the importdir, this can be different than the sourcedir
+        # if the source-root is in an subfolder of the package itself
+        # then the importdir will be the root
+        attr_writer     :importdir
 	# set the installation directory. If a relative path is given,
 	# it is relative to Autobuild.prefix. Defaults to ''
 	attr_writer :prefix
@@ -81,6 +85,8 @@ module Autobuild
 
 	# Absolute path to the source directory. See #srcdir=
 	def srcdir; File.expand_path(@srcdir || name, Autobuild.srcdir) end
+	# Absolute path to the import directory. See #importdir=
+	def importdir; File.expand_path(@importdir || srcdir, Autobuild.srcdir) end
 	# Absolute path to the installation directory. See #prefix=
 	def prefix; File.expand_path(@prefix || '', Autobuild.prefix) end
         # Absolute path to the log directory for this package. See #logdir=

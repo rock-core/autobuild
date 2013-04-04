@@ -153,7 +153,7 @@ class Importer
             if retry_count > self.retry_count
                 raise
             end
-            package.message "update failed in #{package.srcdir}, retrying (#{retry_count}/#{self.retry_count})"
+            package.message "update failed in #{package.importdir}, retrying (#{retry_count}/#{self.retry_count})"
             retry
         ensure
             package.progress_done "updated %s"
@@ -179,8 +179,8 @@ class Importer
                 if retry_count > self.retry_count
                     raise
                 end
-                package.message "checkout of %s failed, deleting the source directory #{package.srcdir} and retrying (#{retry_count}/#{self.retry_count})"
-                FileUtils.rm_rf package.srcdir
+                package.message "checkout of %s failed, deleting the source directory #{package.importdir} and retrying (#{retry_count}/#{self.retry_count})"
+                FileUtils.rm_rf package.importdir
                 retry
             end
         end
@@ -190,18 +190,18 @@ class Importer
     rescue Interrupt
         raise
     rescue ::Exception
-        package.message "checkout of %s failed, deleting the source directory #{package.srcdir}"
-        FileUtils.rm_rf package.srcdir
+        package.message "checkout of %s failed, deleting the source directory #{package.importdir}"
+        FileUtils.rm_rf package.importdir
         raise
     rescue Autobuild::Exception => e
-        FileUtils.rm_rf package.srcdir
+        FileUtils.rm_rf package.importdir
         fallback(e, package, :import, package)
     end
 
     # Performs the import of +package+
     def import(package)
-        srcdir = package.srcdir
-        if File.directory?(srcdir)
+        importdir = package.importdir
+        if File.directory?(importdir)
             package.isolate_errors(false) do
                 if Autobuild.do_update
                     perform_update(package)
@@ -213,8 +213,8 @@ class Importer
                 end
             end
 
-        elsif File.exists?(srcdir)
-            raise ConfigException.new(package, 'import'), "#{srcdir} exists but is not a directory"
+        elsif File.exists?(importdir)
+            raise ConfigException.new(package, 'import'), "#{importdir} exists but is not a directory"
         else
             perform_checkout(package)
         end
@@ -237,15 +237,15 @@ class Importer
 
     private
     
-    # We assume that package.srcdir already exists (checkout is supposed to
+    # We assume that package.importdir already exists (checkout is supposed to
     # have been called)
     def patchlist(package)
-        File.join(package.srcdir, "patches-autobuild-stamp")
+        File.join(package.importdir, "patches-autobuild-stamp")
     end
 
     def call_patch(package, reverse, file, patch_level)
         patch = Autobuild.tool('patch')
-        Dir.chdir(package.srcdir) do
+        Dir.chdir(package.importdir) do
             Subprocess.run(package, :patch, patch, "-p#{patch_level}", (reverse ? '-R' : nil), '--forward', :input => file)
         end
     end
