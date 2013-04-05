@@ -223,10 +223,6 @@ module Autobuild
         # Returns true if the archive that has been used to checkout this
         # package is different from the one we are supposed to checkout now
         def archive_changed?(package)
-            if !File.exists?(checkout_digest_stamp(package))
-                return false
-            end
-
             checkout_digest = File.read(checkout_digest_stamp(package)).strip
             checkout_digest != cachefile_digest
         end
@@ -236,7 +232,7 @@ module Autobuild
 
             # Check whether the archive file changed, and if that is the case
             # then ask the user about deleting the folder
-            if archive_changed?(package)
+            if File.file?(checkout_digest_stamp(package)) && archive_changed?(package)
                 package.progress_done
                 package.message "The archive #{@url.to_s} is different from the one currently checked out at #{package.srcdir}", :bold
                 package.message "  I will have to delete the current folder to go on with the update"
