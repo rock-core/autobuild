@@ -21,6 +21,21 @@ module Autobuild
     # * +install+ is ran after +build+.
     #   
     class Configurable < Package
+        # Set of regexp matching paths that should not be considered as source
+        # files
+        #
+        # This is used to determine whether the source code changed (and
+        # therefore whether the package should be rebuilt). Autobuild sets up a
+        # default set of common excludes, use this to add custom ones
+        #
+        # @return [Array<Regexp>]
+        attr_reader :source_tree_excludes
+
+        def initialize(spec = Hash.new)
+            @source_tree_excludes = Array.new
+            super
+        end
+
         class << self
             def builddir
                 if @builddir
@@ -81,6 +96,7 @@ module Autobuild
             source_tree srcdir do |pkg|
                 pkg.exclude << Regexp.new("^#{Regexp.quote(builddir)}")
                 pkg.exclude << Regexp.new("^#{Regexp.quote(doc_dir)}") if doc_dir
+                pkg.exclude.concat(self.source_tree_excludes)
             end
 
             super
