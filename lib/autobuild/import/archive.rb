@@ -44,6 +44,18 @@ module Autobuild
             end
         end
 
+        # Tells the importer that the checkout should be automatically deleted
+        # on update, without asking the user
+        # @return [Boolean] true if the archive importer should automatically
+        #   delete the current checkout when the archive changed, false
+        #   otherwise. The default is to set it to true if the
+        #   AUTOBUILD_ARCHIVE_AUTOUPDATE environment variable is set to 1, and
+        #   to false in all other cases
+        def self.auto_update?
+            @auto_update
+        end
+        @auto_update = (ENV['AUTOBUILD_ARCHIVE_AUTOUPDATE'] == '1')
+
         def update_cached_file?; @options[:update_cached_file] end
 
 		
@@ -233,15 +245,20 @@ module Autobuild
             # Check whether the archive file changed, and if that is the case
             # then ask the user about deleting the folder
             if File.file?(checkout_digest_stamp(package)) && archive_changed?(package)
-                package.progress_done
-                package.message "The archive #{@url.to_s} is different from the one currently checked out at #{package.srcdir}", :bold
-                package.message "  I will have to delete the current folder to go on with the update"
-                response = HighLine.new.ask "  Continue (yes or no) ? If no, this update will be ignored, which can lead to build problems.", String do |q|
-                    q.overwrite = true
-                    q.in = ['yes', 'no']
-                    q.default = 'yes'
-                    q.case = :downcase
+                if ArchiveImporter.auto_update?
+                    response = 'yes'
+                else
+                    package.progress_done
+                    package.message "The archive #{@url.to_s} is different from the one currently checked out at #{package.srcdir}", :bold
+                    package.message "  I will have to delete the current folder to go on with the update"
+                    response = HighLine.new.ask "  Continue (yes or no) ? If no, this update will be ignored, which can lead to build problems.", String do |q|
+                        q.overwrite = true
+                        q.in = ['yes', 'no']
+                        q.default = 'yes'
+                        q.case = :downcase
+                    end
                 end
+
                 if response == "no"
                     package.message "  Not updating #{package.srcdir}"
                     return
