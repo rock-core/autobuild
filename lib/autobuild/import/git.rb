@@ -223,16 +223,22 @@ module Autobuild
             return ($?.exitstatus != 0)
         end
 
+        def current_branch
+            current_branch = `git symbolic-ref HEAD -q`.chomp
+            if $?.exitstatus != 0
+                # HEAD cannot be resolved as a symbol. We are probably on a
+                # detached HEAD
+                return
+            end
+            return current_branch
+        end
+
         # Checks if the current branch is the target branch. Expects that the
         # current directory is the package's directory
         def on_target_branch?
-            current_branch = `git symbolic-ref HEAD -q`.chomp
-            if $?.exitstatus != 0
-                # HEAD cannot be resolved as a symbol. Assume that we are on a
-                # detached HEAD
-                return false
+            if current_branch = self.current_branch
+                current_branch == "refs/heads/#{local_branch}"
             end
-            current_branch == "refs/heads/#{local_branch}"
         end
 
         class Status < Importer::Status
