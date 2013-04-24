@@ -338,7 +338,7 @@ module Autobuild
         end
 
         def progress_done(done_message = nil)
-            if done_message
+            if done_message && Autobuild.has_progress_for?(self)
                 progress(process_formatting_string(done_message))
             end
             Autobuild.progress_done(self)

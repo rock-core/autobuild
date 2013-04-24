@@ -250,7 +250,7 @@ module Autobuild
                 else
                     package.progress_done
                     package.message "The archive #{@url.to_s} is different from the one currently checked out at #{package.srcdir}", :bold
-                    package.message "  I will have to delete the current folder to go on with the update"
+                    package.message "I will have to delete the current folder to go on with the update"
                     response = HighLine.new.ask "  Continue (yes or no) ? If no, this update will be ignored, which can lead to build problems.", String do |q|
                         q.overwrite = true
                         q.in = ['yes', 'no']
@@ -260,10 +260,11 @@ module Autobuild
                 end
 
                 if response == "no"
-                    package.message "  Not updating #{package.srcdir}"
+                    package.message "not updating #{package.srcdir}"
+                    package.progress_done
                     return
                 else
-                    package.message "  Deleting #{package.srcdir}"
+                    package.message "deleting #{package.srcdir} to update to new archive"
                     FileUtils.rm_rf package.srcdir
                     package.progress "checking out %s"
                 end

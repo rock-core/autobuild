@@ -87,6 +87,11 @@ module Autobuild
         Autobuild.message("  WARN: #{message}", :magenta, *style)
     end
 
+    # @return [Boolean] true if there is some progress messages for the given
+    #   key
+    def self.has_progress_for?(key)
+        progress_messages.any? { |msg_key, _| msg_key == key }
+    end
 
     def self.progress_start(key, *args)
         if args.last.kind_of?(Hash)
@@ -108,7 +113,7 @@ module Autobuild
         if block_given?
             begin
                 yield
-                if options[:done_message]
+                if options[:done_message] && has_progress_for?(key)
                     progress(key, *options[:done_message])
                 end
                 progress_done(key, true)
