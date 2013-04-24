@@ -159,9 +159,18 @@ module Autobuild
 		old_opt = options.find do |o|
                     if testflags.include?(o)
                         false
+                    elsif o =~ /^-/
+                        # Configuration option that is not specified, have to
+                        # reconfigure
+                        true
                     else
-                        name, value = o.split("=")
-                        ENV[name] != value
+                        # This is an envvar entry. Ignore it if it is not
+                        # explicitely given in configureflags
+                        varname, value = o.split("=").first
+                        if current_flag = testflags.find { |fl| fl =~ /^#{varname}=/ }
+                            current_flag != value
+                        else false
+                        end
                     end
                 end
 		new_opt = testflags.find { |o| !options.include?(o) }
