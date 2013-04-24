@@ -156,7 +156,14 @@ module Autobuild
 
 		# Add the --prefix option to the configureflags array
 		testflags = ["--prefix=#{prefix}"] + Array[*configureflags]
-		old_opt = options.find { |o| !testflags.include?(o) }
+		old_opt = options.find do |o|
+                    if testflags.include?(o)
+                        false
+                    else
+                        name, value = o.split("=")
+                        ENV[name] != value
+                    end
+                end
 		new_opt = testflags.find { |o| !options.include?(o) }
 		if old_opt || new_opt
                     if Autobuild.verbose
