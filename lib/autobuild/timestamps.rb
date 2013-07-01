@@ -69,6 +69,10 @@ module Autobuild
 	end
 	    
         def timestamp
+            if @newest_time
+                return @newest_time
+            end
+
             @newest_file, @newest_time =
                 Autobuild.tree_timestamp(name, %r#(?:^|/)(?:CVS|_darcs|\.svn)$#, *@exclude)
             @newest_time
