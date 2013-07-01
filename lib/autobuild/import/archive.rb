@@ -194,12 +194,18 @@ module Autobuild
             end
             @options[:cachedir] ||= "#{Autobuild.prefix}/cache"
 
+            relocate(url)
+        end
+
+        # Changes the URL from which we should pick the archive
+        def relocate(url, options = Hash.new)
             @url = URI.parse(url)
             if !VALID_URI_SCHEMES.include?(@url.scheme)
                 raise ConfigException, "invalid URL #{@url} (local files must be prefixed with file://)" 
             end
 
             filename = options[:filename] || File.basename(url).gsub(/\?.*/, '')
+
             @mode = options[:mode] || ArchiveImporter.filename_to_mode(filename)
             if @url.scheme == 'file'
                 @cachefile = @url.path

@@ -61,6 +61,9 @@ class Importer
         end
     end
 
+    # @return [Hash] the original option hash as given to #initialize
+    attr_reader :options
+
     # Creates a new Importer object. The options known to Importer are:
     # [:patches] a list of patch to apply after import
     #
@@ -203,7 +206,7 @@ class Importer
         importdir = package.importdir
         if File.directory?(importdir)
             package.isolate_errors(false) do
-                if Autobuild.do_update
+                if package.update?
                     perform_update(package)
                 else
                     if Autobuild.verbose
@@ -314,6 +317,8 @@ class Importer
 
         return true
     end
+
+    def supports_relocation?; false end
 end
 end
 

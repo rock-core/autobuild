@@ -106,6 +106,20 @@ module Autobuild
             File.join(logdir, "#{name}-#{STAMPFILE}")
         end
 
+        # Sets whether this package should update itself or not. If false, the
+        # only importer operation that will be performed is checkout
+        #
+        # If nil, the global setting Autobuild.do_update is used
+        attr_writer :update
+
+        # True if this package should update itself when #import is called
+        def update?
+            if @update.nil?
+                Autobuild.do_update
+            else @update
+            end
+        end
+
         attr_writer :updated
 
         # Returns true if this package has already been updated. It will not be

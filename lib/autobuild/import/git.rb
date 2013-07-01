@@ -427,6 +427,11 @@ module Autobuild
                 end
             end
         end
+
+        # Changes the repository this importer is pointing to
+        def relocate(repository)
+            @repository = repository
+        end
     end
 
     # Creates a git importer which gets the source for the given repository and branch
