@@ -117,6 +117,40 @@ module Autobuild
             end
         end
 
+        # Computes the merge status for this package between two existing tags
+        # Raises if a tag is unknown
+        def delta_between_tags(package, from_tag, to_tag)
+            Dir.chdir(package.importdir) do
+                pkg_tags = tags(package)
+                if not pkg_tags.has_key?(from_tag)
+                    raise ArgumentError, "tag '#{from_tag}' is unknown to #{package.name} -- known tags are: #{pkg_tags.keys}"
+                end
+                if not pkg_tags.has_key?(to_tag)
+                    raise ArgumentError, "tag '#{to_tag}' is unknown to #{package.name} -- known tags are: #{pkg_tags.keys}"
+                end
+
+                from_commit = pkg_tags[from_tag]
+                to_commit = pkg_tags[to_tag]
+
+                merge_status(package, to_commit, from_commit)
+           end
+        end
+
+        # Retrieve the tags of this packages as a hash mapping to the commit id
+        def tags(package)
+            Dir.chdir(package.importdir) do
+                `git fetch --tags -q`
+                tag_list = `git show-ref --tags`
+                tag_list = tag_list.split("\n")
+                @tags ||= Hash.new
+                tag_list.each do |entry|
+                    commit_to_tag = entry.split(" ")
+                    @tags[commit_to_tag[1].sub("refs/tags/","")] = commit_to_tag[0]
+                end
+                @tags
+            end
+        end
+
         # Fetches updates from the remote repository. Returns the remote commit
         # ID on success, nil on failure. Expects the current directory to be the
         # package's source directory.
