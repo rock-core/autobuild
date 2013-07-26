@@ -121,9 +121,17 @@ module Autobuild
     # Returns true if the given environment variable must not be reset by the
     # env.sh script, but that new values should simply be prepended to it.
     #
-    # See Autoproj.env_inherit
-    def self.env_inherit?(name)
-        @env_inherit && @env_inherited_variables.include?(name)
+    # @param [String,nil] name the environment variable that we want to check
+    #   for inheritance. If nil, the global setting is returned.
+    #
+    # @see env_inherit env_inherit=
+    def self.env_inherit?(name = nil)
+        if @env_inherit
+            if name 
+                @env_inherited_variables.include?(name)
+            else true
+            end
+        end
     end
 
     # If true (the default), the environment variables that are marked as
@@ -133,6 +141,8 @@ module Autobuild
     # Otherwise, only the environment that is explicitely set in autobuild
     # will be passed on to subcommands, and saved in the environment
     # scripts.
+    #
+    # @see env_inherit? env_inherit
     def self.env_inherit=(value)
         @env_inherit = value
         inherited_environment.keys.each do |env_name|
@@ -143,12 +153,16 @@ module Autobuild
     # Declare that the given environment variable must not be reset by the
     # env.sh script, but that new values should simply be prepended to it.
     #
-    # See Autoproj.env_inherit?
+    # @return [Boolean] true if environment inheritance is globally enabled and
+    #   false otherwise. This is controlled by {env_inherit=}
+    #
+    # @see env_inherit? env_inherit=
     def self.env_inherit(*names)
         @env_inherited_variables |= names
         names.each do |env_name|
             env_init_from_env(env_name)
         end
+        @env_inherit
     end
 
     def self.env_init_from_env(name)
