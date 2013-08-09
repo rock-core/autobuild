@@ -36,9 +36,24 @@ module Autobuild
         private
 
         def update(package) # :nodoc:
-            Dir.chdir(package.importdir) {
+            Dir.chdir(package.importdir) do
 		old_lang, ENV['LC_ALL'] = ENV['LC_ALL'], 'C'
-		svninfo = IO.popen("svn info") { |io| io.readlines }
+                svninfo = []
+                begin
+                    Subprocess.run(package, :import, @program, 'info') do |line|
+                        svninfo << line
+                    end
+                rescue SubcommandFailed => e
+                    if svninfo.find { |l| l =~ /svn upgrade/ }
+                        # Try svn upgrade and info again
+                        Subprocess.run(package, :import, @program, 'upgrade')
+                        svninfo.clear
+                        Subprocess.run(package, :import, @program, 'info') do |line|
+                            svninfo << line
+                        end
+                    else raise
+                    end
+                end
 		ENV['LC_ALL'] = old_lang
 		unless url = svninfo.grep(/^URL: /).first
 		    if svninfo.grep(/is not a working copy/).empty?
@@ -53,7 +68,7 @@ module Autobuild
 		    raise ConfigException.new(package, 'import'), "current checkout found at #{package.importdir} is from #{source}, was expecting #{@source}"
 		end
                 Subprocess.run(package, :import, @program, 'up', "--non-interactive", *@options_up)
-            }
+            end
         end
 
         def checkout(package) # :nodoc:
