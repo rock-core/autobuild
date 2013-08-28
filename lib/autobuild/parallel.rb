@@ -50,7 +50,7 @@ module Autobuild
                 end
                 begin
                     finish_pending_work
-                rescue Interrupt
+                ensure
                     raise error
                 end
             end
