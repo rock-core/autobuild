@@ -348,35 +348,40 @@ module Autobuild
         # Do the build in builddir
         def build
             in_dir(builddir) do
-                progress_start "building %s", :done_message => "built %s" do
+                progress_start "building %s" do
                     if always_reconfigure || !File.file?('Makefile')
                         Subprocess.run(self, 'build', Autobuild.tool(:cmake), '.')
                     end
 
+                    current_message = String.new
+                    warning_count = 0
                     Autobuild.make_subcommand(self, 'build') do |line|
-                        if line =~ /\[\s+(\d+)%\]/
+                        needs_display = false
+                        if line =~ /\[\s*(\d+)%\]/
                             progress "building %s (#{Integer($1)}%)"
+                        elsif line !~ /^(?:Linking|Scanning|Building|Built)/
+                            if line =~ /warning/
+                                warning_count += 1
+                            end
+                            if show_make_messages?
+                                current_message += line
+                                needs_display = true
+                            end
+                        end
+                        if !needs_display && !current_message.empty?
+                            current_message.split("\n").each do |l|
+                                message "%s: #{l}", :magenta
+                            end
+                            current_message.clear
                         end
                     end
-
-                    if show_make_messages?
-                        warning = String.new
-                        Autobuild.make_subcommand(self, 'build') do |line|
-                            iswarning = false
-                            if line =~ /\[\s*(\d+)%\]/
-                                progress "building %s (#{Integer($1)}%)"
-                            elsif (line =~
-    /^(Linking)|^(Scanning)|^(Building)|^(Built)/) == nil
-                                warning += line
-                                iswarning = true
-                            end
-                            if(!iswarning && !warning.empty?)
-                                warning.split("\n").each do |l|
-                                    message "%s: #{l}", :magenta
-                                end
-                                warning = ""
-                            end
-                        end
+                    current_message.split("\n").each do |l|
+                        message "%s: #{l}", :magenta
+                    end
+                    if warning_count > 0
+                        progress_done "built %s (#{warning_count} warnings)"
+                    else
+                        progress_done "built %s"
                     end
                 end
             end
