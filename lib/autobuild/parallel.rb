@@ -42,10 +42,17 @@ module Autobuild
             available_workers << w
             if error
                 if available_workers.size != workers.size
-                    Autobuild.error "got an error doing parallel processing, waiting for pending jobs to end"
+                    if finished_task.respond_to?(:package) && finished_task.package
+                        Autobuild.error "got an error processing #{finished_task.package.name}, waiting for pending jobs to end"
+                    else
+                        Autobuild.error "got an error doing parallel processing, waiting for pending jobs to end"
+                    end
                 end
-                finish_pending_work
-                raise error
+                begin
+                    finish_pending_work
+                rescue Interrupt
+                    raise error
+                end
             end
 
             state.process_finished_task(finished_task)
