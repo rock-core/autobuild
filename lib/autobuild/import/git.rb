@@ -9,7 +9,7 @@ module Autobuild
         # and branch. +source+ is [repository, branch]
         #
         # This importer uses the 'git' tool to perform the
-        # import. It defaults to 'svn' and can be configured by
+        # import. It defaults to 'git' and can be configured by
         # doing 
 	#   Autobuild.programs['git'] = 'my_git_tool'
         def initialize(repository, branch = nil, options = {})
@@ -469,7 +469,7 @@ module Autobuild
     end
 
     # Creates a git importer which gets the source for the given repository and branch
-    # URL +source+. The allowed values in +options+ are described in SVN.new.
+    # URL +source+.
     def self.git(repository, branch = nil, options = {})
         Git.new(repository, branch, options)
     end
