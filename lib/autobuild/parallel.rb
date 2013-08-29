@@ -74,29 +74,25 @@ module Autobuild
             attr_reader :started_packages
             attr_reader :active_packages
             attr_reader :queue
+            attr_reader :priorities
 
             def initialize(reverse_dependencies, initial_queue = Array.new)
                 @reverse_dependencies = reverse_dependencies
                 @processed = Set.new
                 @active_packages = Set.new
-                @started_packages = Set.new
-                @queue = initial_queue.to_set
+                @priorities = Hash.new
+                @started_packages = Hash.new
+                @queue = Hash.new
+                initial_queue.each do |t|
+                    queue[t] = 1
+                end
             end
 
             def find_task
-                possible_task = nil
-                queue.each do |task|
-                    if task.respond_to?(:package)
-                        if !active_packages.include?(task.package)
-                            if started_packages.include?(task.package)
-                                return task
-                            end
-                            possible_task ||= task
-                        end
-                    else possible_task ||= task
-                    end
+                if task = queue.sort_by { |t, p| p }.first
+                    priorities[task.first] = task.last
+                    task.first
                 end
-                possible_task
             end
 
             def pop
@@ -106,9 +102,9 @@ module Autobuild
             end
 
             def mark_as_active(pending_task)
-                if pending_task.respond_to?(:package)
+                if pending_task.respond_to?(:package) && !pending_task.kind_of?(Autobuild::SourceTreeTask)
                     active_packages << pending_task.package
-                    started_packages << pending_task.package
+                    started_packages[pending_task.package] ||= -started_packages.size
                 end
             end
 
@@ -118,10 +114,17 @@ module Autobuild
                 end
                 processed << task
                 reverse_dependencies[task].each do |candidate|
-                    if candidate.prerequisite_tasks.all? { |t| processed.include?(t) }
-                        queue << candidate
+                    if !processed.include?(candidate) && candidate.prerequisite_tasks.all? { |t| processed.include?(t) }
+                        if candidate.respond_to?(:package)
+                            queue[candidate] = started_packages[candidate.package] || priorities[task]
+                        else queue[candidate] = priorities[task]
+                        end
                     end
                 end
+            end
+
+            def trivial_task?(task)
+                (task.kind_of?(Autobuild::SourceTreeTask) || task.kind_of?(Rake::FileTask)) && task.actions.empty?
             end
         end
 
@@ -162,7 +165,11 @@ module Autobuild
                     end
                 end
 
-                if pending_task.instance_variable_get(:@already_invoked) || !pending_task.needed?
+                if state.trivial_task?(pending_task)
+                    Worker.execute_task(pending_task)
+                    state.process_finished_task(pending_task)
+                    next
+                elsif pending_task.instance_variable_get(:@already_invoked) || !pending_task.needed?
                     state.process_finished_task(pending_task)
                     next
                 end
@@ -208,11 +215,15 @@ module Autobuild
                 end
             end
 
-            def do_task(task)
-                @last_error = nil
+            def self.execute_task(task)
                 task_args = Rake::TaskArguments.new(task.arg_names, [])
                 task.instance_variable_set(:@already_invoked, true)
                 task.send(:execute, task_args)
+            end
+
+            def do_task(task)
+                @last_error = nil
+                Worker.execute_task(task)
                 @last_finished_task = task
             rescue ::Exception => e
                 @last_finished_task = task
