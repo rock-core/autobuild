@@ -5,6 +5,7 @@ Rakefile
 TODO
 bin/autobuild
 lib/autobuild.rb
+lib/autobuild/build_logfile.rb
 lib/autobuild/config.rb
 lib/autobuild/configurable.rb
 lib/autobuild/environment.rb
