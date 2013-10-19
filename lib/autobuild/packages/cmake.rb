@@ -379,7 +379,7 @@ module Autobuild
                         message "%s: #{l}", :magenta
                     end
                     if warning_count > 0
-                        progress_done "built %s (#{warning_count} warnings)"
+                        progress_done "built %s #{Autoproj.color("(#{warning_count} warnings)", :bold)}"
                     else
                         progress_done "built %s"
                     end
