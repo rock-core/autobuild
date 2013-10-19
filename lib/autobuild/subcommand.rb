@@ -214,23 +214,23 @@ module Autobuild::Subprocess
             end
             cread, cwrite = IO.pipe # to control that exec goes well
 
-			if Autoproj::OSDependencies.operating_system[0].include?("windows")
-				olddir = Dir.pwd
-				if options[:working_directory] && (options[:working_directory] != Dir.pwd)
-					Dir.chdir(options[:working_directory])
-				end
-				system(*command)
-				result=$?.success?
-				if(!result)
-					error = Autobuild::SubcommandFailed.new(target, command.join(" "), logname, "Systemcall")
-					error.phase = phase
-					raise error
-				end
-				Dir.chdir(olddir)
-				return
-			end
-			
-			cwrite.fcntl(Fcntl::F_SETFD, Fcntl::FD_CLOEXEC)
+            if Autobuild.windows?
+                olddir = Dir.pwd
+                if options[:working_directory] && (options[:working_directory] != Dir.pwd)
+                    Dir.chdir(options[:working_directory])
+                end
+                system(*command)
+                result=$?.success?
+                if(!result)
+                    error = Autobuild::SubcommandFailed.new(target, command.join(" "), logname, "Systemcall")
+                    error.phase = phase
+                    raise error
+                end
+                Dir.chdir(olddir)
+                return
+            end
+
+            cwrite.fcntl(Fcntl::F_SETFD, Fcntl::FD_CLOEXEC)
 
             pid = fork do
                 begin
