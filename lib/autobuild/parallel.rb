@@ -18,6 +18,9 @@ module Autobuild
 
             def initialize(level)
                 @rio, @wio = IO.pipe
+                # Clearing cloexec
+                rio.fcntl(Fcntl::F_SETFD, 0)
+                wio.fcntl(Fcntl::F_SETFD, 0)
                 put(level)
             end
             def get(token_count = 1)

@@ -258,7 +258,7 @@ module Autobuild::Subprocess
                         $stdin.reopen(pread)
                     end
                    
-                    exec(*command)
+                    exec(*command, :close_others => false)
                 rescue Errno::ENOENT
                     cwrite.write([CONTROL_COMMAND_NOT_FOUND].pack('I'))
                     exit(100)
