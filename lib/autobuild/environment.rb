@@ -17,6 +17,7 @@ module Autobuild
         @macos
     end
 
+    SYSTEM_ENV = Hash.new
     ORIGINAL_ENV = Hash.new
     ENV.each do |k, v|
         ORIGINAL_ENV[k] = v
@@ -206,10 +207,10 @@ module Autobuild
     end
 
     def self.env_update_var(name)
-        if !environment[name] && !inherited_environment[name]
+        if !environment[name] && !inherited_environment[name] && !SYSTEM_ENV[name]
             ENV.delete(name)
         else
-            ENV[name] = ((environment[name] || []) + (inherited_environment[name] || [])).join(ENV_LIST_SEPARATOR)
+            ENV[name] = ((environment[name] || []) + (inherited_environment[name] || []) + (SYSTEM_ENV[name] || [])).join(ENV_LIST_SEPARATOR)
         end
     end
 
