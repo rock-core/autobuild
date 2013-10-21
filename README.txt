@@ -1,8 +1,8 @@
-Copyright (c) 2006-2011 Sylvain Joyeux <sylvain.joyeux@m4x.org> and contributors
+Copyright (c) 2006-2013 Sylvain Joyeux <sylvain.joyeux@m4x.org> and contributors
 
 * http://rock-robotics.org
 
-This work is licensed under the GPLv2 license. See License.txt for details
+This work is licensed under the BSD license. See License.txt for details
 
 == What's autobuild ?
 Autobuild imports, configures, builds and installs various kinds of software packages.
