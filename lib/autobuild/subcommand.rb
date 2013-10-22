@@ -258,7 +258,7 @@ module Autobuild::Subprocess
                         $stdin.reopen(pread)
                     end
                    
-                    if RUBY_VERSION > "1.8"
+                    if RUBY_VERSION >= "1.9"
                         command << Hash[:close_others => false]
                     end
                     exec(*command)
