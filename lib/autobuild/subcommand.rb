@@ -258,7 +258,11 @@ module Autobuild::Subprocess
                         $stdin.reopen(pread)
                     end
                    
-                    exec(*command, :close_others => false)
+                    if RUBY_VERSION < "1.9"
+                        exec(*command)
+                    else
+                        exec(*command, :close_others => false)
+                    end
                 rescue Errno::ENOENT
                     cwrite.write([CONTROL_COMMAND_NOT_FOUND].pack('I'))
                     exit(100)
