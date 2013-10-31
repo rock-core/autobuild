@@ -206,11 +206,27 @@ module Autobuild
         env_update_var(name)
     end
 
-    def self.env_update_var(name)
+    def self.env_value(name)
         if !environment[name] && !inherited_environment[name] && !SYSTEM_ENV[name]
-            ENV.delete(name)
+            nil
         else
-            ENV[name] = ((environment[name] || []) + (inherited_environment[name] || []) + (SYSTEM_ENV[name] || [])).join(ENV_LIST_SEPARATOR)
+            value = []
+            [environment[name], inherited_environment[name], SYSTEM_ENV[name]].each do |paths|
+                (paths || []).each do |p|
+                    if !value.include?(p)
+                        value << p
+                    end
+                end
+            end
+            value
+        end
+    end
+
+    def self.env_update_var(name)
+        if value = env_value(name)
+            ENV[name] = value.join(ENV_LIST_SEPARATOR)
+        else
+            ENV.delete(name)
         end
     end
 
@@ -274,8 +290,10 @@ module Autobuild
         end
 
         variables = []
-        Autobuild.environment.each do |name, value|
+        Autobuild.environment.each do |name, _|
             variables << name
+            value = env_value(name)
+
             if value
                 shell_line = SHELL_SET_COMMAND % [name, value.join(ENV_LIST_SEPARATOR)]
             else
