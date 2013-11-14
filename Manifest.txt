@@ -14,6 +14,7 @@ lib/autobuild/import/archive.rb
 lib/autobuild/import/cvs.rb
 lib/autobuild/import/darcs.rb
 lib/autobuild/import/git.rb
+lib/autobuild/import/hg.rb
 lib/autobuild/import/svn.rb
 lib/autobuild/import/tar.rb
 lib/autobuild/importer.rb
