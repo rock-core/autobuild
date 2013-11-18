@@ -103,7 +103,7 @@ class Importer
         if patches.size == 2 && patches[0].respond_to?(:to_str) && patches[1].respond_to?(:to_int)
             patches = [patches]
         else
-            patches.map do |obj|
+            patches = patches.map do |obj|
                 if obj.respond_to?(:to_str)
                     [obj, 0]
                 elsif obj.respond_to?(:to_ary)
@@ -114,14 +114,16 @@ class Importer
                 end
             end
         end
+        patches.map do |path, level|
+            [path, level, File.read(path)]
+        end
     end
 
     def perform_update(package)
-        cur_patches = currently_applied_patches(package)
+        cur_patches    = currently_applied_patches(package)
         needed_patches = self.patches
-        kept_patches = (cur_patches & needed_patches)
-        if kept_patches != cur_patches
-            patch(package, kept_patches)
+        if cur_patches.map(&:last) != needed_patches.map(&:last)
+            patch(package, [])
         end
 
         retry_count = 0
@@ -239,11 +241,15 @@ class Importer
     end
 
     private
+
+    def patchdir(package)
+        File.join(package.importdir, ".autobuild-patches")
+    end
     
     # We assume that package.importdir already exists (checkout is supposed to
     # have been called)
     def patchlist(package)
-        File.join(package.importdir, "patches-autobuild-stamp")
+        File.join(patchdir(package), "list")
     end
 
     def call_patch(package, reverse, file, patch_level)
@@ -256,33 +262,42 @@ class Importer
     def apply(package, path, patch_level = 0);   call_patch(package, false, path, patch_level) end
     def unapply(package, path, patch_level = 0); call_patch(package, true, path, patch_level)   end
 
+    def parse_patch_list(patches_file)
+        File.readlines(patches_file).map do |line| 
+            line = line.rstrip
+            if line =~ /^(.*)\s+(\d+)$/
+                path = $1
+                level = Integer($2)
+            else
+                path = line
+                level = 0
+            end
+            [path, level, File.read(path)]
+        end
+    end
+
     def currently_applied_patches(package)
         patches_file = patchlist(package)
-        if !File.exists?(patches_file) then []
-        else
-            current_patches = []
-            File.open(patches_file) do |f| 
-                f.readlines.each do |line|
-                    line = line.rstrip
-                    if line =~ /^(.*)\s+(\d+)$/
-                        path = $1
-                        level = Integer($2)
-                    else
-                        path = line
-                        level = 0
-                    end
-                    current_patches << [path, level]
-                end
-            end
-            current_patches
+        if File.exists?(patches_file)
+            return parse_patch_list(patches_file)
         end
+
+        patches_file = File.join(package.importdir, "patches-autobuild-stamp")
+        if File.exists?(patches_file)
+            cur_patches = parse_patch_list(patches_file)
+            save_patch_state(package, cur_patches)
+            FileUtils.rm_f patches_file
+            return currently_applied_patches(package)
+        end
+
+        return Array.new
     end
 
     def patch(package, patches = self.patches)
         # Get the list of already applied patches
         cur_patches = currently_applied_patches(package)
 
-        if cur_patches == patches
+        if cur_patches.map(&:last) == patches.map(&:last)
             return false
         end
 
@@ -300,22 +315,35 @@ class Importer
             end
 
             while p = cur_patches.last
-                p, level = *p
+                p, level, _ = *p
                 unapply(package, p, level)
                 cur_patches.pop
             end
 
-            patches.to_a.each do |p, level|
+            patches.to_a.each do |p, level, content|
                 apply(package, p, level)
-                cur_patches << [p, level]
+                cur_patches << [p, level, content]
 	    end
         ensure
-            File.open(patchlist(package), 'w+') do |f|
-                f.write(cur_patches.map { |p, l| "#{p} #{l}" }.join("\n"))
-            end
+            save_patch_state(package, cur_patches)
         end
 
         return true
+    end
+    
+    def save_patch_state(package, cur_patches)
+        patch_dir = patchdir(package)
+        FileUtils.mkdir_p patch_dir
+        cur_patches = cur_patches.each_with_index.map do |(path, level, content), idx|
+        path = File.join(patch_dir, idx.to_s)
+        File.open(path, 'w') do |patch_io|
+            patch_io.write content
+        end
+        [path, level]
+        end
+        File.open(patchlist(package), 'w') do |f|
+            f.write(cur_patches.map { |p, l| "#{p} #{l}" }.join("\n"))
+        end
     end
 
     def supports_relocation?; false end
