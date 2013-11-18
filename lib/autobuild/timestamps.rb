@@ -31,6 +31,7 @@ module Autobuild
         # Exclude autobuild timestamps
 	exclude.each { |rx| raise unless Regexp === rx }
         exclude << (/#{Regexp.quote(STAMPFILE)}$/)
+        exclude << (/\.autobuild-patches$/)
 
         Autobuild.message "getting tree timestamp for #{path}" if Autobuild.debug
         latest = Time.at(0)
