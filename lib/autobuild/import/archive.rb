@@ -287,6 +287,7 @@ module Autobuild
                            else base_dir
                            end
 
+                FileUtils.mkdir_p base_dir
                 cmd = [ '-o', cachefile, '-d', main_dir ]
                 Subprocess.run(package, :import, Autobuild.tool('unzip'), *cmd)
                 
