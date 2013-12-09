@@ -1,5 +1,5 @@
 module Autobuild
-    VERSION = "1.7.9" unless defined? Autobuild::VERSION
+    VERSION = "1.7.10" unless defined? Autobuild::VERSION
 end
 
 
