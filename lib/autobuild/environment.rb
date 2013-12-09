@@ -206,12 +206,21 @@ module Autobuild
         env_update_var(name)
     end
 
-    def self.env_value(name)
+    def self.env_value(name, expand_inherited = true)
         if !environment[name] && !inherited_environment[name] && !SYSTEM_ENV[name]
             nil
         else
+            inherited =
+                if expand_inherited
+                    inherited_environment[name] || []
+                elsif env_inherit?(name)
+                    ["$#{name}"]
+                else []
+                end
+
+
             value = []
-            [environment[name], inherited_environment[name], SYSTEM_ENV[name]].each do |paths|
+            [environment[name], inherited, SYSTEM_ENV[name]].each do |paths|
                 (paths || []).each do |p|
                     if !value.include?(p)
                         value << p
@@ -292,19 +301,12 @@ module Autobuild
         variables = []
         Autobuild.environment.each do |name, _|
             variables << name
-            value = env_value(name)
+            value = env_value(name, false)
 
             if value
                 shell_line = SHELL_SET_COMMAND % [name, value.join(ENV_LIST_SEPARATOR)]
             else
                 shell_line = SHELL_UNSET_COMMAND % [name]
-            end
-            if env_inherit?(name)
-                if value.empty?
-                    next
-                else
-                    shell_line << "#{ENV_LIST_SEPARATOR}$#{name}"
-                end
             end
             io.puts shell_line
         end
