@@ -1,11 +1,6 @@
-require 'autobuild/config'
-require 'find'
-require 'rake/tasklib'
-require 'fileutils'
-
-STAMPFILE = "autobuild-stamp"
-
 module Autobuild
+    STAMPFILE = "autobuild-stamp"
+
     class << self
         # The set of global ignores for SourceTreeTask
         #

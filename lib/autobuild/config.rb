@@ -33,10 +33,35 @@ end
 module Autobuild
     class << self
         %w{ nice srcdir prefix
-            verbose debug do_update do_build do_rebuild do_forced_build only_doc do_doc doc_errors
+            verbose debug do_update do_build do_rebuild do_forced_build
             daemonize clean_log packages default_packages
-            doc_prefix keep_oldlogs}.each do |name|
+            keep_oldlogs}.each do |name|
             attr_accessor name
+        end
+
+        # @return [{String=>Class<Utility>}] the known utilities
+        # @see {register_utility_class}
+        attr_reader :utilities
+
+        def register_utility_class(name, klass)
+            utilities[name] = klass
+            singleton_class.class_eval do
+                attr_accessor "only_#{name}"
+                attr_accessor "do_#{name}"
+                attr_accessor "#{name}_prefix"
+                attr_accessor "pass_#{name}_errors"
+            end
+            instance_variable_set "@only_#{name}", false
+            instance_variable_set "@do_#{name}", false
+            instance_variable_set "@pass_#{name}_errors", false
+            instance_variable_set "@#{name}_prefix", name
+        end
+
+        def create_utility(utility_name, package)
+            if klass = utilities[utility_name]
+                package.utilities[utility_name] = klass.new(utility_name, package)
+            else raise ArgumentError, "there is no utility called #{utility_name}, available utilities are #{utilities.keys.sort.join(", ")}"
+            end
         end
 
 	# Configure the programs used by different packages
@@ -52,6 +77,8 @@ module Autobuild
             do_build && !only_doc && packages.empty?
         end
     end
+    @utilities = Hash.new
+    register_utility_class 'doc', Utility
 
     @console = HighLine.new
 
@@ -74,9 +101,7 @@ module Autobuild
     DEFAULT_OPTIONS = { :nice => nil,
         :srcdir => Dir.pwd, :prefix => Dir.pwd, :logdir => nil,
         :verbose => false, :debug => false, :do_build => true, :do_forced_build => false, :do_rebuild => false, :do_update => true, 
-        :daemonize => false, :packages => [], :default_packages => [],
-        :only_doc => false, :do_doc => true, :doc_errors => false,
-        :doc_prefix => 'doc', :keep_oldlogs => false }
+        :daemonize => false, :packages => [], :default_packages => [], :keep_oldlogs => false }
 
     @programs = Hash.new
     DEFAULT_OPTIONS.each do |name, value|
@@ -192,7 +217,7 @@ module Autobuild
                 opts.on("--rebuild",  "clean and rebuild") do |v| Autobuild.do_forced_build = v end 
                 opts.on("--only-doc", "only generate documentation") do |v| Autobuild.only_doc = v end
                 opts.on("--no-doc", "don't generate documentation") do |v| Autobuild.do_doc = v end
-                opts.on("--doc-errors", "treat documentation failure as error") do |v| Autobuild.doc_errors = v end
+                opts.on("--doc-errors", "treat documentation failure as error") do |v| Autobuild.pass_doc_errors = v end
 
                 opts.separator ""
                 opts.separator "Program output"

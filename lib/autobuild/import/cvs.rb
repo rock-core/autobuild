@@ -1,7 +1,3 @@
-require 'autobuild/config'
-require 'autobuild/subcommand'
-require 'autobuild/importer'
-
 module Autobuild
     class CVSImporter < Importer
 	# Creates a new importer which gets the module +name+ from the

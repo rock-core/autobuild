@@ -1,20 +1,3 @@
-begin
-    require 'rmail'
-    require 'rmail/serialize'
-    Autobuild::HAS_RMAIL = true
-rescue LoadError
-    Autobuild::HAS_RMAIL = false
-end
-
-require 'net/smtp'
-require 'socket'
-require 'etc'
-require 'find'
-
-require 'autobuild/config'
-require 'autobuild/exceptions'
-require 'thread'
-
 module Autobuild
     class << self
         attr_reader :display_lock

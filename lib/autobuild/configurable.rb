@@ -1,10 +1,3 @@
-require 'pathname'
-require 'autobuild/timestamps'
-require 'autobuild/environment'
-require 'autobuild/package'
-require 'autobuild/subcommand'
-require 'shellwords'
-
 module Autobuild
     # Base class for packages that require a configuration + build step.
     #
