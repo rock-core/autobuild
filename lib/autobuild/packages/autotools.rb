@@ -28,18 +28,26 @@ module Autobuild
     class Autotools < Configurable
         attr_accessor   :using
         attr_accessor   :configureflags
+        attr_accessor   :aclocal_flags
+        attr_accessor   :autoheader_flags
+        attr_accessor   :autoconf_flags
+        attr_accessor   :automake_flags
 
         @builddir = 'build'
-        
+
         def configurestamp; "#{builddir}/config.status" end
 
         def initialize(options)
             @using = Hash.new
 	    @configureflags = []
-            
+            @aclocal_flags    = Array.new
+            @autoheader_flags = Array.new
+            @autoconf_flags   = Array.new
+            @automake_flags   = Array.new
+
             super
         end
-        
+
         # Declare that the given target can be used to generate documentation
         def with_doc(target = 'doc')
             task "#{name}-doc" => configurestamp
@@ -247,7 +255,7 @@ module Autobuild
                                                    else; Autobuild.tool(tool)
                                                    end
 
-                                    Subprocess.run(self, 'configure', tool_program)
+                                    Subprocess.run(self, 'configure', tool_program, *send("#{tool}_flags"))
                                 end
                             end
                         end
@@ -269,7 +277,7 @@ module Autobuild
                     end
                     command << "--prefix=#{prefix}"
                     command += Array[*configureflags]
-                    
+
                     progress_start "configuring autotools for %s", :done_message => 'configured autotools for %s' do
                         Subprocess.run(self, 'configure', *command)
                     end
