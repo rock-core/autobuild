@@ -150,8 +150,8 @@ module Autobuild
 	    # Call the config block (if any)
 	    yield(self) if block_given?
 
-            @doc_dir        ||= 'doc'
-            @doc_target_dir ||= name
+            self.doc_utility.source_dir ||= 'doc'
+            self.doc_utility.target_dir ||= name
 
 	    # Define the default tasks
 	    task "#{name}-import" do
