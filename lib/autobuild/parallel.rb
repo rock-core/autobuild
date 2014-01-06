@@ -62,6 +62,10 @@ module Autobuild
         end
 
         def discover_dependencies(all_tasks, reverse_dependencies, t)
+            if t.already_invoked?
+                return 
+            end
+
             return if all_tasks.include?(t) # already discovered or being discovered
             all_tasks << t
 
@@ -172,7 +176,7 @@ module Autobuild
                     Worker.execute_task(pending_task)
                     state.process_finished_task(pending_task)
                     next
-                elsif pending_task.instance_variable_get(:@already_invoked) || !pending_task.needed?
+                elsif pending_task.already_invoked? || !pending_task.needed?
                     state.process_finished_task(pending_task)
                     next
                 end

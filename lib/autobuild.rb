@@ -57,3 +57,5 @@ require 'autobuild/packages/orogen'
 require 'autobuild/packages/pkgconfig'
 require 'autobuild/packages/dummy'
 
+require 'autobuild/rake_task_extension'
+

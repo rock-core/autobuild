@@ -583,19 +583,22 @@ module Autobuild
             @disabled
         end
 
-        # Make sure that this package will be ignored in the build
-        def disable
-            @disabled = true
-            %w{import prepare build doc}.each do |phase|
+        # Makes sure that the specified phases of this package will be no-ops
+        def disable_phases(*phases)
+            phases.each do |phase|
                 task "#{name}-#{phase}"
                 t = Rake::Task["#{name}-#{phase}"]
-                def t.needed?; false end
-                t.instance_variable_set :@already_invoked, true
+                t.disable!
             end
+        end
+
+        # Make sure that this package will be ignored in the build
+        def disable(phases = Autobuild.all_phases)
+            @disabled = true
+            disable_phases(*phases)
             task(installstamp)
             t = Rake::Task[installstamp]
-            def t.needed?; false end
-            t.instance_variable_set :@already_invoked, true
+            t.disable!
         end
 
         def utility(utility_name)
