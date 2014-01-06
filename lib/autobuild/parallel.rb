@@ -202,9 +202,31 @@ module Autobuild
             end
 
             if state.processed.size != tasks.size
-                with_cycle = tasks.to_set
-                raise "cycle in task graph: #{with_cycle.map(&:name).sort.join(", ")}"
+                cycle = resolve_cycle((tasks - state.processed).to_a)
+                raise "cycle in task graph: #{cycle.map(&:name).sort.join(", ")}"
             end
+        end
+
+        def resolve_cycle(tasks)
+            chain = []
+            next_task = tasks.first
+            while true
+                task = next_task
+                chain << task
+                tasks.delete(next_task)
+                next_task = task.prerequisite_tasks.find do |dep_task|
+                    if chain.include?(dep_task)
+                        reject = chain.take_while { |t| t != dep_task }
+                        return chain[reject.size..-1]
+                    elsif tasks.include?(dep_task)
+                        true
+                    end
+                end
+                if !next_task
+                    raise "something fishy while resolving a cycle in #{tasks.map(&:name).join(", ")}. Some of these packages might have added new dependencies during the task resolution, which is forbidden"
+                end
+            end
+            chain
         end
 
         class Worker
