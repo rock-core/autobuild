@@ -62,6 +62,7 @@ module Autobuild
         #
         # @return [Rake::Task]
         def task
+            return if @task
             @task = package.task "#{package.name}-doc" do
                 # This flag allows to disable documentation generation
                 # once {task} has been called
