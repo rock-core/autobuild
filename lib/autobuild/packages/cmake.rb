@@ -201,7 +201,7 @@ module Autobuild
 
         # Declare that the given target can be used to generate documentation
         def with_doc(target = 'doc')
-            doc_task do
+            doc_utility.task do
                 in_dir(builddir) do
                     progress_start "generating documentation for %s", :done_message => 'generated documentation for %s' do
                         if internal_doxygen_mode?
@@ -245,10 +245,6 @@ module Autobuild
         end
 
         def prepare
-            if !internal_doxygen_mode? && has_doc?
-                task "#{name}-doc" => configurestamp
-            end
-
             # A failed initial CMake configuration leaves a CMakeCache.txt file,
             # but no Makefile.
             #

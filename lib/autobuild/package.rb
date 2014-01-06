@@ -435,11 +435,7 @@ module Autobuild
         def doc_dir; doc_utility.source_dir end
         def doc_target_dir=(value); doc_utility.target_dir = value end
         def doc_target_dir; doc_utility.target_dir end
-        def doc_task(&block)
-            task = doc_utility.task(&block)
-            task.enhance(["#{name}-build"])
-            task
-        end
+        def doc_task(&block); doc_utility.task(&block) end
         def generates_doc?; doc_utility.enabled? end
         def enable_doc; doc_utility.enabled = true end
         def disable_doc; doc_utility.enabled = false end

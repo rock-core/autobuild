@@ -50,7 +50,6 @@ module Autobuild
 
         # Declare that the given target can be used to generate documentation
         def with_doc(target = 'doc')
-            task "#{name}-doc" => configurestamp
             doc_task do
                 progress_start "generating documentation for %s", :done_message => 'generated_documentation for %s' do
                     Subprocess.run(self, 'doc', Autobuild.tool(:make), "-j#{parallel_build_level}", target, :working_directory => builddir)
