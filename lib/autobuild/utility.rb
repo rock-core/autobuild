@@ -1,4 +1,7 @@
 module Autobuild
+    # Utilities are post-build things that can be executed on packages
+    #
+    # Canonical examples are documentation generation and tests
     class Utility
         # This utility's name
         attr_reader :name
@@ -130,9 +133,9 @@ module Autobuild
         end
 
         # Can be called in the block given to {task} to announce that the
-        # documentation is to be disabled for that package. This is mainly used
-        # when a runtime check is necessary to know if a package has
-        # documentation or not.
+        # utility is to be disabled for that package. This is mainly used
+        # when a runtime check is necessary to know if a package can run
+        # this utility or not.
         def disabled
             throw :disabled
         end
