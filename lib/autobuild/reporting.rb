@@ -49,9 +49,11 @@ module Autobuild
             else 0
             end
 
-        puts "\r#{msg}#{" " * [size - msg.size, 0].max}"
-        if @last_progress_msg
-            print "#{@last_progress_msg}"
+        if !silent?
+            puts "\r#{msg}#{" " * [size - msg.size, 0].max}"
+            if @last_progress_msg
+                print "#{@last_progress_msg}"
+            end
         end
     end
 
