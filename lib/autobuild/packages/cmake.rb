@@ -253,6 +253,8 @@ module Autobuild
                 FileUtils.rm_f cmake_cache
             end
 
+            doc_utility.source_ref_dir = builddir
+
             if File.exists?(cmake_cache)
                 all_defines = defines.dup
                 all_defines['CMAKE_INSTALL_PREFIX'] = prefix

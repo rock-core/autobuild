@@ -7,28 +7,30 @@ module Autobuild
         attr_reader :name
         # @return [Package] the package on which this utility object acts
         attr_reader :package
+        # @return [String] the reference directory for {#source_dir=}
+        attr_accessor :source_ref_dir
 
         def initialize(name, package)
             @name = name
             @package = package
             @enabled = true
+            @source_ref_dir = package.srcdir
         end
 
         # Directory in which the utility will generate some files The
         # interpretation of relative directories is package-specific. The
         # default implementation interpret them as relative to the source
-        # directory, but packages like CMake will interpret them as relative to
-        # their build directories.
+        # directory. Set {#source_ref_dir=} to override.
         #
         # @return [String,nil] the target directory, or nil if this utility does
-        #   not install anything
+        #   not need any special source directory
         attr_writer :source_dir
 
-        # Absolute path to where documentation is generated. Returns nil if
+        # Absolute path to where this utulity should output its results. Returns nil if
         # {source_dir} has not been set.
         def source_dir
             if @source_dir
-                File.expand_path(@source_dir, package.srcdir)
+                File.expand_path(@source_dir, source_ref_dir)
             end
         end
 
