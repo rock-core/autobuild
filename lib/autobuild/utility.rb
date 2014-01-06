@@ -7,20 +7,21 @@ module Autobuild
         attr_reader :name
         # @return [Package] the package on which this utility object acts
         attr_reader :package
-        # @return [String] the reference directory for {#source_dir=}
+        # @return [String,nil] the reference directory for {#source_dir=}. If
+        #   nil, will use the package's source directory
         attr_accessor :source_ref_dir
 
         def initialize(name, package)
             @name = name
             @package = package
             @enabled = true
-            @source_ref_dir = package.srcdir
+            @source_ref_dir = nil
         end
 
         # Directory in which the utility will generate some files The
         # interpretation of relative directories is package-specific. The
         # default implementation interpret them as relative to the source
-        # directory. Set {#source_ref_dir=} to override.
+        # directory. Set {#source_ref_dir=}
         #
         # @return [String,nil] the target directory, or nil if this utility does
         #   not need any special source directory
@@ -30,7 +31,7 @@ module Autobuild
         # {source_dir} has not been set.
         def source_dir
             if @source_dir
-                File.expand_path(@source_dir, source_ref_dir)
+                File.expand_path(@source_dir, source_ref_dir || package.srcdir)
             end
         end
 
