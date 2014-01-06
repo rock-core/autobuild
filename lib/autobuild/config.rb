@@ -264,7 +264,7 @@ module Autobuild
         end
     end
 
-    def self.apply(packages, buildname = "autobuild")
+    def self.apply(packages, buildname = "autobuild", phases = [])
         if Autobuild.mail[:to]
             if !Autobuild::HAS_RMAIL
                 Autobuild.warn "RMail is not available. Mail notification is disabled"
@@ -286,13 +286,16 @@ module Autobuild
             end
         end
 
-        if Autobuild.only_doc
-            phases  = ['doc']
-        else
-            phases  = ['import']
-            phases += ['prepare', 'build'] if Autobuild.do_build
-            phases << 'doc' if Autobuild.do_doc
+        if phases.empty?
+            if Autobuild.only_doc
+                phases  = ['doc']
+            else
+                phases  = ['import']
+                phases += ['prepare', 'build'] if Autobuild.do_build
+                phases << 'doc' if Autobuild.do_doc
+            end
         end
+
         phases.each do |phase|
             # We create a dummy task listing what needs to be done, and then we
             # call it
