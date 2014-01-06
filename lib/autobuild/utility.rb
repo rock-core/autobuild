@@ -89,7 +89,6 @@ module Autobuild
                                     package.warn "%s: see #{e.logfile} for more details"
                                 else
                                     package.warn "%s: #{e.message}"
-                                    puts e.backtrace.inspect
                                 end
                             end
                         end
