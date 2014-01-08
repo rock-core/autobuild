@@ -83,15 +83,19 @@ module Autobuild
             attr_reader :queue
             attr_reader :priorities
 
-            def initialize(reverse_dependencies, initial_queue = Array.new)
+            def initialize(reverse_dependencies)
                 @reverse_dependencies = reverse_dependencies
                 @processed = Set.new
                 @active_packages = Set.new
                 @priorities = Hash.new
                 @started_packages = Hash.new
                 @queue = Hash.new
-                initial_queue.each do |t|
-                    queue[t] = 1
+            end
+
+            def push(task, base_priority = 1)
+                if task.respond_to?(:package)
+                    queue[task] = started_packages[task.package] || base_priority
+                else queue[task] = base_priority
                 end
             end
 
@@ -115,17 +119,20 @@ module Autobuild
                 end
             end
 
+            def ready?(task)
+                task.prerequisite_tasks.all? do |t|
+                    t.already_invoked?
+                end
+            end
+
             def process_finished_task(task)
                 if task.respond_to?(:package)
                     active_packages.delete(task.package)
                 end
                 processed << task
                 reverse_dependencies[task].each do |candidate|
-                    if !processed.include?(candidate) && candidate.prerequisite_tasks.all? { |t| processed.include?(t) }
-                        if candidate.respond_to?(:package)
-                            queue[candidate] = started_packages[candidate.package] || priorities[task]
-                        else queue[candidate] = priorities[task]
-                        end
+                    if !candidate.already_invoked? && ready?(candidate)
+                        push(candidate, priorities[task])
                     end
                 end
             end
@@ -143,7 +150,15 @@ module Autobuild
             required_tasks.each do |t|
                 discover_dependencies(tasks, reverse_dependencies, t)
             end
-            roots = tasks.find_all { |t| t.prerequisite_tasks.empty? }.to_set
+            # The queue is the set of tasks for which all prerequisites have
+            # been successfully executed (or where not needed). I.e. it is the
+            # set of tasks that can be queued for execution.
+            state = ProcessingState.new(reverse_dependencies)
+            tasks.each do |t|
+                if state.ready?(t)
+                    state.push(t)
+                end
+            end
             
             # Build a reverse dependency graph (i.e. a mapping from a task to
             # the tasks that depend on it)
@@ -152,10 +167,6 @@ module Autobuild
             # topological sort since we would then have to scan all tasks each
             # time for tasks that have no currently running prerequisites
 
-            # The queue is the set of tasks for which all prerequisites have
-            # been successfully executed (or where not needed). I.e. it is the
-            # set of tasks that can be queued for execution.
-            state = ProcessingState.new(reverse_dependencies, roots.to_a)
             while true
                 pending_task = state.pop
                 if !pending_task
@@ -177,6 +188,7 @@ module Autobuild
                     state.process_finished_task(pending_task)
                     next
                 elsif pending_task.already_invoked? || !pending_task.needed?
+                    pending_task.already_invoked = true
                     state.process_finished_task(pending_task)
                     next
                 end
@@ -201,8 +213,9 @@ module Autobuild
                 worker.queue(pending_task)
             end
 
-            if state.processed.size != tasks.size
-                cycle = resolve_cycle((tasks - state.processed).to_a)
+            not_processed = tasks.find_all { |t| !t.already_invoked? }
+            if !not_processed.empty?
+                cycle = resolve_cycle(not_processed)
                 raise "cycle in task graph: #{cycle.map(&:name).sort.join(", ")}"
             end
         end
