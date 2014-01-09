@@ -79,6 +79,7 @@ module Autobuild
     end
     @utilities = Hash.new
     register_utility_class 'doc', Utility
+    register_utility_class 'test', Utility
 
     @console = HighLine.new
 

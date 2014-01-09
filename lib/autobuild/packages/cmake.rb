@@ -199,20 +199,36 @@ module Autobuild
             Subprocess.run(self, 'doc', Autobuild.tool(:doxygen), doxyfile)
         end
 
-        # Declare that the given target can be used to generate documentation
-        def with_doc(target = 'doc')
-            doc_utility.task do
-                in_dir(builddir) do
-                    progress_start "generating documentation for %s", :done_message => 'generated documentation for %s' do
-                        if internal_doxygen_mode?
-                            run_doxygen
-                        else
-                            Subprocess.run(self, 'doc', Autobuild.tool(:make), "-j#{parallel_build_level}", target)
-                        end
-                        yield if block_given?
+        def common_utility_handling(utility, target, start_msg, done_msg)
+            utility.task do
+                progress_start start_msg, :done_message => done_msg do
+                    if internal_doxygen_mode?
+                        run_doxygen
+                    else
+                        Subprocess.run(self, utility.name,
+                                       Autobuild.tool(:make),
+                                       "-j#{parallel_build_level}",
+                                       target,
+                                       :working_directory => builddir)
                     end
+                    yield if block_given?
                 end
             end
+        end
+
+        # Declare that the given target can be used to generate documentation
+        def with_doc(target = 'doc', &block)
+            common_utility_handling(
+                doc_utility, target,
+                "generating documentation for %s",
+                "generated documentation for %s", &block)
+        end
+
+        def with_tests(target = 'test', &block)
+            common_utility_handling(
+                test_utility, target,
+                "running tests for %s",
+                "successfully ran tests for %s", &block)
         end
 
         CMAKE_EQVS = {
