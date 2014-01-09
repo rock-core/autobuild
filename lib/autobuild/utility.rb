@@ -62,7 +62,7 @@ module Autobuild
         # method that call this method internally
         #
         # @return [Rake::Task]
-        def task
+        def task(&block)
             return if @task
             @task = package.task task_name do
                 # This flag allows to disable this utility's task
@@ -70,35 +70,37 @@ module Autobuild
                 if enabled?
                     @installed = false
                     catch(:disabled) do
-                        begin
-                            yield if block_given?
-
-                            # Allow the user to install manually in the task
-                            # block
-                            unless @installed
-                                install
-                            end
-
-                        rescue Interrupt
-                            raise
-                        rescue ::Exception => e
-                            if Autobuild.send("pass_#{name}_errors")
-                                raise
-                            else
-                                package.warn "%s: failed to call #{name}"
-                                if e.kind_of?(SubcommandFailed)
-                                    package.warn "%s: see #{e.logfile} for more details"
-                                else
-                                    package.warn "%s: #{e.message}"
-                                end
-                            end
-                        end
+                        package.isolate_errors { call_task_block(&block) }
                     end
                 end
             end
 
             package.task name => task_name 
             @task
+        end
+
+        def call_task_block
+            yield if block_given?
+
+            # Allow the user to install manually in the task
+            # block
+            if !@installed && target_dir
+                install
+            end
+
+        rescue Interrupt
+            raise
+        rescue ::Exception => e
+            if Autobuild.send("pass_#{name}_errors")
+                raise
+            else
+                package.warn "%s: failed to call #{name}"
+                if e.kind_of?(SubcommandFailed)
+                    package.warn "%s: see #{e.logfile} for more details"
+                else
+                    package.warn "%s: #{e.message}"
+                end
+            end
         end
 
         # True if this utility would do something, and false otherwise
