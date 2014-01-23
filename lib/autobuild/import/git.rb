@@ -168,9 +168,9 @@ module Autobuild
                 # configuration parameters only if the repository and branch are
                 # OK (i.e. we keep old working configuration instead)
                 if branch || tag
-                    Subprocess.run(package, :import, Autobuild.tool('git'), 'fetch', repository, branch || tag)
+                    Subprocess.run(package, :import, Autobuild.tool('git'), 'fetch', '--tags', repository, branch || tag)
                 elsif commit
-                    Subprocess.run(package, :import, Autobuild.tool('git'), 'fetch', repository)
+                    Subprocess.run(package, :import, Autobuild.tool('git'), 'fetch', '--tags', repository)
                 end
 
                 Subprocess.run(package, :import, Autobuild.tool('git'), 'config',
