@@ -177,7 +177,7 @@ module Autobuild
             FileUtils.rm_f genstamp 
         end
 
-        def import
+        def import(only_local=false)
             super
         end
 

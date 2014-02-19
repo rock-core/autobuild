@@ -34,7 +34,11 @@ module Autobuild
 
         private
 
-        def update(package) # :nodoc:
+        def update(package,only_local=false) # :nodoc:
+            if only_local
+                Autobuild.warn "The importer #{self.class} does not support local updates, skipping #{self}"
+                return
+            end
             Dir.chdir(package.srcdir) do
 		if !File.exists?("#{package.srcdir}/CVS/Root")
 		    raise ConfigException.new(package, 'import'), "#{package.srcdir} is not a CVS working copy"

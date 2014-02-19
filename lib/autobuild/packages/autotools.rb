@@ -133,7 +133,7 @@ module Autobuild
             FileUtils.rm_f configurestamp
         end
 
-        def import
+        def import(only_local=false)
             # We force a regen after the first checkout. The issue is that
             # autotools is less robust than it should, and very often it is
             # better to generate the build system for the system on which we

@@ -44,7 +44,11 @@ module Autobuild
             end
         end
 
-        def update(package)
+        def update(package,only_local=false)
+            if only_local
+                Autobuild.warn "The importer #{self.class} does not support local updates, skipping #{self}"
+                return
+            end
             validate_importdir(package)
             Dir.chdir(package.importdir) do
                 Subprocess.run(package, :import, Autobuild.tool('hg'), 'pull', repository)

@@ -17,7 +17,7 @@ module Autobuild
 	    use :autogen => 'autogen'
         end
 
-	def import
+        def import(only_local=false)
 	    super
 	    get_provides
 	end

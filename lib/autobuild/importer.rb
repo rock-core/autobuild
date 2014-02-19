@@ -119,7 +119,7 @@ class Importer
         end
     end
 
-    def perform_update(package)
+    def perform_update(package,only_local=false)
         cur_patches    = currently_applied_patches(package)
         needed_patches = self.patches
         if cur_patches.map(&:last) != needed_patches.map(&:last)
@@ -129,7 +129,7 @@ class Importer
         retry_count = 0
         package.progress_start "updating %s"
         begin
-            update(package)
+            update(package,only_local)
         rescue Interrupt
             raise
         rescue ::Exception => original_error
@@ -146,7 +146,7 @@ class Importer
                 package.message "update failed and some patches are applied, retrying after removing all patches first"
                 begin
                     patch(package, [])
-                    return perform_update(package)
+                    return perform_update(package,only_local)
                 rescue Interrupt
                     raise
                 rescue ::Exception
@@ -204,12 +204,12 @@ class Importer
     end
 
     # Performs the import of +package+
-    def import(package)
+    def import(package,only_local = false)
         importdir = package.importdir
         if File.directory?(importdir)
             package.isolate_errors(false) do
                 if package.update?
-                    perform_update(package)
+                    perform_update(package,only_local)
                 else
                     if Autobuild.verbose
                         package.message "%s: not updating"

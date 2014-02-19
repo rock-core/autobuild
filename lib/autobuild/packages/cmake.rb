@@ -251,7 +251,7 @@ module Autobuild
             end
         end
 
-        def import
+        def import(only_local=false)
             super
 
             Dir.glob(File.join(srcdir, "*.pc.in")) do |file|

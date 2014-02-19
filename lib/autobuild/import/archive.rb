@@ -214,7 +214,11 @@ module Autobuild
             end
         end
 
-        def update(package) # :nodoc:
+        def update(package,only_local = false) # :nodoc:
+            if only_local
+                Autobuild.warn "The importer #{self.class} does not support local updates, skipping #{self}"
+                return
+            end
             needs_update = update_cache(package)
 
             if !File.file?(checkout_digest_stamp(package))

@@ -35,7 +35,11 @@ module Autobuild
 
         private
 
-        def update(package) # :nodoc:
+        def update(package,only_local=false) # :nodoc:
+            if only_local
+                Autobuild.warn "The importer #{self.class} does not support local updates, skipping #{self}"
+                return
+            end
             Dir.chdir(package.importdir) do
 		old_lang, ENV['LC_ALL'] = ENV['LC_ALL'], 'C'
                 svninfo = []

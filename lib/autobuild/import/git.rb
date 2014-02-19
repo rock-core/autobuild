@@ -355,10 +355,13 @@ module Autobuild
             Status.new(status, fetch_commit, head_commit, common_commit)
         end
 
-        def update(package)
+        def update(package,only_local = false)
             validate_importdir(package)
             Dir.chdir(package.importdir) do
-                fetch_commit = fetch_remote(package)
+                #Checking if we should only merge our repro to remotes/HEAD without updateing from the remote side...
+                if !only_local
+                    fetch_commit = fetch_remote(package)
+                end
 
                 # If we are tracking a commit/tag, just check it out and return
                 if commit || tag

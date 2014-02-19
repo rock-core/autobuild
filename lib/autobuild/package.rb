@@ -260,9 +260,9 @@ module Autobuild
         # Call the importer if there is one. Autodetection of "provides" should
         # be done there as well. See the documentation of Autobuild::Package for
         # more information.
-	def import
+	def import(only_local=false)
             if @importer
-                @importer.import(self)
+                @importer.import(self,only_local)
             elsif Autobuild.do_update
                 message "%s: no importer defined, doing nothing"
             end

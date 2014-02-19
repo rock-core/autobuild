@@ -12,7 +12,7 @@ module Autobuild
             super
         end
 
-        def import
+        def import(only_local=false)
         end
 
         def prepare
