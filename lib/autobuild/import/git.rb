@@ -430,7 +430,7 @@ module Autobuild
             end
 
             Subprocess.run(package, :import,
-                Autobuild.tool('git'), 'clone', '-o', 'autobuild', repository, package.importdir)
+                Autobuild.tool('git'), 'clone', '-o', 'autobuild', '--recurse-submodules', repository, package.importdir)
 
             Dir.chdir(package.importdir) do
                 if push_to
