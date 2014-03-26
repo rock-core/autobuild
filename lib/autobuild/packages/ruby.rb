@@ -9,10 +9,14 @@ module Autobuild
         # The Rake task that is used to run tests. Defaults to "test".
         # Set to nil to disable tests for this package
         attr_accessor :rake_test_task
+        # The Rake task that is used to run cleanup. Defaults to "clean".
+        # Set to nil to disable tests for this package
+        attr_accessor :rake_clean_task
 
         def initialize(*args)
             self.rake_setup_task = "default"
             self.rake_doc_task   = "redocs"
+            self.rake_clean_task   = "clean"
             self.rake_test_task  = "test"
 
             super
@@ -77,6 +81,10 @@ module Autobuild
         def prepare_for_rebuild # :nodoc:
             super
             extdir = File.join(srcdir, 'ext')
+            if rake_clean_task && File.file?(File.join(srcdir, 'Rakefile'))
+                Autobuild::Subprocess.run self, 'clean',
+                    Autoproj::CmdLine.ruby_executable, Autoproj.find_in_path('rake'), rake_clean_task, :working_directory => srcdir
+            end
             if File.directory?(extdir)
                 Find.find(extdir) do |file|
                     if File.directory?(file) && File.basename(file) == "build"
