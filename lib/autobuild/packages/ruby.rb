@@ -82,8 +82,14 @@ module Autobuild
             super
             extdir = File.join(srcdir, 'ext')
             if rake_clean_task && File.file?(File.join(srcdir, 'Rakefile'))
+                begin
                 Autobuild::Subprocess.run self, 'clean',
                     Autoproj::CmdLine.ruby_executable, Autoproj.find_in_path('rake'), rake_clean_task, :working_directory => srcdir
+                rescue Autobuild::SubcommandFailed => e
+                    warn "%s: cleaning failed. Maybe package does not support cleaning?. \
+If this is the case, try to disable cleaning by adding pkg.rake_clean_task = nil to the package definition. \
+For details see #{e.logfile}"
+                end
             end
             if File.directory?(extdir)
                 Find.find(extdir) do |file|
