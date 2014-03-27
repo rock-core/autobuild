@@ -27,12 +27,15 @@ lib/autobuild/packages/gnumake.rb
 lib/autobuild/packages/import.rb
 lib/autobuild/packages/orogen.rb
 lib/autobuild/packages/pkgconfig.rb
+lib/autobuild/packages/ruby.rb
+lib/autobuild/utility.rb
 lib/autobuild/parallel.rb
 lib/autobuild/pkgconfig.rb
 lib/autobuild/reporting.rb
 lib/autobuild/subcommand.rb
 lib/autobuild/timestamps.rb
 lib/autobuild/version.rb
+lib/autobuild/rake_task_extension.rb
 samples/openrobots.autobuild
 test/data/cvsroot.tar
 test/data/svnroot.tar
