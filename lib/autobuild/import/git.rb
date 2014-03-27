@@ -28,11 +28,12 @@ module Autobuild
                 Autobuild.warn "   Autobuild.git 'git://gitorious.org/rock/buildconf.git', :branch => 'master'"
             end
 
-            gitopts, common = Kernel.filter_options options, :push_to => nil, :branch => nil, :tag => nil, :commit => nil
+            gitopts, common = Kernel.filter_options options, :push_to => nil, :branch => nil, :tag => nil, :commit => nil, :with_submodules => false
             if gitopts[:branch] && branch
                 raise ConfigException, "git branch specified with both the option hash and the explicit parameter"
             end
             @push_to = gitopts[:push_to]
+            @with_submodules = gitopts[:with_submodules]
             branch = gitopts[:branch] || branch
             tag    = gitopts[:tag]
             commit = gitopts[:commit]
@@ -66,6 +67,11 @@ module Autobuild
         #
         # Defaults to #branch
         attr_writer :remote_branch
+
+        # Set to true if checkout should be done with submodules
+        #
+        # Defaults to #false
+        attr_writer :with_submodules
 
         # The branch this importer is tracking
         #
@@ -105,6 +111,10 @@ module Autobuild
         # (the default), the import will fail if the updates do not resolve as
         # a fast-forward
         def merge?; !!@merge end
+
+        #Return true if the git checkout should be done with submodules
+        #detaul it false
+        def with_submodules?; !!@with_submodules end
 
         # Set the merge flag. See #merge?
         def merge=(flag); @merge = flag end
@@ -432,8 +442,13 @@ module Autobuild
                 FileUtils.mkdir_p base_dir
             end
 
-            Subprocess.run(package, :import,
-                Autobuild.tool('git'), 'clone', '-o', 'autobuild', '--recurse-submodules', repository, package.importdir)
+            if with_submodules?
+                Subprocess.run(package, :import,
+                    Autobuild.tool('git'), 'clone', '-o', 'autobuild', '--recurse-submodules', repository, package.importdir)
+            else
+                Subprocess.run(package, :import,
+                    Autobuild.tool('git'), 'clone', '-o', 'autobuild', repository, package.importdir)
+            end
 
             Dir.chdir(package.importdir) do
                 if push_to
