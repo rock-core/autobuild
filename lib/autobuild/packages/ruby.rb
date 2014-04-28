@@ -79,7 +79,6 @@ module Autobuild
 
         def prepare_for_rebuild # :nodoc:
             super
-            extdir = File.join(srcdir, 'ext')
             if rake_clean_task && File.file?(File.join(srcdir, 'Rakefile'))
                 begin
                     Autobuild::Subprocess.run self, 'clean',
@@ -89,19 +88,6 @@ module Autobuild
                     warn "%s: cleaning failed. Maybe package does not support cleaning?. \
 If this is the case, try to disable cleaning by adding pkg.rake_clean_task = nil to the package definition. \
 For details see #{e.logfile}"
-                end
-            end
-            if File.directory?(extdir)
-                Find.find(extdir) do |file|
-                    if File.directory?(file) && File.basename(file) == "build"
-                        FileUtils.rm_rf file
-                        Find.prune
-                    end
-                end
-                Find.find(extdir) do |file|
-                    if File.basename(file) == "Makefile"
-                        Autobuild::Subprocess.run self, 'build', Autobuild.tool("make"), "-C", File.dirname(file), "clean"
-                    end
                 end
             end
         end
