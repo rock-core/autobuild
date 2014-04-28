@@ -68,11 +68,12 @@ module Autobuild
 
         def prepare_for_forced_build # :nodoc:
             super
-            extdir = File.join(srcdir, 'ext')
-            if File.directory?(extdir)
-                Find.find(extdir) do |file|
-                    next if file !~ /\<Makefile\>|\<CMakeCache.txt\>$/
-                    FileUtils.rm_rf file
+            %w{ext tmp}.each do |extdir|
+                if File.directory?(extdir)
+                    Find.find(extdir) do |file|
+                        next if file !~ /\<Makefile\>|\<CMakeCache.txt\>$/
+                        FileUtils.rm_rf file
+                    end
                 end
             end
         end
