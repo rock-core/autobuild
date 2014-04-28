@@ -86,9 +86,9 @@ module Autobuild
                         Autobuild.tool_in_path('ruby'), '-S', Autobuild.tool('rake'), rake_clean_task,
                         :working_directory => srcdir
                 rescue Autobuild::SubcommandFailed => e
-                    warn "%s: cleaning failed. Maybe package does not support cleaning?. \
-If this is the case, try to disable cleaning by adding pkg.rake_clean_task = nil to the package definition. \
-For details see #{e.logfile}"
+                    warn "%s: cleaning failed. If this package does not need a clean target,"
+                    warn "%s: set pkg.rake_clean_task = nil in the package definition."
+                    warn "%s: see #{e.logfile} for more details"
                 end
             end
         end
