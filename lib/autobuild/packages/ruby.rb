@@ -31,8 +31,7 @@ module Autobuild
             doc_task do
                 progress_start "generating documentation for %s", :done_message => 'generated documentation for %s' do
                     Autobuild::Subprocess.run self, 'doc',
-                        Autoproj::CmdLine.ruby_executable,
-                        Autoproj.find_in_path('rake'), rake_doc_task,
+                        Autobuild.tool_in_path('ruby'), '-S', Autobuild.tool('rake'), rake_doc_task,
                         :working_directory => srcdir
                 end
             end
@@ -42,8 +41,7 @@ module Autobuild
             test_utility.task do
                 progress_start "running tests for %s", :done_message => 'tests passed for %s' do
                     Autobuild::Subprocess.run self, 'test',
-                        Autoproj::CmdLine.ruby_executable,
-                        Autoproj.find_in_path('rake'), rake_test_task,
+                        Autobuild.tool_in_path('ruby'), '-S', Autobuild.tool('rake'), rake_test_task,
                         :working_directory => srcdir
                 end
             end
@@ -53,7 +51,7 @@ module Autobuild
             progress_start "setting up Ruby package %s", :done_message => 'set up Ruby package %s' do
                 Autobuild.update_environment srcdir
                 # Add lib/ unconditionally, as we know that it is a ruby package.
-                # Autobuild will add it only if there is a .rb file in the directory
+                # update_environment will add it only if there is a .rb file in the directory
                 libdir = File.join(srcdir, 'lib')
                 if File.directory?(libdir)
                     Autobuild.env_add_path 'RUBYLIB', libdir
@@ -61,7 +59,8 @@ module Autobuild
 
                 if rake_setup_task && File.file?(File.join(srcdir, 'Rakefile'))
                     Autobuild::Subprocess.run self, 'post-install',
-                        Autoproj::CmdLine.ruby_executable, Autoproj.find_in_path('rake'), rake_setup_task, :working_directory => srcdir
+                        Autobuild.tool_in_path('ruby'), '-S', Autobuild.tool('rake'), rake_setup_task,
+                        :working_directory => srcdir
                 end
             end
             super
@@ -83,8 +82,9 @@ module Autobuild
             extdir = File.join(srcdir, 'ext')
             if rake_clean_task && File.file?(File.join(srcdir, 'Rakefile'))
                 begin
-                Autobuild::Subprocess.run self, 'clean',
-                    Autoproj::CmdLine.ruby_executable, Autoproj.find_in_path('rake'), rake_clean_task, :working_directory => srcdir
+                    Autobuild::Subprocess.run self, 'clean',
+                        Autobuild.tool_in_path('ruby'), '-S', Autobuild.tool('rake'), rake_clean_task,
+                        :working_directory => srcdir
                 rescue Autobuild::SubcommandFailed => e
                     warn "%s: cleaning failed. Maybe package does not support cleaning?. \
 If this is the case, try to disable cleaning by adding pkg.rake_clean_task = nil to the package definition. \
