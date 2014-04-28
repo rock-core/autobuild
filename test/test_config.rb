@@ -70,6 +70,13 @@ describe Autobuild do
             Autobuild.programs_in_path['bla'] = ['bla', 'a_test_name', ENV['PATH']]
             assert_equal 'bla', Autobuild.tool_in_path('bla')
         end
+        it "should work fine if the tool is set to a full path" do
+            flexmock(Autobuild).should_receive(:tool).with('bla').and_return('/another/path/a_test_name')
+            FileUtils.mkdir_p('/another/path')
+            FileUtils.touch('/another/path/a_test_name')
+            FileUtils.chmod(0755, '/another/path/a_test_name')
+            assert_equal '/another/path/a_test_name', Autobuild.tool_in_path('bla')
+        end
     end
 end
 
