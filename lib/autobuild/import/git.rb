@@ -484,6 +484,38 @@ module Autobuild
         def relocate(repository)
             @repository = repository
         end
+
+        # Tests whether the given directory is a git repository
+        def self.can_handle?(path)
+            File.directory?(File.join(path, '.git'))
+        end
+
+        # Returns a hash that represents the configuration of a git importer
+        # based on the information contained in the git configuration
+        #
+        # @raise [ArgumentError] if the path does not point to a git repository
+        def self.vcs_definition_for(path)
+            if !can_handle?(path)
+                raise ArgumentError, "#{path} is not a git repository"
+            end
+
+            Dir.chdir(path) do
+                vars = `git config -l`.
+                    split("\n").
+                    inject(Hash.new) do |h, line|
+                        k, v = line.strip.split('=', 2)
+                        h[k] = v
+                        h
+                    end
+                url = vars['remote.autobuild.url'] ||
+                    vars['remote.origin.url']
+                if url
+                    return Hash[:type => :git, :url => url]
+                else
+                    return Hash[:type => :git]
+                end
+            end
+        end
     end
 
     # Creates a git importer which gets the source for the given repository and branch
