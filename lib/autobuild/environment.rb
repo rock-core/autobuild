@@ -414,8 +414,7 @@ module Autobuild
             end
 
             require 'rbconfig'
-            ruby_arch    = File.basename(RbConfig::CONFIG['archdir'])
-            candidates = %w{rubylibdir archdir sitelibdir sitearchdir vendorlibdir vendorarchdir}.
+            %w{rubylibdir archdir sitelibdir sitearchdir vendorlibdir vendorarchdir}.
                 map { |key| RbConfig::CONFIG[key] }.
                 map { |path| path.gsub(/.*lib(?:32|64)?\//, '\\1') }.
                 each do |subdir|
