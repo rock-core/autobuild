@@ -71,11 +71,6 @@ module Autobuild
             return @processor_count
         end
 		
-		#No parralel build on windows yet, since CPU detection is not easy do able
-		if(RbConfig::CONFIG["host_os"] =~%r!(msdos|mswin|djgpp|mingw|[Ww]indows)!)
-			return 1
-		end
-
         if File.file?('/proc/cpuinfo')
             cpuinfo = File.readlines('/proc/cpuinfo')
             physical_ids, core_count, processor_ids = [], [], []
@@ -116,6 +111,11 @@ module Autobuild
         if !@processor_count
             # Hug... What kind of system is it ?
             Autobuild.message "INFO: cannot autodetect the number of CPUs on this sytem"
+            Autobuild.message "INFO: turning parallel builds off"
+            Autobuild.message "INFO: you can manually set the number of parallel build processes to N"
+            Autobuild.message "INFO: (and therefore turn this message off)"
+            Autobuild.message "INFO: with"
+            Autobuild.message "    Autobuild.parallel_build_level = N"
             @processor_count = 1
         end
 
