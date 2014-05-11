@@ -98,7 +98,7 @@ module Autobuild
                 while (id = physical_ids.shift)
                     info[id] = core_count.shift
                 end
-                @processor_count = info.inject(&:+)
+                @processor_count = info.compact.inject(&:+)
             else
                 @processor_count = processor_ids.size
             end
