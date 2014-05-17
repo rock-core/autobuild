@@ -5,6 +5,36 @@ require 'utilrb/kernel/options'
 
 module Autobuild
     class Git < Importer
+        class << self
+            # Sets the default alternates path used by all Git importers
+            #
+            # Setting it explicitly overrides any value we get from the
+            # AUTOBUILD_CACHE_DIR and AUTOBUILD_GIT_CACHE_DIR environment
+            # variables.
+            #
+            # @see default_alternates
+            attr_writer :default_alternates
+
+            # A default list of repositories that should be used as reference
+            # repositories for all Git importers
+            #
+            # It is initialized (by order of priority) using the
+            # AUTOBUILD_GIT_CACHE_DIR and AUTOBUILD_CACHE_DIR environment
+            # variables
+            #
+            # @return [Array]
+            # @see default_alternates=, Git#alternates
+            def default_alternates
+                if @default_alternates then @default_alternates
+                elsif cache_dir = ENV['AUTOBUILD_GIT_CACHE_DIR']
+                    @default_alternates = cache_dir.split(':').map { |path| File.expand_path(path) }
+                elsif cache_dir = ENV['AUTOBUILD_CACHE_DIR']
+                    @default_alternates = cache_dir.split(':').map { |path| File.join(File.expand_path(path), 'git') }
+                else Array.new
+                end
+            end
+        end
+
         # Creates an importer which tracks the given repository
         # and branch. +source+ is [repository, branch]
         #
@@ -14,6 +44,7 @@ module Autobuild
 	#   Autobuild.programs['git'] = 'my_git_tool'
         def initialize(repository, branch = nil, options = {})
             @repository = repository.to_str
+            @alternates = Git.default_alternates.dup
 
             if branch.respond_to?(:to_hash)
                 options = branch.to_hash
@@ -41,6 +72,7 @@ module Autobuild
             @branch = branch || 'master'
             @tag    = tag
             @commit = commit
+            @remote_name = 'autobuild'
             super(common)
         end
 
@@ -50,6 +82,11 @@ module Autobuild
         def repository_id
             "git:#{repository}"
         end
+
+        # The name of the remote that should be set up by the importer
+        #
+        # Defaults to 'autobuild'
+        attr_accessor :remote_name
 
         # The remote repository URL.
         #
@@ -82,6 +119,24 @@ module Autobuild
         #
         # If not set, it defaults to #branch
         attr_writer :local_branch
+
+        # A list of local (same-host) repositories that will be used instead of
+        # the remote one when possible. It has one major issue (see below), so
+        # use at your own risk.
+        #
+        # The paths must point to the git directory, so either the .git
+        # directory in a checked out git repository, or the repository itself in
+        # a bare repository.
+        #
+        # A default reference repository can be given through the
+        # AUTOBUILD_GIT_CACHE environment variable.
+        #
+        # Note that it has the major caveat that if objects disappear from the
+        # reference repository, the current one will be broken. See the git
+        # documentation for more information.
+        #
+        # @return [Array<String>]
+        attr_accessor :alternates
 
         # The branch that should be used on the local clone
         #
@@ -161,70 +216,73 @@ module Autobuild
             end
         end
 
+        def update_cache(package, cache_dir, phase)
+            remote_name = package.name.gsub(/[^\w]/, '_')
+            Subprocess.run(*git, "remote.#{remote_name}.url", repository)
+            Subprocess.run(*git, "remote.#{remote_name}.fetch",  "+refs/heads/*:refs/remotes/#{remote_name}/*")
+            Subprocess.run(*git, 'fetch', '--tags', remote_name)
+        end
+
+        # Updates the git repository's configuration for the target remote
+        def update_remotes_configuration(package, phase)
+            git = [package, phase, Autobuild.tool(:git), '--git-dir', File.join(package.importdir, '.git'), 'config', '--replace-all']
+            Subprocess.run(*git, "remote.#{remote_name}.url", repository)
+            if push_to
+                Subprocess.run(*git, "remote.#{remote_name}.pushurl", push_to)
+            end
+            Subprocess.run(*git, "remote.#{remote_name}.fetch",  "+refs/heads/*:refs/remotes/#{remote_name}/*")
+
+            if remote_branch && local_branch
+                Subprocess.run(*git, "remote.#{remote_name}.push",  "refs/heads/#{local_branch}:refs/heads/#{remote_branch}")
+            else
+                Subprocess.run(*git, "remote.#{remote_name}.push",  "refs/heads/*:refs/heads/*")
+            end
+
+            if local_branch
+                Subprocess.run(*git, "branch.#{local_branch}.remote",  remote_name)
+                Subprocess.run(*git, "branch.#{local_branch}.merge", "refs/heads/#{local_branch}")
+            end
+        end
+
         # Fetches updates from the remote repository. Returns the remote commit
         # ID on success, nil on failure. Expects the current directory to be the
         # package's source directory.
         def fetch_remote(package)
             validate_importdir(package)
-            Dir.chdir(package.importdir) do
-                # If we are checking out a specific commit, we don't know which
-                # branch to refer to in git fetch. So, we have to set up the
-                # remotes and call git fetch directly (so that all branches get
-                # fetch)
-                #
-                # Otherwise, do git fetch now
-                #
-                # Doing it now is better as it makes sure that we replace the
-                # configuration parameters only if the repository and branch are
-                # OK (i.e. we keep old working configuration instead)
-                if branch || tag
-                    Subprocess.run(package, :import, Autobuild.tool('git'), 'fetch', '--tags', repository, branch || tag)
-                elsif commit
-                    Subprocess.run(package, :import, Autobuild.tool('git'), 'fetch', '--tags', repository)
-                end
+            git = [package, :import, Autobuild.tool('git'), '--git-dir', File.join(package.importdir, '.git')]
 
-                Subprocess.run(package, :import, Autobuild.tool('git'), 'config',
-                               "--replace-all", "remote.autobuild.url", repository)
-                if push_to
-                    Subprocess.run(package, :import, Autobuild.tool('git'), 'config',
-                                   "--replace-all", "remote.autobuild.pushurl", push_to)
-                end
-                Subprocess.run(package, :import, Autobuild.tool('git'), 'config',
-                               "--replace-all", "remote.autobuild.fetch",  "+refs/heads/*:refs/remotes/autobuild/*")
+            # If we are checking out a specific commit, we don't know which
+            # branch to refer to in git fetch. So, we have to set up the
+            # remotes and call git fetch directly (so that all branches get
+            # fetch)
+            #
+            # Otherwise, do git fetch now
+            #
+            # Doing it now is better as it makes sure that we replace the
+            # configuration parameters only if the repository and branch are
+            # OK (i.e. we keep old working configuration instead)
+            refspec = [branch || tag].compact
+            Subprocess.run(*git, 'fetch', '--tags', repository, *refspec)
 
-                if remote_branch && local_branch
-                    Subprocess.run(package, :import, Autobuild.tool('git'), 'config',
-                               "--replace-all", "remote.autobuild.push",  "refs/heads/#{local_branch}:refs/heads/#{remote_branch}")
-                else
-                    Subprocess.run(package, :import, Autobuild.tool('git'), 'config',
-                               "--replace-all", "remote.autobuild.push",  "refs/heads/*:refs/heads/*")
-                end
+            update_remotes_configuration(package, :import)
 
-                if local_branch
-                    Subprocess.run(package, :import, Autobuild.tool('git'), 'config',
-                                   "--replace-all", "branch.#{local_branch}.remote",  "autobuild")
-                    Subprocess.run(package, :import, Autobuild.tool('git'), 'config',
-                                   "--replace-all", "branch.#{local_branch}.merge", "refs/heads/#{local_branch}")
+            # Now get the actual commit ID from the FETCH_HEAD file, and
+            # return it
+            commit_id = if File.readable?( File.join(package.importdir, '.git', 'FETCH_HEAD') )
+                fetch_commit = File.readlines( File.join(package.importdir, '.git', 'FETCH_HEAD') ).
+                    delete_if { |l| l =~ /not-for-merge/ }
+                if !fetch_commit.empty?
+                    fetch_commit.first.split(/\s+/).first
                 end
-
-                # Now get the actual commit ID from the FETCH_HEAD file, and
-                # return it
-                commit_id = if File.readable?( File.join('.git', 'FETCH_HEAD') )
-                    fetch_commit = File.readlines( File.join('.git', 'FETCH_HEAD') ).
-                        delete_if { |l| l =~ /not-for-merge/ }
-                    if !fetch_commit.empty?
-                        fetch_commit.first.split(/\s+/).first
-                    end
-                end
-
-                # Update the remote tag if needs be
-                if branch && commit_id
-                    Subprocess.run(package, :import, Autobuild.tool('git'), 'update-ref',
-                                   "-m", "updated by autobuild", "refs/remotes/autobuild/#{remote_branch}", commit_id)
-                end
-
-                commit_id
             end
+
+            # Update the remote tag if needs be
+            if branch && commit_id
+                Subprocess.run(*git, 'update-ref',
+                               "-m", "updated by autobuild", "refs/remotes/#{remote_name}/#{remote_branch}", commit_id)
+            end
+
+            commit_id
         end
 
         # Returns a Importer::Status object that represents the status of this
@@ -234,7 +292,7 @@ module Autobuild
                 validate_importdir(package)
                 remote_commit = nil
                 if only_local
-                    remote_commit = `git show-ref -s refs/remotes/autobuild/#{remote_branch}`.chomp
+                    remote_commit = `git show-ref -s refs/remotes/#{remote_name}/#{remote_branch}`.chomp
                 else	
                     remote_commit =
                         begin fetch_remote(package)
@@ -365,8 +423,43 @@ module Autobuild
             Status.new(status, fetch_commit, head_commit, common_commit)
         end
 
+        # Updates the git alternates file in the already checked out package to
+        # match {#alternates}
+        #
+        # @param [Package] package the already checked-out package
+        # @return [void]
+        def update_alternates(package)
+            alternates_path = File.join(package.importdir, '.git', 'objects', 'info', 'alternates')
+            current_alternates =
+                if File.file?(alternates_path)
+                    File.readlines(alternates_path).map(&:strip).find_all { |l| !l.empty? }
+                else Array.new
+                end
+
+            alternates = self.alternates.map do |path|
+                File.join(path, 'objects')
+            end
+
+            if current_alternates.sort != alternates.sort
+                # Warn that something is fishy, but assume that the user knows
+                # what he is doing
+                package.warn "%s: the list of git alternates listed in the repository differs from the one set up in autobuild."
+                package.warn "%s: I will update, but that is dangerous"
+                package.warn "%s: using git alternates is for advanced users only, who know git very well."
+                package.warn "%s: Don't complain if something breaks"
+            end
+            if alternates.empty?
+                FileUtils.rm_f alternates_path
+            else
+                File.open(alternates_path, 'w') do |io|
+                    io.write alternates.join("\n")
+                end
+            end
+        end
+
         def update(package,only_local = false)
             validate_importdir(package)
+            update_alternates(package)
             Dir.chdir(package.importdir) do
                 #Checking if we should only merge our repro to remotes/HEAD without updateing from the remote side...
                 if !only_local
@@ -442,22 +535,25 @@ module Autobuild
                 FileUtils.mkdir_p base_dir
             end
 
+            clone_options = ['-o', remote_name]
+
             if with_submodules?
-                Subprocess.run(package, :import,
-                    Autobuild.tool('git'), 'clone', '-o', 'autobuild', '--recurse-submodules', repository, package.importdir)
-            else
-                Subprocess.run(package, :import,
-                    Autobuild.tool('git'), 'clone', '-o', 'autobuild', repository, package.importdir)
+                clone_options << '--recurse-submodules'
             end
+            alternates.each do |path|
+                clone_options << '--reference' << path
+            end
+            Subprocess.run(package, :import,
+                Autobuild.tool('git'), 'clone', *clone_options, repository, package.importdir)
 
             Dir.chdir(package.importdir) do
                 if push_to
                     Subprocess.run(package, :import, Autobuild.tool('git'), 'config',
-                                   "--replace-all", "remote.autobuild.pushurl", push_to)
+                                   "--replace-all", "remote.#{remote_name}.pushurl", push_to)
                 end
                 if local_branch && remote_branch
                     Subprocess.run(package, :import, Autobuild.tool('git'), 'config',
-                                   "--replace-all", "remote.autobuild.push", "refs/heads/#{local_branch}:refs/heads/#{remote_branch}")
+                                   "--replace-all", "remote.#{remote_name}.push", "refs/heads/#{local_branch}:refs/heads/#{remote_branch}")
                 end
 
                 # If we are tracking a commit/tag, just check it out
@@ -471,10 +567,10 @@ module Autobuild
                     current_branch = `git symbolic-ref HEAD`.chomp
                     if current_branch == "refs/heads/#{local_branch}"
                         Subprocess.run(package, :import, Autobuild.tool('git'),
-                            'reset', '--hard', "autobuild/#{branch}")
+                            'reset', '--hard', "#{remote_name}/#{branch}")
                     else
                         Subprocess.run(package, :import, Autobuild.tool('git'),
-                            'checkout', '-b', local_branch, "autobuild/#{branch}")
+                            'checkout', '-b', local_branch, "#{remote_name}/#{branch}")
                     end
                 end
             end
@@ -507,7 +603,7 @@ module Autobuild
                         h[k] = v
                         h
                     end
-                url = vars['remote.autobuild.url'] ||
+                url = vars["remote.#{remote_name}.url"] ||
                     vars['remote.origin.url']
                 if url
                     return Hash[:type => :git, :url => url]
