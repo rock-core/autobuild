@@ -112,7 +112,7 @@ module Autobuild
                     size  = File.stat(@url.path).size
                     mtime = File.stat(@url.path).mtime
                 else
-                    open @url, :content_length_proc => lambda { |size| } do |file| 
+                    open @url, :content_length_proc => lambda { |v| size = v } do |file| 
                         mtime = file.last_modified
                     end
                 end
