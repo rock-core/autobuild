@@ -32,6 +32,30 @@ module Autobuild
 	# Known URI schemes for +url+
         VALID_URI_SCHEMES = [ 'file', 'http', 'https', 'ftp' ]
 
+        class << self
+            # The directory in which downloaded files are saved
+            #
+            # It defaults, by order of priority, to the archives/ subdirectory
+            # of the environment variable AUTOBUILD_CACHE_DIR (if set), to the
+            # AUTOBUILD_ARCHIVES_CACHE_DIR (if set) environment variable and to
+            # #{prefix}/cache
+            def cachedir
+                if @cachedir then @cachedir
+                elsif dir = ENV['AUTOBUILD_ARCHIVES_CACHE_DIR']
+                    @cachedir = File.expand_path(dir)
+                elsif dir = ENV['AUTOBUILD_CACHE_DIR']
+                    @cachedir = File.join(File.expand_path(dir), 'archives')
+                else
+                    @cachedir = "#{Autobuild.prefix}/cache"
+                end
+            end
+
+            # Sets the directory in which files get cached
+            attr_writer :cachedir
+        end
+
+        @cachedir = nil
+
 	# Returns the unpack mode from the file name
         def self.filename_to_mode(filename)
             case filename
@@ -163,7 +187,9 @@ module Autobuild
 	# The unpack mode. One of Zip, Bzip, Gzip or Plain
 	attr_reader :mode
 	# The directory in which remote files are cached
-        def cachedir; @options[:cachedir] end
+        #
+        # Defaults to ArchiveImporter.cachedir
+        attr_accessor :cachedir
 	# The directory contained in the tar file
         #
         # DEPRECATED use #archive_dir instead
@@ -192,7 +218,7 @@ module Autobuild
             if !@options.has_key?(:update_cached_file)
                 @options[:update_cached_file] = false
             end
-            @options[:cachedir] ||= "#{Autobuild.prefix}/cache"
+            @cachedir = @options[:cachedir] || ArchiveImporter.cachedir
 
             relocate(url)
         end
