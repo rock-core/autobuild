@@ -45,6 +45,7 @@ module Autobuild
         def initialize(repository, branch = nil, options = {})
             @repository = repository.to_str
             @alternates = Git.default_alternates.dup
+            @git_dir_cache = Array.new
 
             if branch.respond_to?(:to_hash)
                 options = branch.to_hash
@@ -177,8 +178,44 @@ module Autobuild
         # Raises ConfigException if the current directory is not a git
         # repository
         def validate_importdir(package)
-            if !File.directory?(File.join(package.importdir, '.git'))
-                raise ConfigException.new(package, 'import'), "while importing #{package.name}, #{package.importdir} is not a git repository"
+            return git_dir(package, true)
+        end
+
+        # Resolves the git directory associated with path, and tells whether it
+        # is a bare repository or not
+        #
+        # @param [String] path the path from which we should resolve
+        # @return [(String,Symbol),nil] either the path to the git folder and
+        #  :bare or :normal, or nil if path is not a git repository.
+        def self.resolve_git_dir(path)
+            dir = File.join(path, '.git')
+            if !File.exists?(dir)
+                dir = path
+            end
+
+            result = `#{Autobuild.tool(:git)} --git-dir="#{dir}" rev-parse --is-bare-repository`
+            if $?.success?
+                if result.strip == "true"
+                    return dir, :bare
+                else return dir, :normal
+                end
+            end
+        end
+
+        def git_dir(package, require_working_copy)
+            if @git_dir_cache[0] == package.importdir
+                dir, style = *@git_dir_cache[1, 2]
+            else
+                dir, style = Git.resolve_git_dir(package.importdir)
+            end
+
+            @git_dir_cache = [package.importdir, dir, style]
+            if !style
+                raise ConfigException.new(package, 'import'), "while importing #{package.name}, #{package.importdir} does not point to a git repository"
+            elsif require_working_copy && (style == :bare)
+                raise ConfigException.new(package, 'import'), "while importing #{package.name}, #{package.importdir} points to a bare git repository but a working copy was required"
+            else
+                return dir
             end
         end
 
@@ -225,7 +262,7 @@ module Autobuild
 
         # Updates the git repository's configuration for the target remote
         def update_remotes_configuration(package, phase)
-            git = [package, phase, Autobuild.tool(:git), '--git-dir', File.join(package.importdir, '.git'), 'config', '--replace-all']
+            git = [package, phase, Autobuild.tool(:git), '--git-dir', git_dir(package, false), 'config', '--replace-all']
             Subprocess.run(*git, "remote.#{remote_name}.url", repository)
             if push_to
                 Subprocess.run(*git, "remote.#{remote_name}.pushurl", push_to)
@@ -249,7 +286,8 @@ module Autobuild
         # package's source directory.
         def fetch_remote(package)
             validate_importdir(package)
-            git = [package, :import, Autobuild.tool('git'), '--git-dir', File.join(package.importdir, '.git')]
+            git_dir = git_dir(package, false)
+            git = [package, :import, Autobuild.tool('git'), '--git-dir', git_dir]
 
             # If we are checking out a specific commit, we don't know which
             # branch to refer to in git fetch. So, we have to set up the
@@ -268,8 +306,8 @@ module Autobuild
 
             # Now get the actual commit ID from the FETCH_HEAD file, and
             # return it
-            commit_id = if File.readable?( File.join(package.importdir, '.git', 'FETCH_HEAD') )
-                fetch_commit = File.readlines( File.join(package.importdir, '.git', 'FETCH_HEAD') ).
+            commit_id = if File.readable?( File.join(git_dir, 'FETCH_HEAD') )
+                fetch_commit = File.readlines( File.join(git_dir, 'FETCH_HEAD') ).
                     delete_if { |l| l =~ /not-for-merge/ }
                 if !fetch_commit.empty?
                     fetch_commit.first.split(/\s+/).first
@@ -429,7 +467,7 @@ module Autobuild
         # @param [Package] package the already checked-out package
         # @return [void]
         def update_alternates(package)
-            alternates_path = File.join(package.importdir, '.git', 'objects', 'info', 'alternates')
+            alternates_path = File.join(git_dir(package, false), 'objects', 'info', 'alternates')
             current_alternates =
                 if File.file?(alternates_path)
                     File.readlines(alternates_path).map(&:strip).find_all { |l| !l.empty? }
@@ -583,7 +621,8 @@ module Autobuild
 
         # Tests whether the given directory is a git repository
         def self.can_handle?(path)
-            File.directory?(File.join(path, '.git'))
+            _, style = Git.resolve_git_dir(path)
+            style == :normal
         end
 
         # Returns a hash that represents the configuration of a git importer
@@ -592,7 +631,7 @@ module Autobuild
         # @raise [ArgumentError] if the path does not point to a git repository
         def self.vcs_definition_for(path)
             if !can_handle?(path)
-                raise ArgumentError, "#{path} is not a git repository"
+                raise ArgumentError, "#{path} is either not a git repository, or a bare git repository"
             end
 
             Dir.chdir(path) do
