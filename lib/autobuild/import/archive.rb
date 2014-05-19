@@ -189,7 +189,14 @@ module Autobuild
 	# The directory in which remote files are cached
         #
         # Defaults to ArchiveImporter.cachedir
-        attr_accessor :cachedir
+        attr_reader :cachedir
+
+        # Changes the cache directory for this importer
+        def cachedir=(dir)
+            @cachedir = dir
+            relocate(@url.to_s)
+        end
+
 	# The directory contained in the tar file
         #
         # DEPRECATED use #archive_dir instead
