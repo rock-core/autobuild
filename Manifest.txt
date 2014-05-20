@@ -33,6 +33,7 @@ lib/autobuild/parallel.rb
 lib/autobuild/pkgconfig.rb
 lib/autobuild/reporting.rb
 lib/autobuild/subcommand.rb
+lib/autobuild/tools.rb
 lib/autobuild/timestamps.rb
 lib/autobuild/version.rb
 lib/autobuild/rake_task_extension.rb
