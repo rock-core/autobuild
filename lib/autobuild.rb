@@ -5,6 +5,7 @@ if defined? Rake::DSL
 end
 
 module Autobuild
+    LIB_DIR = File.expand_path(File.dirname(__FILE__))
 end
 
 begin
