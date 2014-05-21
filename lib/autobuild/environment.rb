@@ -34,6 +34,10 @@ module Autobuild
         if windows? then "set %s=%s"
         else "%s=%s"
         end
+    SHELL_CONDITIONAL_SET_COMMAND =
+        if windows? then "set %s=%s"
+        else "if test -z \"$%1$s\"; then\n  %1$s=%3$s\nelse\n  %1$s=%2$s\nfi"
+        end
     SHELL_UNSET_COMMAND =
         if windows? then "unset %s"
         else "unset %s"
@@ -206,14 +210,39 @@ module Autobuild
         env_update_var(name)
     end
 
-    def self.env_value(name, expand_inherited = true)
+    # Returns an environment variable value
+    #
+    # @param [String] name the environment variable name
+    # @option options [Symbol] inheritance_mode (:expand) controls how
+    #   environment variable inheritance should be done. If :expand, the current
+    #   envvar value is inserted in the generated value. If :keep, the name of
+    #   the envvar is inserted (as e.g. $NAME). If :ignore, inheritance is
+    #   disabled in the generated value. Not that this applies only for the
+    #   environment variables for which inheritance has been enabled with
+    #   #env_inherit, other variables always behave as if :ignore was selected.
+    # @return [nil,Array<String>] either nil if this environment variable is not
+    #   set, or an array of values. How the values should be joined to form the
+    #   actual value is OS-specific, and not handled by this method
+    def self.env_value(name, options = Hash.new)
+        # For backward compatibility only
+        if !options.respond_to?(:to_hash)
+            if options
+                options = Hash[:inheritance_mode => :expand]
+            else
+                options = Hash[:inheritance_mode => :keep]
+            end
+        end
+        options = Kernel.validate_options options,
+            inheritance_mode: :expand
+        inheritance_mode = options[:inheritance_mode]
+
         if !environment[name] && !inherited_environment[name] && !SYSTEM_ENV[name]
             nil
         else
             inherited =
-                if expand_inherited
+                if inheritance_mode == :expand
                     inherited_environment[name] || []
-                elsif env_inherit?(name)
+                elsif inheritance_mode == :keep && env_inherit?(name)
                     ["$#{name}"]
                 else []
                 end
@@ -301,12 +330,15 @@ module Autobuild
         variables = []
         Autobuild.environment.each do |name, _|
             variables << name
-            value = env_value(name, false)
+            value_with_inheritance = env_value(name, inheritance_mode: :keep)
+            value_without_inheritance = env_value(name, inheritance_mode: :ignore)
 
-            if value
-                shell_line = SHELL_SET_COMMAND % [name, value.join(ENV_LIST_SEPARATOR)]
-            else
+            if !value_with_inheritance
                 shell_line = SHELL_UNSET_COMMAND % [name]
+            elsif value_with_inheritance == value_without_inheritance # no inheritance
+                shell_line = SHELL_SET_COMMAND % [name, value_with_inheritance.join(ENV_LIST_SEPARATOR)]
+            else
+                shell_line = SHELL_CONDITIONAL_SET_COMMAND % [name, value_with_inheritance.join(ENV_LIST_SEPARATOR), value_without_inheritance.join(ENV_LIST_SEPARATOR)]
             end
             io.puts shell_line
         end
