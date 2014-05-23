@@ -21,6 +21,14 @@ module Autobuild
             programs[name.to_sym] || programs[name.to_s] || name.to_s
         end
 
+        def find_in_path(file)
+            path = ENV['PATH'].split(File::PATH_SEPARATOR).
+                find { |dir| File.exists?(File.join(dir, file)) }
+            if path
+                return File.join(path, file)
+            end
+        end
+
         # Resolves the absolute path to a given tool
         def tool_in_path(name)
             path, path_name, path_env = programs_in_path[name]
@@ -32,11 +40,7 @@ module Autobuild
                     # This is already a full path
                     path = current
                 else
-                    path = ENV['PATH'].split(':').
-                        find { |dir| File.exists?(File.join(dir, current)) }
-                    if path
-                        path = File.join(path, current)
-                    end
+                    path = find_in_path(current)
                 end
 
                 if !path

@@ -22,10 +22,6 @@ module Autobuild
     ENV.each do |k, v|
         ORIGINAL_ENV[k] = v
     end
-    ENV_LIST_SEPARATOR =
-        if windows? then ';'
-        else ':'
-        end
     SHELL_VAR_EXPANSION =
         if windows? then "%%%s%%"
         else "$%s"
@@ -55,7 +51,8 @@ module Autobuild
         # List of the environment that should be set before calling a subcommand
         #
         # It is a map from environment variable name to the corresponding value.
-        # If the value is an array, it is joined using the path separator ':'
+        # If the value is an array, it is joined using the operating system's
+        # path separator (File::PATH_SEPARATOR)
         attr_reader :environment
 
         # In generated environment update shell files, indicates whether an
@@ -172,7 +169,7 @@ module Autobuild
 
     def self.env_init_from_env(name)
         if env_inherit?(name) && (parent_env = ORIGINAL_ENV[name])
-            inherited_environment[name] = parent_env.split(ENV_LIST_SEPARATOR)
+            inherited_environment[name] = parent_env.split(File::PATH_SEPARATOR)
         else
             inherited_environment[name] = Array.new
         end
@@ -262,7 +259,7 @@ module Autobuild
 
     def self.env_update_var(name)
         if value = env_value(name)
-            ENV[name] = value.join(ENV_LIST_SEPARATOR)
+            ENV[name] = value.join(File::PATH_SEPARATOR)
         else
             ENV.delete(name)
         end
@@ -336,9 +333,9 @@ module Autobuild
             if !value_with_inheritance
                 shell_line = SHELL_UNSET_COMMAND % [name]
             elsif value_with_inheritance == value_without_inheritance # no inheritance
-                shell_line = SHELL_SET_COMMAND % [name, value_with_inheritance.join(ENV_LIST_SEPARATOR)]
+                shell_line = SHELL_SET_COMMAND % [name, value_with_inheritance.join(File::PATH_SEPARATOR)]
             else
-                shell_line = SHELL_CONDITIONAL_SET_COMMAND % [name, value_with_inheritance.join(ENV_LIST_SEPARATOR), value_without_inheritance.join(ENV_LIST_SEPARATOR)]
+                shell_line = SHELL_CONDITIONAL_SET_COMMAND % [name, value_with_inheritance.join(File::PATH_SEPARATOR), value_without_inheritance.join(File::PATH_SEPARATOR)]
             end
             io.puts shell_line
         end
