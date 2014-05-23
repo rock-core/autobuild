@@ -9,6 +9,8 @@ Utilrb::Rake.hoe do
         self.description = "Collection of classes to handle build systems (CMake, autotools, ...) and import mechanisms (tarballs, CVS, SVN, git, ...). It also offers a Rake integration to import and build such software packages. It is the backbone of the autoproj (http://rock-robotics.org/autoproj) integrated software project management tool."
         self.email = %q{rock-dev@dfki.de}
 
+        license 'BSD'
+
         self.extra_deps <<
             ['rake', '>= 0.9.0'] <<
             ['utilrb', '>= 1.6.0'] <<
