@@ -252,6 +252,14 @@ module Autobuild
         end
     end
 
+    # The name of all build phases that Autobuild knows about
+    #
+    # @return [Array<String>]
+    def self.all_phases
+        %w{import prepare build} +
+            utilities.keys
+    end
+
     def self.apply(packages, buildname = "autobuild", phases = [])
         if Autobuild.mail[:to]
             if !Autobuild::HAS_RMAIL
