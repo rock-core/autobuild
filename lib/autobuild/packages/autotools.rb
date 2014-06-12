@@ -66,7 +66,7 @@ module Autobuild
             common_utility_handling(doc_utility, target, &block)
         end
 
-        def with_tests(target = 'test')
+        def with_tests(target = 'test', &block)
             common_utility_handling(test_utility, target, &block)
         end
 
