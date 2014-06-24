@@ -11,6 +11,8 @@ Utilrb::Rake.hoe do
 
         license 'BSD'
 
+        self.spec_extras[:required_ruby_version] = ">= 1.9.2"
+
         self.extra_deps <<
             ['rake', '>= 0.9.0'] <<
             ['utilrb', '>= 1.6.0'] <<
