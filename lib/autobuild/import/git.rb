@@ -29,7 +29,7 @@ module Autobuild
                 elsif cache_dir = ENV['AUTOBUILD_GIT_CACHE_DIR']
                     @default_alternates = cache_dir.split(':').map { |path| File.expand_path(path) }
                 elsif cache_dir = ENV['AUTOBUILD_CACHE_DIR']
-                    @default_alternates = cache_dir.split(':').map { |path| File.join(File.expand_path(path), 'git') }
+                    @default_alternates = cache_dir.split(':').map { |path| File.join(File.expand_path(path), 'git', '%s') }
                 else Array.new
                 end
             end
@@ -474,7 +474,7 @@ module Autobuild
                 else Array.new
                 end
 
-            alternates = self.alternates.map do |path|
+            alternates = each_alternate_path(package).map do |path|
                 File.join(path, 'objects')
             end
 
@@ -567,6 +567,18 @@ module Autobuild
             end
         end
 
+        def each_alternate_path(package)
+            return enum_for(__method__, package) if !block_given?
+
+            alternates.each do |path|
+                path = path % [package.name]
+                if File.directory?(path)
+                    yield(path)
+                end
+            end
+            nil
+        end
+
         def checkout(package)
             base_dir = File.expand_path('..', package.importdir)
             if !File.directory?(base_dir)
@@ -578,7 +590,7 @@ module Autobuild
             if with_submodules?
                 clone_options << '--recurse-submodules'
             end
-            alternates.each do |path|
+            each_alternate_path(package) do |path|
                 clone_options << '--reference' << path
             end
             Subprocess.run(package, :import,
