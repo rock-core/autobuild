@@ -12,10 +12,11 @@ module Autobuild
 	# to 'svn' and can be configured by doing 
 	#   Autobuild.programs['svn'] = 'my_svn_tool'
         def initialize(source, options = {})
-            svnopts, common = Kernel.filter_options options,
-                :svnup => [], :svnco => [], :revision => nil
 
             @source = [*source].join("/")
+            svnopts, common = Kernel.filter_options options,
+                :svnup => [], :svnco => [], :revision => nil,
+                :repository_id => "svn:#{@source}"
             @program    = Autobuild.tool('svn')
             @options_up = [*svnopts[:svnup]]
             @options_co = [*svnopts[:svnco]]
@@ -23,14 +24,7 @@ module Autobuild
                 @options_up << "--revision" << rev
                 @options_co << "--revision" << rev
             end
-            super(common)
-        end
-
-        # Returns a string that identifies the remote repository uniquely
-        #
-        # This is meant for display purposes
-        def repository_id
-            @source.dup
+            super(common.merge(repository_id: svnopts[:repository_id]))
         end
 
         private

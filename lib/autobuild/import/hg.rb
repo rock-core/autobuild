@@ -18,16 +18,11 @@ module Autobuild
         def initialize(repository, options = {})
             @repository = repository.to_str
 
-            hgopts, common = Kernel.filter_options options, :branch => 'default'
+            hgopts, common = Kernel.filter_options options,
+                :branch => 'default',
+                :repository_id => "hg:#{repository}"
             @branch = hgopts[:branch]
-            super(common)
-        end
-
-        # Returns a string that identifies the remote repository uniquely
-        #
-        # This is meant for display purposes
-        def repository_id
-            "hg:#{repository}"
+            super(common.merge(repository_id: hgopts[:repository_id]))
         end
 
         # The remote repository URL.

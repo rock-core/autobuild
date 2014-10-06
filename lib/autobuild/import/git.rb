@@ -60,7 +60,9 @@ module Autobuild
                 Autobuild.warn "   Autobuild.git 'git://gitorious.org/rock/buildconf.git', :branch => 'master'"
             end
 
-            gitopts, common = Kernel.filter_options options, :push_to => nil, :branch => nil, :tag => nil, :commit => nil, :with_submodules => false
+            gitopts, common = Kernel.filter_options options,
+                :push_to => nil, :branch => nil, :tag => nil, :commit => nil, :with_submodules => false,
+                :repository_id => "git:#{@repository}"
             if gitopts[:branch] && branch
                 raise ConfigException, "git branch specified with both the option hash and the explicit parameter"
             end
@@ -74,14 +76,7 @@ module Autobuild
             @tag    = tag
             @commit = commit
             @remote_name = 'autobuild'
-            super(common)
-        end
-
-        # Returns a string that identifies the remote repository uniquely
-        #
-        # This is meant for display purposes
-        def repository_id
-            "git:#{repository}"
+            super(common.merge(repository_id: gitopts[:repository_id]))
         end
 
         # The name of the remote that should be set up by the importer
