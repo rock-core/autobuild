@@ -312,6 +312,10 @@ module Autobuild
             @@reporters << reporter
         end
 
+        def self.clear_reporters
+            @@reporters.clear
+        end
+
 	def self.each_reporter(&iter)
 	    @@reporters.each(&iter)
 	end
