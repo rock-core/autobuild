@@ -28,11 +28,11 @@ module Autobuild
         end
     SHELL_SET_COMMAND =
         if windows? then "set %s=%s"
-        else "%s=%s"
+        else "%s=\"%s\""
         end
     SHELL_CONDITIONAL_SET_COMMAND =
         if windows? then "set %s=%s"
-        else "if test -z \"$%1$s\"; then\n  %1$s=%3$s\nelse\n  %1$s=%2$s\nfi"
+        else "if test -z \"$%1$s\"; then\n  %1$s=\"%3$s\"\nelse\n  %1$s=\"%2$s\"\nfi"
         end
     SHELL_UNSET_COMMAND =
         if windows? then "unset %s"
