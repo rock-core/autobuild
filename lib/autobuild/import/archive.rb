@@ -52,8 +52,23 @@ module Autobuild
 
             # Sets the directory in which files get cached
             attr_writer :cachedir
-        end
 
+            # The timeout (in seconds) used during downloading.
+            #
+            # With wget, it is the timeout used for DNS resolution, connection and
+            # idle time (time without receiving data)
+            #
+            # It defaults to 5s
+            attr_accessor :timeout
+
+            # The number of time we should retry downloading if the underlying tool
+            # supports it (wget does).
+            #
+            # It defaults to 1 as autobuild has its own retry mechanism
+            attr_accessor :retries
+        end
+        @retries = 1
+        @timeout = 10
         @cachedir = nil
 
 	# Returns the unpack mode from the file name
@@ -161,7 +176,14 @@ module Autobuild
                     if(WINDOWS)
                         get_url_on_windows(@url, "#{cachefile}.partial")
                     else
-                        Subprocess.run(package, :import, Autobuild.tool('wget'), '-q', '-P', cachedir, @url, '-O', "#{cachefile}.partial")
+                        additional_options = []
+                        if timeout = self.timeout
+                            additional_options << "--timeout" << timeout
+                        end
+                        if retries = self.retries
+                            additional_options << "--tries" << retries
+                        end
+                        Subprocess.run(package, :import, Autobuild.tool('wget'), '-q', '-P', cachedir, *additional_options, @url, '-O', "#{cachefile}.partial")
                     end
                 rescue Exception
                     FileUtils.rm_f "#{cachefile}.partial"
@@ -205,6 +227,20 @@ module Autobuild
         # is the same than the source dir
         def archive_dir; @options[:archive_dir] || tardir end
 
+        # The number of time we should retry downloading if the underlying tool
+        # supports it (wget does).
+        #
+        # It defaults to the global ArchiveImporter.retries
+        attr_accessor :retries
+
+        # The timeout (in seconds) used during downloading.
+        #
+        # With wget, it is the timeout used for DNS resolution, connection and
+        # idle time (time without receiving data)
+        #
+        # It defaults to the global ArchiveImporter.timeout
+        attr_accessor :timeout
+
 	# Creates a new importer which downloads +url+ in +cachedir+ and unpacks it. The following options
 	# are allowed:
 	# [:cachedir] the cache directory. Defaults to "#{Autobuild.prefix}/cache"
@@ -220,6 +256,8 @@ module Autobuild
                 @options[:update_cached_file] = false
             end
             @cachedir = @options[:cachedir] || ArchiveImporter.cachedir
+            @retries = @options[:retries] || ArchiveImporter.retries
+            @timeout = @options[:timeout] || ArchiveImporter.timeout
 
             relocate(url)
         end
