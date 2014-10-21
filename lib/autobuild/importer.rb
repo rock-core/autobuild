@@ -72,13 +72,28 @@ class Importer
         @options = options.dup
         @options[:retry_count] = Integer(@options[:retry_count] || 0)
         @repository_id = options[:repository_id] || "#{self.class.name}:#{object_id}"
+        @source_id = options[:source_id] || @repository_id
     end
 
     # Returns a string that identifies the remote repository uniquely
     #
     # This can be used to check whether two importers are pointing to the same
-    # repository, regardless of e.g. the access protocol used
+    # repository, regardless of e.g. the access protocol used.  For instance,
+    # two git importers that point to the same repository but different branches
+    # would have the same repository_id but different source_id
+    #
+    # @see source_id
     attr_reader :repository_id
+
+    # Returns a string that identifies the remote source uniquely
+    #
+    # This can be used to check whether two importers are pointing to the same
+    # code base inside the same repository. For instance, two git importers that
+    # point to the same repository but different branches would have the same
+    # repository_id but different source_id
+    #
+    # @see repository_id
+    attr_reader :source_id
 
     # The number of times update / checkout should be retried before giving up.
     # The default is 0 (do not retry)

@@ -15,7 +15,7 @@ module Autobuild
         def initialize(source, options = {})
             @source   = source
             @program  = Autobuild.tool('darcs')
-            super(options)
+            super(options.merge(repository_id: source))
 	    @pull = [*options[:pull]]
 	    @get  = [*options[:get]]
         end

@@ -21,7 +21,7 @@ module Autobuild
             @options_up = Array[*@options_up]
             @options_co = cvsopts[:cvsco] || '-P'
             @options_co = Array[*@options_co]
-            super(common)
+            super(common.merge(repository_id: "cvs:#{@root}:#{@module}"))
         end
 
 	# Array of options to give to 'cvs checkout'

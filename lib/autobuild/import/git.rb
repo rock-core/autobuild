@@ -43,7 +43,6 @@ module Autobuild
         # doing 
 	#   Autobuild.programs['git'] = 'my_git_tool'
         def initialize(repository, branch = nil, options = {})
-            @repository = repository.to_str
             @alternates = Git.default_alternates.dup
             @git_dir_cache = Array.new
 
@@ -61,11 +60,20 @@ module Autobuild
             end
 
             gitopts, common = Kernel.filter_options options,
-                :push_to => nil, :branch => nil, :tag => nil, :commit => nil, :with_submodules => false,
-                :repository_id => "git:#{@repository}"
+                push_to: nil,
+                branch: nil,
+                tag: nil,
+                commit: nil,
+                with_submodules: false
             if gitopts[:branch] && branch
                 raise ConfigException, "git branch specified with both the option hash and the explicit parameter"
             end
+
+            sourceopts, common = Kernel.filter_options common,
+                :repository_id, :source_id
+
+            super(common)
+
             @push_to = gitopts[:push_to]
             @with_submodules = gitopts[:with_submodules]
             branch = gitopts[:branch] || branch
@@ -76,7 +84,7 @@ module Autobuild
             @tag    = tag
             @commit = commit
             @remote_name = 'autobuild'
-            super(common.merge(repository_id: gitopts[:repository_id]))
+            relocate(repository, sourceopts)
         end
 
         # The name of the remote that should be set up by the importer
@@ -622,8 +630,12 @@ module Autobuild
         end
 
         # Changes the repository this importer is pointing to
-        def relocate(repository)
-            @repository = repository
+        def relocate(repository, options = Hash.new)
+            @repository = repository.to_str
+            @repository_id = options[:repository_id] ||
+                "git:#{@repository}"
+            @source_id = options[:source_id] ||
+                "#{@repository_id} branch=#{self.branch} tag=#{self.tag} commit=#{self.commit}"
         end
 
         # Tests whether the given directory is a git repository

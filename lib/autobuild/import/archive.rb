@@ -250,24 +250,28 @@ module Autobuild
         # [:no_subdirectory] the archive does not have the custom archive
         #       subdirectory.
         def initialize(url, options)
-            options = Hash[repository_id: URI.parse(url)].merge(options)
+            sourceopts, options = Kernel.filter_options options,
+                :source_id, :repository_id
             super(options)
+
             if !@options.has_key?(:update_cached_file)
                 @options[:update_cached_file] = false
             end
             @cachedir = @options[:cachedir] || ArchiveImporter.cachedir
             @retries = @options[:retries] || ArchiveImporter.retries
             @timeout = @options[:timeout] || ArchiveImporter.timeout
-
-            relocate(url)
+            relocate(url, sourceopts)
         end
 
         # Changes the URL from which we should pick the archive
         def relocate(url, options = Hash.new)
-            @url = URI.parse(url)
+            parsed_url = URI.parse(url)
+            @url = parsed_url
             if !VALID_URI_SCHEMES.include?(@url.scheme)
                 raise ConfigException, "invalid URL #{@url} (local files must be prefixed with file://)" 
             end
+            @repository_id = options[:repository_id] || parsed_url
+            @source_id = options[:source_id] || parsed_url
 
             filename = options[:filename] || File.basename(url).gsub(/\?.*/, '')
 

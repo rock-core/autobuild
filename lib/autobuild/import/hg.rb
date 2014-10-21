@@ -16,13 +16,23 @@ module Autobuild
         # @param [String] repository the repository URL
         # @option options [String] :branch (default) the branch to track
         def initialize(repository, options = {})
-            @repository = repository.to_str
-
             hgopts, common = Kernel.filter_options options,
-                :branch => 'default',
-                :repository_id => "hg:#{repository}"
+                branch: 'default'
+            sourceopts, common = Kernel.filter_options options,
+                :repository_id, :source_id
+
+            super(common)
             @branch = hgopts[:branch]
-            super(common.merge(repository_id: hgopts[:repository_id]))
+            relocate(repository, sourceopts)
+        end
+
+        # Changes the repository this importer is pointing to
+        def relocate(repository, options = Hash.new)
+            @repository = repository
+            @repository_id = options[:repository_id] ||
+                "hg:#{@repository}"
+            @source_id = options[:source_id] ||
+                "#{self.repository_id} branch=#{self.branch}"
         end
 
         # The remote repository URL.
@@ -59,11 +69,6 @@ module Autobuild
 
             Subprocess.run(package, :import,
                 Autobuild.tool('hg'), 'clone', '-u', branch, repository, package.importdir)
-        end
-
-        # Changes the repository this importer is pointing to
-        def relocate(repository)
-            @repository = repository
         end
     end
 
