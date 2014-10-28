@@ -476,6 +476,7 @@ module Autobuild
         # and installed.
 	def depends_on(*packages)
 	    packages.each do |p|
+                p = p.name if p.respond_to?(:name)
                 raise ArgumentError, "#{p.inspect} should be a string" if !p.respond_to? :to_str
 		p = p.to_str
 		next if p == name
