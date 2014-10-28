@@ -80,6 +80,7 @@ module Autobuild
             attr_reader :processed
             attr_reader :started_packages
             attr_reader :active_packages
+            attr_reader :active_tasks
             attr_reader :queue
             attr_reader :priorities
 
@@ -87,6 +88,7 @@ module Autobuild
                 @reverse_dependencies = reverse_dependencies
                 @processed = Set.new
                 @active_packages = Set.new
+                @active_tasks = Set.new
                 @priorities = Hash.new
                 @started_packages = Hash.new
                 @queue = Hash.new
@@ -113,25 +115,41 @@ module Autobuild
             end
 
             def mark_as_active(pending_task)
+                active_tasks << pending_task
+
                 if pending_task.respond_to?(:package) && !pending_task.kind_of?(Autobuild::SourceTreeTask)
                     active_packages << pending_task.package
                     started_packages[pending_task.package] ||= -started_packages.size
                 end
             end
 
+            def active_task?(task)
+                active_tasks.include?(task)
+            end
+
             def ready?(task)
                 task.prerequisite_tasks.all? do |t|
-                    t.already_invoked?
+                    already_processed?(t)
                 end
             end
 
+            def already_processed?(task)
+                task.already_invoked? && !active_task?(task)
+            end
+
+            def needs_processing?(task)
+                !task.already_invoked? && !active_task?(task)
+            end
+
             def process_finished_task(task)
+                active_tasks.delete(task)
                 if task.respond_to?(:package)
                     active_packages.delete(task.package)
                 end
+
                 processed << task
                 reverse_dependencies[task].each do |candidate|
-                    if !candidate.already_invoked? && ready?(candidate)
+                    if needs_processing?(candidate) && ready?(candidate)
                         push(candidate, priorities[task])
                     end
                 end
