@@ -79,7 +79,6 @@ module Autobuild
             attr_reader :reverse_dependencies
             attr_reader :processed
             attr_reader :started_packages
-            attr_reader :active_packages
             attr_reader :active_tasks
             attr_reader :queue
             attr_reader :priorities
@@ -87,7 +86,6 @@ module Autobuild
             def initialize(reverse_dependencies)
                 @reverse_dependencies = reverse_dependencies
                 @processed = Set.new
-                @active_packages = Set.new
                 @active_tasks = Set.new
                 @priorities = Hash.new
                 @started_packages = Hash.new
@@ -118,7 +116,6 @@ module Autobuild
                 active_tasks << pending_task
 
                 if pending_task.respond_to?(:package) && !pending_task.kind_of?(Autobuild::SourceTreeTask)
-                    active_packages << pending_task.package
                     started_packages[pending_task.package] ||= -started_packages.size
                 end
             end
@@ -143,10 +140,6 @@ module Autobuild
 
             def process_finished_task(task)
                 active_tasks.delete(task)
-                if task.respond_to?(:package)
-                    active_packages.delete(task.package)
-                end
-
                 processed << task
                 reverse_dependencies[task].each do |candidate|
                     if needs_processing?(candidate) && ready?(candidate)
