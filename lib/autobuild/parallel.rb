@@ -94,7 +94,8 @@ module Autobuild
 
             def push(task, base_priority = 1)
                 if task.respond_to?(:package)
-                    queue[task] = started_packages[task.package] || base_priority
+                    started_packages[task.package] ||= -started_packages.size
+                    queue[task] = started_packages[task.package]
                 else queue[task] = base_priority
                 end
             end
@@ -114,10 +115,6 @@ module Autobuild
 
             def mark_as_active(pending_task)
                 active_tasks << pending_task
-
-                if pending_task.respond_to?(:package) && !pending_task.kind_of?(Autobuild::SourceTreeTask)
-                    started_packages[pending_task.package] ||= -started_packages.size
-                end
             end
 
             def active_task?(task)
