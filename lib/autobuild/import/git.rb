@@ -159,12 +159,12 @@ module Autobuild
         # The tag we are pointing to. It is a tag name.
         #
         # If set, both branch and commit have to be nil.
-        attr_reader :tag
+        attr_accessor :tag
 
         # The commit we are pointing to. It is a commit ID.
         #
         # If set, both branch and tag have to be nil.
-        attr_reader :commit
+        attr_accessor :commit
 
         # True if it is allowed to merge remote updates automatically. If false
         # (the default), the import will fail if the updates do not resolve as
