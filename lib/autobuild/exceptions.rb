@@ -66,7 +66,12 @@ module Autobuild
             @status  = status
         end
 
-        ERROR_LINES = 10
+
+        if ENV["AUTOBUILD_ERROR_LINES"]
+            ERROR_LINES = ENV["AUTOBUILD_ERROR_LINES"]
+        else
+            ERROR_LINES = "10"
+        end
 
         def to_s
             prefix = super
@@ -80,8 +85,8 @@ module Autobuild
             # proper explanation for it. Don't display the logfile at all.
             if status
                 lines = File.readlines(logfile)
-                if lines.size > ERROR_LINES
-                    lines = lines[-ERROR_LINES, ERROR_LINES]
+                if ERROR_LINES != 'ALL' && lines.size > ERROR_LINES.to_i
+                    lines = lines[-ERROR_LINES.to_i, ERROR_LINES.to_i]
                 end
                 prefix << "\n    last #{lines.size} lines are:\n\n"
                 lines.each do |l|
