@@ -44,6 +44,16 @@ module Autobuild
         #
         # See #parallel_build_level for detailed information
         attr_writer :parallel_build_level
+        
+        # set/get a value how much log lines should be displayed on errors
+        # this may be an integer or 'ALL' (which will be translated to -1) 
+        # this is not using an attr_accessor to be able to validate the values
+        def displayed_error_line_count=(value)
+            @displayed_error_line_count = validate_displayed_error_line_count(value)
+        end
+        def displayed_error_line_count
+            @displayed_error_line_count
+        end
 
         # Returns the number of processes that can run in parallel during the
         # build. This is a system-wide value that can be overriden in a
@@ -121,6 +131,19 @@ module Autobuild
 
         @processor_count
     end
+    
+    def self.validate_displayed_error_line_count(lines)
+        if lines #env coud be unset ('false') 
+            if lines == 'ALL'
+                return -1
+            elsif Integer(lines)
+                return lines.to_i
+            end
+        end
+        10 # default value, used when ENV['AUTOBUILD_DISPLAYED_ERROR_LINES'] is not set 
+    end 
+    @displayed_error_line_count = self.validate_displayed_error_line_count(ENV['AUTOBUILD_DISPLAYED_ERROR_LINES'])
+
 end
 
 
@@ -223,6 +246,7 @@ module Autobuild::Subprocess
                 result=$?.success?
                 if(!result)
                     error = Autobuild::SubcommandFailed.new(target, command.join(" "), logname, "Systemcall")
+                    error.displayed_error_line_count = Autobuild.displayed_error_line_count
                     error.phase = phase
                     raise error
                 end
@@ -348,6 +372,7 @@ module Autobuild::Subprocess
 
     rescue Failed => e
         error = Autobuild::SubcommandFailed.new(target, command.join(" "), logname, e.status)
+        error.displayed_error_line_count = Autobuild.displayed_error_line_count
         error.phase = phase
         raise error, e.message
     end
