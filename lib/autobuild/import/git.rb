@@ -648,7 +648,7 @@ module Autobuild
         # based on the information contained in the git configuration
         #
         # @raise [ArgumentError] if the path does not point to a git repository
-        def self.vcs_definition_for(path)
+        def self.vcs_definition_for(path, remote_name = 'autobuild')
             if !can_handle?(path)
                 raise ArgumentError, "#{path} is either not a git repository, or a bare git repository"
             end
