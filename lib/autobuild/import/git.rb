@@ -326,6 +326,17 @@ module Autobuild
             commit_id
         end
 
+        def self.has_uncommitted_changes?(package, with_untracked_files = false)
+            Dir.chdir(package.importdir) do
+                status = `git status --porcelain`.split("\n").map(&:strip)
+                if with_untracked_files
+                    !status.empty?
+                else
+                    status.any? { |l| l[0, 2] !~ /^\?\?|^  / }
+                end
+            end
+        end
+
         # Returns a Importer::Status object that represents the status of this
         # package w.r.t. the root repository
         def status(package, only_local = false)
@@ -347,10 +358,7 @@ module Autobuild
                 end
 
                 status = merge_status(package, remote_commit)
-                `git diff --quiet`
-                if $?.exitstatus != 0
-                    status.uncommitted_code = true
-                end
+                status.uncommitted_code = self.class.has_uncommitted_changes?(package)
                 status
             end
 
