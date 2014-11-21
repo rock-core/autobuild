@@ -196,7 +196,7 @@ module Autobuild
                 dir = path
             end
 
-            result = `#{Autobuild.tool(:git)} --git-dir="#{dir}" rev-parse --is-bare-repository`
+            result = `#{Autobuild.tool(:git)} --git-dir="#{dir}" rev-parse --is-bare-repository 2>&1`
             if $?.success?
                 if result.strip == "true"
                     return dir, :bare
