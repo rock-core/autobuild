@@ -367,7 +367,7 @@ class Importer
         end
         File.open(patchlist(package), 'w') do |f|
             patch_state = cur_patches.map do |path, level|
-                path = Pathname.new(path).relative_path_from(package.srcdir).to_s
+                path = Pathname.new(path).relative_path_from( Pathname.new(package.srcdir) ).to_s
                 "#{path} #{level}"
             end
             f.write(patch_state.join("\n"))
