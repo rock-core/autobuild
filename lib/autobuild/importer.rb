@@ -284,14 +284,14 @@ class Importer
     def apply(package, path, patch_level = 0);   call_patch(package, false, path, patch_level) end
     def unapply(package, path, patch_level = 0); call_patch(package, true, path, patch_level)   end
 
-    def parse_patch_list(patches_file)
+    def parse_patch_list(package, patches_file)
         File.readlines(patches_file).map do |line| 
             line = line.rstrip
             if line =~ /^(.*)\s+(\d+)$/
-                path = $1
+                path = File.expand_path($1, package.srcdir)
                 level = Integer($2)
             else
-                path = line
+                path = File.expand_path(line, package.srcdir)
                 level = 0
             end
             [path, level, File.read(path)]
@@ -301,12 +301,12 @@ class Importer
     def currently_applied_patches(package)
         patches_file = patchlist(package)
         if File.exists?(patches_file)
-            return parse_patch_list(patches_file)
+            return parse_patch_list(package, patches_file)
         end
 
         patches_file = File.join(package.importdir, "patches-autobuild-stamp")
         if File.exists?(patches_file)
-            cur_patches = parse_patch_list(patches_file)
+            cur_patches = parse_patch_list(package, patches_file)
             save_patch_state(package, cur_patches)
             FileUtils.rm_f patches_file
             return currently_applied_patches(package)
@@ -319,7 +319,9 @@ class Importer
         # Get the list of already applied patches
         cur_patches = currently_applied_patches(package)
 
-        if cur_patches.map(&:last) == patches.map(&:last)
+        cur_patches_state = cur_patches.map { |_, level, content| [level, content] }
+        patches_state     = patches.map { |_, level, content| [level, content] }
+        if cur_patches_state == patches_state
             return false
         end
 
@@ -357,14 +359,18 @@ class Importer
         patch_dir = patchdir(package)
         FileUtils.mkdir_p patch_dir
         cur_patches = cur_patches.each_with_index.map do |(path, level, content), idx|
-        path = File.join(patch_dir, idx.to_s)
-        File.open(path, 'w') do |patch_io|
-            patch_io.write content
-        end
-        [path, level]
+            path = File.join(patch_dir, idx.to_s)
+            File.open(path, 'w') do |patch_io|
+                patch_io.write content
+            end
+            [path, level]
         end
         File.open(patchlist(package), 'w') do |f|
-            f.write(cur_patches.map { |p, l| "#{p} #{l}" }.join("\n"))
+            patch_state = cur_patches.map do |path, level|
+                path = Pathname.new(path).relative_path_from(package.srcdir).to_s
+                "#{path} #{level}"
+            end
+            f.write(patch_state.join("\n"))
         end
     end
 
