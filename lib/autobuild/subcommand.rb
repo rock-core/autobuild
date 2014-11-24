@@ -39,6 +39,7 @@ module Autobuild
     reset_statistics
 
     @parallel_build_level = nil
+    @displayed_error_line_count = 10
     class << self
         # Sets the level of parallelism during the build
         #
@@ -132,17 +133,14 @@ module Autobuild
         @processor_count
     end
     
-    def self.validate_displayed_error_line_count(lines)
-        if lines #env coud be unset ('false') 
-            if lines == 'ALL'
-                return -1
-            elsif Integer(lines)
-                return lines.to_i
-            end
+    def self.validate_displayed_error_line_count(lines) 
+        if lines == 'ALL'
+            return Float::INFINITY
+        elsif lines.to_i > 0
+            return lines.to_i
         end
-        10 # default value, used when ENV['AUTOBUILD_DISPLAYED_ERROR_LINES'] is not set 
-    end 
-    @displayed_error_line_count = self.validate_displayed_error_line_count(ENV['AUTOBUILD_DISPLAYED_ERROR_LINES'])
+        raise ConfigError, 'Autobuild.displayed_error_line_count can only be a positive integer or \'ALL\'' 
+    end
 
 end
 
@@ -246,7 +244,6 @@ module Autobuild::Subprocess
                 result=$?.success?
                 if(!result)
                     error = Autobuild::SubcommandFailed.new(target, command.join(" "), logname, "Systemcall")
-                    error.displayed_error_line_count = Autobuild.displayed_error_line_count
                     error.phase = phase
                     raise error
                 end
@@ -372,7 +369,6 @@ module Autobuild::Subprocess
 
     rescue Failed => e
         error = Autobuild::SubcommandFailed.new(target, command.join(" "), logname, e.status)
-        error.displayed_error_line_count = Autobuild.displayed_error_line_count
         error.phase = phase
         raise error, e.message
     end

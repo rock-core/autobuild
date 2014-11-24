@@ -48,7 +48,6 @@ module Autobuild
     class SubcommandFailed < Exception
         def mail?; true end
         attr_reader :command, :logfile, :status
-        attr_writer :displayed_error_line_count
         def initialize(*args)
             if args.size == 1
                 sc = args[0]
@@ -79,8 +78,9 @@ module Autobuild
             # proper explanation for it. Don't display the logfile at all.
             if status
                 lines = File.readlines(logfile)
-                if @displayed_error_line_count != -1 && lines.size > @displayed_error_line_count
-                    lines = lines[-@displayed_error_line_count, @displayed_error_line_count]
+                logsize = Autobuild.displayed_error_line_count
+                if logsize != Float::INFINITY && lines.size > logsize
+                    lines = lines[-logsize, logsize]
                 end
                 prefix << "\n    last #{lines.size} lines are:\n\n"
                 lines.each do |l|
