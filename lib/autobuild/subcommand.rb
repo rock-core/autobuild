@@ -39,11 +39,22 @@ module Autobuild
     reset_statistics
 
     @parallel_build_level = nil
+    @displayed_error_line_count = 10
     class << self
         # Sets the level of parallelism during the build
         #
         # See #parallel_build_level for detailed information
         attr_writer :parallel_build_level
+        
+        # set/get a value how much log lines should be displayed on errors
+        # this may be an integer or 'ALL' (which will be translated to -1) 
+        # this is not using an attr_accessor to be able to validate the values
+        def displayed_error_line_count=(value)
+            @displayed_error_line_count = validate_displayed_error_line_count(value)
+        end
+        def displayed_error_line_count
+            @displayed_error_line_count
+        end
 
         # Returns the number of processes that can run in parallel during the
         # build. This is a system-wide value that can be overriden in a
@@ -121,6 +132,16 @@ module Autobuild
 
         @processor_count
     end
+    
+    def self.validate_displayed_error_line_count(lines) 
+        if lines == 'ALL'
+            return Float::INFINITY
+        elsif lines.to_i > 0
+            return lines.to_i
+        end
+        raise ConfigError, 'Autobuild.displayed_error_line_count can only be a positive integer or \'ALL\'' 
+    end
+
 end
 
 

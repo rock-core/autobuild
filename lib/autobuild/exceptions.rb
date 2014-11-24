@@ -66,8 +66,6 @@ module Autobuild
             @status  = status
         end
 
-        ERROR_LINES = 10
-
         def to_s
             prefix = super
             if @orig_message
@@ -80,8 +78,9 @@ module Autobuild
             # proper explanation for it. Don't display the logfile at all.
             if status
                 lines = File.readlines(logfile)
-                if lines.size > ERROR_LINES
-                    lines = lines[-ERROR_LINES, ERROR_LINES]
+                logsize = Autobuild.displayed_error_line_count
+                if logsize != Float::INFINITY && lines.size > logsize
+                    lines = lines[-logsize, logsize]
                 end
                 prefix << "\n    last #{lines.size} lines are:\n\n"
                 lines.each do |l|
