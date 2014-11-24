@@ -63,13 +63,13 @@ module Autobuild
     @progress_messages = Array.new
 
     # Displays an error message
-    def self.error(message)
-        Autobuild.message("  ERROR: #{message}", :red, :bold)
+    def self.error(message = "")
+        message("  ERROR: #{message}", :red, :bold)
     end
 
     # Displays a warning message
-    def self.warn(message, *style)
-        Autobuild.message("  WARN: #{message}", :magenta, *style)
+    def self.warn(message = "", *style)
+        message("  WARN: #{message}", :magenta, *style)
     end
 
     # @return [Boolean] true if there is some progress messages for the given
