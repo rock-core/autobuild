@@ -337,26 +337,37 @@ module Autobuild
             end
         end
 
+        # Returns the commit ID of what we should consider being the remote
+        # commit
+        #
+        # @param [Package] package
+        # @param [Boolean] only_local if true, no remote access should be
+        #   performed, in which case the current known state of the remote will be
+        #   used. If false, we access the remote repository to fetch the actual
+        #   commit ID
+        # @return [String] the commit ID as a string
+        def current_remote_commit(package, only_local = false)
+            if only_local
+                remote_id = `git show-ref -s refs/remotes/#{remote_name}/#{remote_branch}`.chomp
+                if !$?.success?
+                    raise PackageException.new(package, "import"), "cannot resolve remote HEAD #{remote_name}/#{remote_branch}"
+                end
+                remote_id
+            else	
+                begin fetch_remote(package)
+                rescue Exception => e
+                    return fallback(e, package, :status, package, only_local)
+                end
+            end
+        end
+
+
         # Returns a Importer::Status object that represents the status of this
         # package w.r.t. the root repository
         def status(package, only_local = false)
             Dir.chdir(package.importdir) do
                 validate_importdir(package)
-                remote_commit = nil
-                if only_local
-                    remote_commit = `git show-ref -s refs/remotes/#{remote_name}/#{remote_branch}`.chomp
-                else	
-                    remote_commit =
-                        begin fetch_remote(package)
-                        rescue Exception => e
-                            return fallback(e, package, :status, package, only_local)
-                        end
-
-                    if !remote_commit
-                        return
-                    end
-                end
-
+                remote_commit = current_remote_commit(package, only_local)
                 status = merge_status(package, remote_commit)
                 status.uncommitted_code = self.class.has_uncommitted_changes?(package)
                 status
@@ -514,10 +525,7 @@ module Autobuild
                 update_alternates(package)
             end
             Dir.chdir(package.importdir) do
-                #Checking if we should only merge our repro to remotes/HEAD without updateing from the remote side...
-                if !only_local
-                    fetch_commit = fetch_remote(package)
-                end
+                fetch_commit = current_remote_commit(package, only_local)
 
                 # If we are tracking a commit/tag, just check it out and return
                 if commit || tag
