@@ -387,14 +387,18 @@ module Autobuild
             status
         end
 
-        def has_local_branch?(package)
-            run_git_bare(package, 'show-ref', '-q', '--verify', "refs/heads/#{local_branch}")
+        def has_branch?(package, branch_name)
+            run_git_bare(package, 'show-ref', '-q', '--verify', "refs/heads/#{branch_name}")
             true
         rescue SubcommandFailed => e
             if e.status == 1
                 false
             else raise
             end
+        end
+
+        def has_local_branch?(package)
+            has_branch?(package, local_branch)
         end
 
         def detached_head?(package)
@@ -456,6 +460,12 @@ module Autobuild
             end
         end
 
+        def rev_parse(package, name)
+            run_git_bare(package, 'rev-parse', name).first.strip
+        rescue Exception
+            raise PackageException.new(package, 'import'), "failed to resolve #{name}. Are you sure this commit, branch or tag exists ?"
+        end
+
         # Computes the update status to update a branch whose tip is at
         # reference_commit (which can be a symbolic reference) using the
         # fetch_commit commit
@@ -471,13 +481,10 @@ module Autobuild
             rescue Exception
                 raise PackageException.new(package, 'import'), "failed to find the merge-base between #{reference_commit} and #{fetch_commit}. Are you sure these commits exist ?"
             end
-            begin
-                head_commit = run_git_bare(package, 'rev-parse', reference_commit).first.strip
-            rescue Exception
-                raise PackageException.new(package, 'import'), "failed to resolve #{reference_commit}. Are you sure this commit, branch or tag exists ?"
-            end
+            remote_commit = rev_parse(package, fetch_commit)
+            head_commit   = rev_parse(package, reference_commit)
 
-            status = if common_commit != fetch_commit
+            status = if common_commit != remote_commit
                          if common_commit == head_commit
                              Status::SIMPLE_UPDATE
                          else
@@ -528,6 +535,24 @@ module Autobuild
             end
         end
 
+        def commit_pinning(package, target_commit)
+            status_to_head = merge_status(package, target_commit, "HEAD").status
+
+            if status_to_head != Status::SIMPLE_UPDATE && status_to_head != Status::UP_TO_DATE
+                raise PackageException.new(package, 'import'), "checking out the specified commit #{target_commit} would be a non-simple operation (i.e. the current state of the repository is not a linear relationship with the specified commit), do it manually"
+            elsif !has_local_branch?(package)
+                run_git(package, 'checkout', '-b', local_branch, target_commit)
+            else
+                status_to_branch = merge_status(package, target_commit, local_branch)
+                if status_to_branch.status == Status::UP_TO_DATE # Checkout the branch
+                    run_git(package, 'checkout', local_branch)
+                else
+                    package.message "  checking out specific commit %s for %s. This will create a detached HEAD." % [target_commit.to_s, package.name]
+                    run_git(package, 'checkout', target_commit)
+                end
+            end
+        end
+
         def update(package,only_local = false)
             validate_importdir(package)
             # This is really really a hack to workaround how broken the
@@ -535,62 +560,20 @@ module Autobuild
             if package.importdir == package.srcdir
                 update_alternates(package)
             end
-            Dir.chdir(package.importdir) do
-                fetch_commit = current_remote_commit(package, only_local)
 
-                # If we are tracking a commit/tag, just check it out and return
-                if commit || tag
-                    target_commit = (commit || tag)
-                    status_to_head = merge_status(package, target_commit, "HEAD")
-                    if status_to_head.status == Status::UP_TO_DATE
-                        # Check if by any chance we could switch back to a
-                        # proper branch instead of having a detached HEAD
-                        if detached_head?(package)
-                            status_to_remote = merge_status(package, target_commit, fetch_commit)
-                            if status_to_remote.status != Status::UP_TO_DATE
-                                package.message "  the package is on a detached HEAD because of commit pinning"
-                                return
-                            end
-                        else
-                            return
-                        end
-                    elsif status_to_head.status != Status::SIMPLE_UPDATE
-                        raise PackageException.new(package, 'import'), "checking out the specified commit #{target_commit} would be a non-simple operation (i.e. the current state of the repository is not a linear relationship with the specified commit), do it manually"
-                    end
+            fetch_commit = current_remote_commit(package, only_local)
 
-                    status_to_remote = merge_status(package, target_commit, fetch_commit)
-                    if status_to_remote.status != Status::UP_TO_DATE
-                        # Try very hard to avoid creating a detached HEAD
-                        if local_branch
-                            status_to_branch = merge_status(package, target_commit, local_branch)
-                            if status_to_branch.status == Status::UP_TO_DATE # Checkout the branch
-                                package.message "  checking out specific commit %s for %s. It will checkout branch %s." % [target_commit.to_s, package.name, local_branch]
-                                run_git(package, 'checkout', local_branch)
-                                return
-                            end
-                        end
-                        package.message "  checking out specific commit %s for %s. This will create a detached HEAD." % [target_commit.to_s, package.name]
-                        run_git(package, 'checkout', target_commit)
-                        return
-                    end
-                end
-
-                if !fetch_commit
-                    return
-                end
-
+            # If we are tracking a commit/tag, just check it out and return
+            if commit || tag
+                commit_pinning(package, commit || tag)
+            elsif !has_local_branch?(package)
+                package.message "%%s: checking out branch %s" % [local_branch]
+                run_git(package, 'checkout', '-b', local_branch, fetch_commit)
+            else
                 if !on_target_branch?(package)
-                    # Check if the target branch already exists. If it is the
-                    # case, check it out. Otherwise, create it.
-                    if system("git", "--git-dir", git_dir(package, false), "show-ref", "--verify", "--quiet", "refs/heads/#{local_branch}")
-                        package.message "%%s: switching to branch %s" % [local_branch]
-                        run_git(package, 'checkout', local_branch)
-                    else
-                        package.message "%%s: checking out branch %s" % [local_branch]
-                        run_git(package, 'checkout', '-b', local_branch, fetch_commit)
-                    end
+                    package.message "%%s: switching to branch %s" % [local_branch]
+                    run_git(package, 'checkout', local_branch)
                 end
-
                 status = merge_status(package, fetch_commit)
                 if status.needs_update?
                     if !merge? && status.status == Status::NEEDS_MERGE
