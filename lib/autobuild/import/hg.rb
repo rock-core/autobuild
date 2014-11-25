@@ -55,7 +55,7 @@ module Autobuild
                 return
             end
             validate_importdir(package)
-            package.run(:import, Autobuild.tool('hg'), 'pull', repository, working_directory: package.importdir)
+            package.run(:import, Autobuild.tool('hg'), 'pull', repository, retry: true, working_directory: package.importdir)
             package.run(:import, Autobuild.tool('hg'), 'update', branch, working_directory: package.importdir)
         end
 
@@ -65,7 +65,7 @@ module Autobuild
                 FileUtils.mkdir_p base_dir
             end
 
-            package.run(:import, Autobuild.tool('hg'), 'clone', '-u', branch, repository, package.importdir)
+            package.run(:import, Autobuild.tool('hg'), 'clone', '-u', branch, repository, package.importdir, retry: true)
         end
     end
 

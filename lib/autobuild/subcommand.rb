@@ -147,9 +147,12 @@ end
 
 module Autobuild::Subprocess
     class Failed < Exception
+        def retry?; @retry end
         attr_reader :status
-        def initialize(status = nil)
+
+        def initialize(status, do_retry)
             @status = status
+            @retry = do_retry
         end
     end
 
@@ -160,11 +163,11 @@ module Autobuild::Subprocess
         STDOUT.sync = true
 
         input_streams = []
-        options = Hash.new
+        options = Hash[retry: false]
         if command.last.kind_of?(Hash)
             options = command.pop
             options = Kernel.validate_options options,
-                :input => nil, :working_directory => nil
+                input: nil, working_directory: nil, retry: false
             if options[:input]
                 input_streams = [options[:input]]
             end
@@ -306,7 +309,8 @@ module Autobuild::Subprocess
                         end
                     end
                 rescue Errno::ENOENT => e
-                    raise Failed.new, "cannot open input files: #{e.message}"
+                    raise Failed.new(nil, false),
+                        "cannot open input files: #{e.message}", retry: false
                 end
                 pwrite.close
             end
@@ -318,11 +322,13 @@ module Autobuild::Subprocess
                 # An error occured
                 value = value.unpack('I').first
                 if value == CONTROL_COMMAND_NOT_FOUND
-                    raise Failed.new, "command '#{command.first}' not found"
+                    raise Failed.new(nil, false),
+                        "command '#{command.first}' not found"
                 elsif value == CONTROL_INTERRUPT
                     raise Interrupt, "command '#{command.first}': interrupted by user"
                 else
-                    raise Failed.new, "something unexpected happened"
+                    raise Failed.new(nil, false),
+                        "something unexpected happened"
                 end
             end
 
@@ -354,7 +360,8 @@ module Autobuild::Subprocess
         end
 
         if !status.exitstatus || status.exitstatus > 0
-            raise Failed.new(status.exitstatus), "'#{command.join(' ')}' returned status #{status.exitstatus}"
+            raise Failed.new(status.exitstatus, nil),
+                "'#{command.join(' ')}' returned status #{status.exitstatus}"
         end
 
         duration = Time.now - start_time
@@ -371,11 +378,12 @@ module Autobuild::Subprocess
 
     rescue Failed => e
         error = Autobuild::SubcommandFailed.new(target, command.join(" "), logname, e.status)
+        error.retry = if e.retry?.nil? then options[:retry]
+                      else e.retry?
+                      end
         error.phase = phase
         raise error, e.message
     end
 
 end
-
-
 

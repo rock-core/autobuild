@@ -319,7 +319,7 @@ module Autobuild
             # configuration parameters only if the repository and branch are
             # OK (i.e. we keep old working configuration instead)
             refspec = [branch || tag].compact
-            run_git_bare(package, 'fetch', '--tags', repository, *refspec)
+            run_git_bare(package, 'fetch', '--tags', repository, *refspec, retry: true)
 
             update_remotes_configuration(package)
 
@@ -625,7 +625,7 @@ module Autobuild
                 clone_options << '--reference' << path
             end
             package.run(:import,
-                Autobuild.tool('git'), 'clone', '-o', remote_name, *clone_options, repository, package.importdir)
+                Autobuild.tool('git'), 'clone', '-o', remote_name, *clone_options, repository, package.importdir, retry: true)
 
             update_remotes_configuration(package)
             if on_target_branch?(package)

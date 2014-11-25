@@ -58,7 +58,7 @@ module Autobuild
                     "checkout in #{package.srcdir} is from #{root}:#{mod}, was expecting #{expected_root}:#{@module}"
             end
             package.run(:import, Autobuild.tool(:cvs), 'up', *@options_up,
-                        working_directory: package.importdir)
+                        retry: true, working_directory: package.importdir)
         end
 
         def checkout(package) # :nodoc:
@@ -67,7 +67,7 @@ module Autobuild
                
             FileUtils.mkdir_p(head) if !File.directory?(head)
             package.run(:import, Autobuild.tool(:cvs), '-d', cvsroot, 'co', '-d', tail, *@options_co, modulename,
-                working_directory: head)
+                retry: true, working_directory: head)
         end
     end
 

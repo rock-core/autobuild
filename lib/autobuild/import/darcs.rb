@@ -33,7 +33,7 @@ module Autobuild
 	    end
 
 	    package.run(:import, @program, 
-	       'pull', '--all', "--repodir=#{package.srcdir}", '--set-scripts-executable', @source, *@pull)
+	       'pull', '--all', "--repodir=#{package.srcdir}", '--set-scripts-executable', @source, *@pull, retry: true)
         end
 
         def checkout(package) # :nodoc:
@@ -43,7 +43,7 @@ module Autobuild
 	    end
 
 	    package.run(:import, @program, 
-	       'get', '--set-scripts-executable', @source, package.srcdir, *@get)
+	       'get', '--set-scripts-executable', @source, package.srcdir, *@get, retry: true)
         end
     end
 

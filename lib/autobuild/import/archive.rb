@@ -183,7 +183,7 @@ module Autobuild
                         if retries = self.retries
                             additional_options << "--tries" << retries
                         end
-                        package.run(:import, Autobuild.tool('wget'), '-q', '-P', cachedir, *additional_options, @url, '-O', "#{cachefile}.partial")
+                        package.run(:import, Autobuild.tool('wget'), '-q', '-P', cachedir, *additional_options, @url, '-O', "#{cachefile}.partial", retry: true)
                     end
                 rescue Exception
                     FileUtils.rm_f "#{cachefile}.partial"
@@ -393,7 +393,7 @@ module Autobuild
             write_checkout_digest_stamp(package)
 
         rescue OpenURI::HTTPError
-            raise Autobuild::Exception.new(package.name, :import)
+            raise Autobuild::PackageException.new(package.name, :import)
         rescue SubcommandFailed
             FileUtils.rm_f cachefile
             raise

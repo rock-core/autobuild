@@ -141,6 +141,18 @@ class Importer
         end
     end
 
+    def update_retry_count(original_error, retry_count)
+        if !original_error.respond_to?(:retry?) ||
+            !original_error.retry?
+            return
+        end
+
+        retry_count += 1
+        if retry_count <= self.retry_count
+            retry_count
+        end
+    end
+
     def perform_update(package,only_local=false)
         cur_patches    = currently_applied_patches(package)
         needed_patches = self.patches
@@ -176,10 +188,8 @@ class Importer
                 end
             end
 
-            retry_count += 1
-            if retry_count > self.retry_count
-                raise
-            end
+            retry_count = update_retry_count(original_error, retry_count)
+            raise if !retry_count
             package.message "update failed in #{package.importdir}, retrying (#{retry_count}/#{self.retry_count})"
             retry
         ensure
@@ -201,9 +211,9 @@ class Importer
                 checkout(package)
             rescue Interrupt
                 raise
-            rescue ::Exception
-                retry_count += 1
-                if retry_count > self.retry_count
+            rescue ::Exception => original_error
+                retry_count = update_retry_count(original_error, retry_count)
+                if !retry_count
                     raise
                 end
                 package.message "checkout of %s failed, deleting the source directory #{package.importdir} and retrying (#{retry_count}/#{self.retry_count})"

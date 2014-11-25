@@ -5,12 +5,16 @@ module Autobuild
         def mail?;  false end
         ## If the error is fatal
         def fatal?; true end
+        ## If the error can be retried
+        def retry?; @retry end
         attr_accessor :target, :phase
 
         ## Creates a new exception which occured while doing *phase* 
         # in *target*
-        def initialize(target = nil, phase = nil)
+        def initialize(target = nil, phase = nil, options = Hash.new)
+            options = Kernel.validate_options options, retry: true
             @target, @phase = target, phase
+            @retry = options[:retry]
         end
 
         alias :exception_message :to_s 
@@ -36,10 +40,22 @@ module Autobuild
     end
 
     ## There is an error/inconsistency in the configuration
-    class ConfigException  < Exception; end
+    class ConfigException  < Exception
+        def initialize(target = nil, phase = nil, options = Hash.new)
+            options, other_options = Kernel.filter_options options,
+                retry: false
+            super(target, phase, options.merge(other_options))
+        end
+    end
     ## An error occured in a package
     class PackageException < Exception
         def mail?; true end
+
+        def initialize(target = nil, phase = nil, options = Hash.new)
+            options, other_options = Kernel.filter_options options,
+                retry: false
+            super(target, phase, options.merge(other_options))
+        end
     end
 
     ## The subcommand is not found
@@ -47,6 +63,7 @@ module Autobuild
     ## An error occured while running a subcommand
     class SubcommandFailed < Exception
         def mail?; true end
+        attr_writer :retry
         attr_reader :command, :logfile, :status
         def initialize(*args)
             if args.size == 1

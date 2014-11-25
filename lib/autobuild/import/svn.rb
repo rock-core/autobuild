@@ -35,7 +35,7 @@ module Autobuild
                 options = args.pop
             end
             options, other_options = Kernel.filter_options options,
-                working_directory: package.importdir
+                working_directory: package.importdir, retry: true
             options = options.merge(other_options)
             package.run(:import, Autobuild.tool(:svn), *args, options, &block)
         end
@@ -50,7 +50,7 @@ module Autobuild
             rescue SubcommandFailed
                 if svninfo.find { |l| l =~ /svn upgrade/ }
                     # Try svn upgrade and info again
-                    run_svn package, 'upgrade'
+                    run_svn package, 'upgrade', retry: false
                     svninfo.clear
                     run_svn package, 'info' do |line|
                         svninfo << line
