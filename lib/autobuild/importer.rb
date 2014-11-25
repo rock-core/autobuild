@@ -275,10 +275,9 @@ class Importer
     end
 
     def call_patch(package, reverse, file, patch_level)
-        patch = Autobuild.tool('patch')
-        Dir.chdir(package.importdir) do
-            Subprocess.run(package, :patch, patch, "-p#{patch_level}", (reverse ? '-R' : nil), '--forward', :input => file)
-        end
+        package.run(:patch, Autobuild.tool('patch'),
+                    "-p#{patch_level}", (reverse ? '-R' : nil), '--forward', input: file,
+                    working_directory: package.importdir)
     end
 
     def apply(package, path, patch_level = 0);   call_patch(package, false, path, patch_level) end

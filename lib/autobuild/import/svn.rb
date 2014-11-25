@@ -29,49 +29,68 @@ module Autobuild
 
         private
 
-        def update(package,only_local=false) # :nodoc:
-            if only_local
-                Autobuild.warn "The importer #{self.class} does not support local updates, skipping #{self}"
-                return
+        def run_svn(package, *args, &block)
+            options = Hash.new
+            if args.last.kind_of?(Hash)
+                options = args.pop
             end
-            Dir.chdir(package.importdir) do
-		old_lang, ENV['LC_ALL'] = ENV['LC_ALL'], 'C'
-                svninfo = []
-                begin
-                    Subprocess.run(package, :import, @program, 'info') do |line|
+            options, other_options = Kernel.filter_options options,
+                working_directory: package.importdir
+            options = options.merge(other_options)
+            package.run(:import, Autobuild.tool(:svn), *args, options, &block)
+        end
+
+        def svn_info(package)
+            old_lang, ENV['LC_ALL'] = ENV['LC_ALL'], 'C'
+            svninfo = []
+            begin
+                run_svn package, 'info' do |line|
+                    svninfo << line
+                end
+            rescue SubcommandFailed
+                if svninfo.find { |l| l =~ /svn upgrade/ }
+                    # Try svn upgrade and info again
+                    run_svn package, 'upgrade'
+                    svninfo.clear
+                    run_svn package, 'info' do |line|
                         svninfo << line
                     end
-                rescue SubcommandFailed => e
-                    if svninfo.find { |l| l =~ /svn upgrade/ }
-                        # Try svn upgrade and info again
-                        Subprocess.run(package, :import, @program, 'upgrade')
-                        svninfo.clear
-                        Subprocess.run(package, :import, @program, 'info') do |line|
-                            svninfo << line
-                        end
-                    else raise
-                    end
+                else raise
                 end
-		ENV['LC_ALL'] = old_lang
-		unless url = svninfo.grep(/^URL: /).first
-		    if svninfo.grep(/is not a working copy/).empty?
-			raise ConfigException.new(package, 'import'), "#{package.importdir} is not a Subversion working copy"
-		    else
-			raise ConfigException.new(package, 'import'), "Bug: cannot get SVN information for #{package.importdir}"
-		    end
-		end
-		url.chomp =~ /URL: (.+)/
-		source = $1
-		if source != @source
-		    raise ConfigException.new(package, 'import'), "current checkout found at #{package.importdir} is from #{source}, was expecting #{@source}"
-		end
-                Subprocess.run(package, :import, @program, 'up', "--non-interactive", *@options_up)
             end
+        ensure
+            ENV['LC_ALL'] = old_lang
+        end
+
+        def svn_url(package)
+            svninfo = svn_info(package)
+            url = svninfo.grep(/^URL: /).first
+            if !url
+                if !svninfo.grep(/is not a working copy/).empty?
+                    raise ConfigException.new(package, 'import'), "#{package.importdir} does not appear to be a Subversion working copy"
+                else
+                    raise ConfigException.new(package, 'import'), "cannot get SVN information for #{package.importdir}"
+                end
+            end
+            url.chomp =~ /URL: (.+)/
+            $1
+        end
+
+        def update(package,only_local=false) # :nodoc:
+            if only_local
+                package.warn "%s: the svn importer does not support local updates, skipping"
+                return
+            end
+
+            url = svn_url(package)
+            if url != @source
+                raise ConfigException.new(package, 'import'), "current checkout found at #{package.importdir} is from #{url}, was expecting #{@source}"
+            end
+            run_svn(package, 'up', "--non-interactive", *@options_up)
         end
 
         def checkout(package) # :nodoc:
-            options = [ @program, 'co', "--non-interactive" ] + @options_co + [ @source, package.importdir ]
-            Subprocess.run(package, :import, *options)
+            run_svn(package, 'co', "--non-interactive", *@options_co, @source, package.importdir, working_copy: nil)
         end
     end
 

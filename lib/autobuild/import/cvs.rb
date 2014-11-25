@@ -16,7 +16,6 @@ module Autobuild
                 raise ArgumentError, "no module given"
             end
 
-            @program    = Autobuild.tool('cvs')
             @options_up = cvsopts[:cvsup] || '-dP'
             @options_up = Array[*@options_up]
             @options_co = cvsopts[:cvsco] || '-P'
@@ -36,29 +35,30 @@ module Autobuild
 
         def update(package,only_local=false) # :nodoc:
             if only_local
-                Autobuild.warn "The importer #{self.class} does not support local updates, skipping #{self}"
+                package.warn "%s: the CVS importer does not support local updates, skipping"
                 return
             end
-            Dir.chdir(package.srcdir) do
-		if !File.exists?("#{package.srcdir}/CVS/Root")
-		    raise ConfigException.new(package, 'import'), "#{package.srcdir} is not a CVS working copy"
-		end
 
-		root = File.open("#{package.srcdir}/CVS/Root") { |io| io.read }.chomp
-		mod  = File.open("#{package.srcdir}/CVS/Repository") { |io| io.read }.chomp
+            if !File.exists?("#{package.srcdir}/CVS/Root")
+                raise ConfigException.new(package, 'import'), "#{package.srcdir} is not a CVS working copy"
+            end
 
-		# Remove any :ext: in front of the root
-		root = root.gsub /^:ext:/, ''
-		expected_root = @root.gsub /^:ext:/, ''
-		# Remove the optional ':' between the host and the path
-		root = root.gsub /:/, ''
-		expected_root = expected_root.gsub /:/, ''
+            root = File.open("#{package.srcdir}/CVS/Root") { |io| io.read }.chomp
+            mod  = File.open("#{package.srcdir}/CVS/Repository") { |io| io.read }.chomp
 
-		if root != expected_root || mod != @module
-		    raise ConfigException.new(package, 'import'), "checkout in #{package.srcdir} is from #{root}:#{mod}, was expecting #{expected_root}:#{@module}"
-		end
-                Subprocess.run(package, :import, @program, 'up', *@options_up)
-	    end
+            # Remove any :ext: in front of the root
+            root = root.gsub(/^:ext:/, '')
+            expected_root = @root.gsub(/^:ext:/, '')
+            # Remove the optional ':' between the host and the path
+            root = root.gsub(/:/, '')
+            expected_root = expected_root.gsub(/:/, '')
+
+            if root != expected_root || mod != @module
+                raise ConfigException.new(package, 'import'),
+                    "checkout in #{package.srcdir} is from #{root}:#{mod}, was expecting #{expected_root}:#{@module}"
+            end
+            package.run(:import, Autobuild.tool(:cvs), 'up', *@options_up,
+                        working_directory: package.importdir)
         end
 
         def checkout(package) # :nodoc:
@@ -66,10 +66,8 @@ module Autobuild
             cvsroot = @root
                
             FileUtils.mkdir_p(head) if !File.directory?(head)
-            Dir.chdir(head) do
-                options = [ @program, '-d', cvsroot, 'co', '-d', tail ] + @options_co + [ modulename ]
-                Subprocess.run(package, :import, *options)
-	    end
+            package.run(:import, Autobuild.tool(:cvs), '-d', cvsroot, 'co', '-d', tail, *@options_co, modulename,
+                working_directory: head)
         end
     end
 

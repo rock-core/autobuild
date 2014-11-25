@@ -55,10 +55,8 @@ module Autobuild
                 return
             end
             validate_importdir(package)
-            Dir.chdir(package.importdir) do
-                Subprocess.run(package, :import, Autobuild.tool('hg'), 'pull', repository)
-                Subprocess.run(package, :import, Autobuild.tool('hg'), 'update', branch)
-            end
+            package.run(:import, Autobuild.tool('hg'), 'pull', repository, working_directory: package.importdir)
+            package.run(:import, Autobuild.tool('hg'), 'update', branch, working_directory: package.importdir)
         end
 
         def checkout(package)
@@ -67,8 +65,7 @@ module Autobuild
                 FileUtils.mkdir_p base_dir
             end
 
-            Subprocess.run(package, :import,
-                Autobuild.tool('hg'), 'clone', '-u', branch, repository, package.importdir)
+            package.run(:import, Autobuild.tool('hg'), 'clone', '-u', branch, repository, package.importdir)
         end
     end
 

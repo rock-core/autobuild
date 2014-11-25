@@ -183,7 +183,7 @@ module Autobuild
                         if retries = self.retries
                             additional_options << "--tries" << retries
                         end
-                        Subprocess.run(package, :import, Autobuild.tool('wget'), '-q', '-P', cachedir, *additional_options, @url, '-O', "#{cachefile}.partial")
+                        package.run(:import, Autobuild.tool('wget'), '-q', '-P', cachedir, *additional_options, @url, '-O', "#{cachefile}.partial")
                     end
                 rescue Exception
                     FileUtils.rm_f "#{cachefile}.partial"
@@ -368,7 +368,7 @@ module Autobuild
 
                 FileUtils.mkdir_p base_dir
                 cmd = [ '-o', cachefile, '-d', main_dir ]
-                Subprocess.run(package, :import, Autobuild.tool('unzip'), *cmd)
+                package.run(:import, Autobuild.tool('unzip'), *cmd)
                 
                 archive_dir = (self.archive_dir || File.basename(package.name))
                 if archive_dir != File.basename(package.srcdir)
@@ -387,7 +387,7 @@ module Autobuild
                 if(WINDOWS)
                     extract_tar_on_windows(cachefile,package.srcdir)
                 else
-                    Subprocess.run(package, :import, Autobuild.tool('tar'), *cmd)
+                    package.run(:import, Autobuild.tool('tar'), *cmd)
                 end
             end
             write_checkout_digest_stamp(package)

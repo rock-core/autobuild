@@ -207,6 +207,7 @@ module Autobuild::Subprocess
         end
 
         Autobuild.register_logfile(logname)
+        subcommand_output = Array.new
 
         status = File.open(logname, open_flag) do |logfile|
             if Autobuild.keep_oldlogs
@@ -228,11 +229,11 @@ module Autobuild::Subprocess
             if !input_streams.empty?
                 pread, pwrite = IO.pipe # to feed subprocess stdin 
             end
-            if Autobuild.verbose || block_given? # the caller wants the stdout/stderr stream of the process, git it to him
-                outread, outwrite = IO.pipe
-                outread.sync = true
-                outwrite.sync = true
-            end
+
+            outread, outwrite = IO.pipe
+            outread.sync = true
+            outwrite.sync = true
+
             cread, cwrite = IO.pipe # to control that exec goes well
 
             if Autobuild.windows?
@@ -327,26 +328,26 @@ module Autobuild::Subprocess
 
             # If the caller asked for process output, provide it to him
             # line-by-line.
-            if outread
-                outwrite.close
-                outread.each_line do |line|
-                    if line.respond_to?(:force_encoding)
-                        line.force_encoding('BINARY')
-                    end
-                    if Autobuild.verbose
-                        STDOUT.print line
-                    end
-                    logfile.puts line
-                    # Do not yield the line if Autobuild.verbose is true, as it
-                    # would mix the progress output with the actual command
-                    # output. Assume that if the user wants the command output,
-                    # the autobuild progress output is unnecessary
-                    if !Autobuild.verbose && block_given?
-                        yield(line)
-                    end
+            outwrite.close
+            outread.each_line do |line|
+                if line.respond_to?(:force_encoding)
+                    line.force_encoding('BINARY')
                 end
-                outread.close
+                if Autobuild.verbose
+                    STDOUT.print line
+                end
+                logfile.puts line
+                # Do not yield the line if Autobuild.verbose is true, as it
+                # would mix the progress output with the actual command
+                # output. Assume that if the user wants the command output,
+                # the autobuild progress output is unnecessary
+                if !Autobuild.verbose && block_given?
+                    yield(line)
+                end
+
+                subcommand_output << line
             end
+            outread.close
 
             childpid, childstatus = Process.wait2(pid)
             childstatus
@@ -366,6 +367,7 @@ module Autobuild::Subprocess
         if target.respond_to?(:add_stat)
             target.add_stat(phase, duration)
         end
+        subcommand_output
 
     rescue Failed => e
         error = Autobuild::SubcommandFailed.new(target, command.join(" "), logname, e.status)
