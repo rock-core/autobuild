@@ -240,18 +240,12 @@ module Autobuild::Subprocess
             cread, cwrite = IO.pipe # to control that exec goes well
 
             if Autobuild.windows?
-                olddir = Dir.pwd
-                if options[:working_directory] && (options[:working_directory] != Dir.pwd)
-                    Dir.chdir(options[:working_directory])
+                Dir.chdir(options[:working_directory]) do
+                    if !system(*command)
+                        raise Failed.new($?.exitstatus, nil),
+                            "'#{command.join(' ')}' returned status #{status.exitstatus}"
+                    end
                 end
-                system(*command)
-                result=$?.success?
-                if(!result)
-                    error = Autobuild::SubcommandFailed.new(target, command.join(" "), logname, "Systemcall")
-                    error.phase = phase
-                    raise error
-                end
-                Dir.chdir(olddir)
                 return
             end
 
