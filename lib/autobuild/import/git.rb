@@ -629,7 +629,7 @@ module Autobuild
 
             update_remotes_configuration(package)
             if on_target_branch?(package)
-                run_git_bare(package, 'reset', '--hard', "#{remote_name}/#{branch}")
+                run_git(package, 'reset', '--hard', "#{remote_name}/#{branch}")
             else update(package, true)
             end
         end
