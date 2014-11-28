@@ -367,10 +367,11 @@ module Autobuild::Subprocess
             outwrite.close
             outread.each_line do |line|
                 line.force_encoding('BINARY')
+                line = line.chomp
                 subcommand_output << line
 
                 if Autobuild.verbose
-                    STDOUT.print line
+                    STDOUT.puts line
                 end
                 logfile.puts line
                 # Do not yield the line if Autobuild.verbose is true, as it
