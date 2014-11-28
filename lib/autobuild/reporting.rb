@@ -34,13 +34,17 @@ module Autobuild
     end
 
     def self.display_message(*args)
+        io = STDOUT
+        if args.last.kind_of?(IO)
+            io = args.pop
+        end
         msg =
             if args.empty? then ""
             else "#{color(*args)}"
             end
 
         if !Autobuild.progress_display_enabled?
-            puts msg
+            io.puts msg
             return
         end
 
@@ -50,7 +54,7 @@ module Autobuild
             end
 
         if !silent?
-            puts "\r#{msg}#{" " * [size - msg.size, 0].max}"
+            io.puts "\r#{msg}#{" " * [size - msg.size, 0].max}"
             if @last_progress_msg
                 print "#{@last_progress_msg}"
             end
@@ -64,12 +68,12 @@ module Autobuild
 
     # Displays an error message
     def self.error(message = "")
-        message("  ERROR: #{message}", :red, :bold)
+        message("  ERROR: #{message}", :red, :bold, STDERR)
     end
 
     # Displays a warning message
     def self.warn(message = "", *style)
-        message("  WARN: #{message}", :magenta, *style)
+        message("  WARN: #{message}", :magenta, *style, STDERR)
     end
 
     # @return [Boolean] true if there is some progress messages for the given
@@ -335,7 +339,7 @@ module Autobuild
     ## Display using stdout
     class StdoutReporter < Reporter
         def error(error)
-            puts "Build failed: #{error}"
+            STDERR.puts "Build failed: #{error}"
         end
         def success
             puts "Build finished successfully at #{Time.now}"
