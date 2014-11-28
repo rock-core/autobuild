@@ -544,21 +544,42 @@ module Autobuild
             end
         end
 
-        def commit_pinning(package, target_commit)
-            status_to_head = merge_status(package, target_commit, "HEAD").status
-
-            if status_to_head != Status::SIMPLE_UPDATE && status_to_head != Status::UP_TO_DATE
-                raise PackageException.new(package, 'import'), "checking out the specified commit #{target_commit} would be a non-simple operation (i.e. the current state of the repository is not a linear relationship with the specified commit), do it manually"
-            elsif !has_local_branch?(package)
+        def commit_pinning(package, target_commit, fetch_commit)
+            # Make sure we are on the requested branch
+            if !has_local_branch?(package)
                 run_git(package, 'checkout', '-b', local_branch, target_commit)
-            else
-                status_to_branch = merge_status(package, target_commit, local_branch)
-                if status_to_branch.status == Status::UP_TO_DATE # Checkout the branch
-                    run_git(package, 'checkout', local_branch)
-                else
-                    package.message "  checking out specific commit %s for %s. This will create a detached HEAD." % [target_commit.to_s, package.name]
-                    run_git(package, 'checkout', target_commit)
-                end
+                return
+            elsif !on_local_branch?(package)
+                package.message "%%s: switching to branch %s" % [local_branch]
+                run_git(package, 'checkout', local_branch)
+            end
+
+            # Check whether the current HEAD is present on the remote
+            # repository. We'll refuse resetting if there are uncommitted
+            # changes
+            head_to_remote = merge_status(package, fetch_commit, 'HEAD')
+            status_to_remote = head_to_remote.status
+            if status_to_remote == Status::ADVANCED || status_to_remote == Status::NEEDS_MERGE
+                raise PackageException.new(package, 'import'), "branch #{local_branch} of #{package.name} contains commits that do not seem to be present on the remote repository. I can't go on as it would mean losing some stuff. Push your changes or reset to the remote commit manually before trying again"
+            end
+
+            package.message "  %%s: resetting branch %s to %s" % [local_branch, target_commit.to_s]
+            # I don't use a reset --hard here as it would add even more
+            # restrictions on when we can do the operation (as we would refuse
+            # doing it if there are local changes). The checkout creates a
+            # detached HEAD, but makes sure that applying uncommitted changes is
+            # fine (it would abort otherwise). The rest then updates HEAD and
+            # the local_branch ref to match the required target commit
+            current_head = rev_parse(package, 'HEAD')
+            begin
+                run_git(package, 'checkout', target_commit)
+                run_git(package, 'update-ref', "refs/heads/#{local_branch}", target_commit)
+                run_git(package, 'symbolic-ref', "HEAD", "refs/heads/#{local_branch}")
+            rescue ::Exception
+                run_git(package, 'symbolic-ref', "HEAD", target_commit)
+                run_git(package, 'update-ref', "refs/heads/#{local_branch}", current_head)
+                run_git(package, 'checkout', "refs/heads/#{local_branch}")
+                raise
             end
         end
 
@@ -574,7 +595,7 @@ module Autobuild
 
             # If we are tracking a commit/tag, just check it out and return
             if commit || tag
-                commit_pinning(package, commit || tag)
+                commit_pinning(package, commit || tag, fetch_commit)
             elsif !has_local_branch?(package)
                 package.message "%%s: checking out branch %s" % [local_branch]
                 run_git(package, 'checkout', '-b', local_branch, fetch_commit)
