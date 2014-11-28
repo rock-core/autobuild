@@ -420,10 +420,15 @@ module Autobuild
 
         # Checks if the current branch is the target branch. Expects that the
         # current directory is the package's directory
-        def on_target_branch?(package)
+        def on_local_branch?(package)
             if current_branch = self.current_branch(package)
                 current_branch == "refs/heads/#{local_branch}"
             end
+        end
+
+        # @deprecated use on_local_branch? instead
+        def on_target_branch?(package)
+            on_local_branch?(package)
         end
 
         class Status < Importer::Status
