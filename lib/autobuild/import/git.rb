@@ -464,6 +464,12 @@ module Autobuild
             raise PackageException.new(package, 'import'), "failed to resolve #{name}. Are you sure this commit, branch or tag exists ?"
         end
 
+        def show(package, commit, path)
+            run_git_bare(package, 'show', "#{commit}:#{path}").join("\n")
+        rescue Autobuild::SubcommandFailed
+            raise PackageException.new(package, 'import'), "failed to either resolve commit #{commit} or file #{path}"
+        end
+
         # Computes the update status to update a branch whose tip is at
         # reference_commit (which can be a symbolic reference) using the
         # fetch_commit commit
