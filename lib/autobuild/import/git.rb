@@ -35,6 +35,45 @@ module Autobuild
             end
         end
 
+        # Returns the git version as a string
+        #
+        # @return [String]
+        def self.version
+            version = Subprocess.run('git', 'setup', Autobuild.tool(:git), '--version').first
+            if version =~ /^git version (\d[\d\.]+)/
+                $1.split(".").map { |i| Integer(i) }
+            else
+                raise ArgumentError, "cannot parse git version string #{version}, was expecting something looking like 'git version 2.1.0'"
+            end
+        end
+
+        # Helper method to compare two (partial) versions represented as array
+        # of integers
+        #
+        # @return [Integer]
+        def self.compare_versions(actual, required)
+            if actual.size > required.size
+                return -compare_versions(required, actual)
+            end
+
+            actual += [0] * (required.size - actual.size)
+            actual.zip(required).each do |v_act, v_req|
+                if v_act > v_req then return -1
+                elsif v_act < v_req then return 1
+                end
+            end
+            0
+        end
+
+        # Tests the git version
+        #
+        # @param [Array<Integer>] version the git version as an array of integer
+        # @return [Boolean] true if the git version is at least the requested
+        #   one, and false otherwise
+        def self.at_least_version(*version)
+            compare_versions(self.version, version) >= 0
+        end
+
         # Creates an importer which tracks the given repository
         # and branch. +source+ is [repository, branch]
         #
