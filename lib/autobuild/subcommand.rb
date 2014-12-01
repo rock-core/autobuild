@@ -159,6 +159,40 @@ module Autobuild::Subprocess
     CONTROL_COMMAND_NOT_FOUND = 1
     CONTROL_UNEXPECTED = 2
     CONTROL_INTERRUPT = 3
+
+    # Run a subcommand and return its standard output
+    #
+    # The command's standard and error outputs, as well as the full command line
+    # and an environment dump are saved in a log file in either the valure
+    # returned by target#logdir, or Autobuild.logdir if the target does not
+    # respond to #logdir.
+    #
+    # The subprocess priority is controlled by Autobuild.nice
+    #
+    # @param [String,(#name,#logdir,#working_directory)] target the target we
+    #   run the subcommand for. In general, it will be a Package object (run from
+    #   Package#run)
+    # @param [String] phase in which build phase this subcommand is executed
+    # @param [Array<String>] the command itself
+    # @yieldparam [String] line if a block is given, each output line from the
+    #   command's standard output are yield to it. This is meant for progress
+    #   display, and is disabled if Autobuild.verbose is set.
+    # @param [Hash] options
+    # @option options [String] :working_directory the directory in which the
+    #   command should be started. If nil, runs in the current directory. The
+    #   default is to either use the value returned by #working_directory on
+    #   {target} if it responds to it, or nil.
+    # @option options [Boolean] :retry (false) controls whether a failure to
+    #   execute this command should be retried by autobuild retry mechanisms (i.e.
+    #   in the importers) or not. {run} will not retry the command by itself, it
+    #   is passed as a hint for error handling clauses about whether the error
+    #   should be retried or not
+    # @option options [Array<IO>] :input_streams list of input streams that
+    #   should be fed to the command standard input. If a file needs to be given,
+    #   the :input argument can be used as well as a shortcut
+    # @option options [String] :input the path to a file whose content should be
+    #   fed to the command standard input
+    # @return [String] the command standard output
     def self.run(target, phase, *command)
         STDOUT.sync = true
 
