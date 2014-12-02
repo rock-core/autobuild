@@ -595,13 +595,21 @@ module Autobuild
                 run_git(package, 'checkout', local_branch)
             end
 
+            current_head = rev_parse(package, 'HEAD')
+
             # Check whether the current HEAD is present on the remote
             # repository. We'll refuse resetting if there are uncommitted
             # changes
-            head_to_remote = merge_status(package, fetch_commit, 'HEAD')
+            head_to_remote = merge_status(package, fetch_commit, current_head)
             status_to_remote = head_to_remote.status
             if status_to_remote == Status::ADVANCED || status_to_remote == Status::NEEDS_MERGE
                 raise PackageException.new(package, 'import'), "branch #{local_branch} of #{package.name} contains commits that do not seem to be present on the remote repository. I can't go on as it would mean losing some stuff. Push your changes or reset to the remote commit manually before trying again"
+            end
+
+            head_to_target = merge_status(package, target_commit, current_head)
+            status_to_target = head_to_target.status
+            if status_to_target == Status::UP_TO_DATE
+                return
             end
 
             package.message "  %%s: resetting branch %s to %s" % [local_branch, target_commit.to_s]
@@ -611,7 +619,6 @@ module Autobuild
             # detached HEAD, but makes sure that applying uncommitted changes is
             # fine (it would abort otherwise). The rest then updates HEAD and
             # the local_branch ref to match the required target commit
-            current_head = rev_parse(package, 'HEAD')
             begin
                 run_git(package, 'checkout', target_commit)
                 run_git(package, 'update-ref', "refs/heads/#{local_branch}", target_commit)
