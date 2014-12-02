@@ -90,7 +90,7 @@ module Autobuild
         end
 
         def checkout(package) # :nodoc:
-            run_svn(package, 'co', "--non-interactive", *@options_co, @source, package.importdir, working_copy: nil)
+            run_svn(package, 'co', "--non-interactive", *@options_co, @source, package.importdir, working_directory: nil)
         end
     end
 
