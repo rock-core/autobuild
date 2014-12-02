@@ -696,10 +696,7 @@ module Autobuild
                 Autobuild.tool('git'), 'clone', '-o', remote_name, *clone_options, repository, package.importdir, retry: true)
 
             update_remotes_configuration(package)
-            if on_target_branch?(package)
-                run_git(package, 'reset', '--hard', "#{remote_name}/#{branch}")
-            else update(package, true)
-            end
+            update(package, true)
         end
 
         # Changes the repository this importer is pointing to
