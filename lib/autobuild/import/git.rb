@@ -617,14 +617,15 @@ module Autobuild
             # detached HEAD, but makes sure that applying uncommitted changes is
             # fine (it would abort otherwise). The rest then updates HEAD and
             # the local_branch ref to match the required target commit
+            resolved_target_commit = rev_parse(package, "#{target_commit}^{commit}")
             begin
                 run_git(package, 'checkout', target_commit)
-                run_git(package, 'update-ref', "refs/heads/#{local_branch}", target_commit)
+                run_git(package, 'update-ref', "refs/heads/#{local_branch}", resolved_target_commit)
                 run_git(package, 'symbolic-ref', "HEAD", "refs/heads/#{local_branch}")
             rescue ::Exception
                 run_git(package, 'symbolic-ref', "HEAD", target_commit)
                 run_git(package, 'update-ref', "refs/heads/#{local_branch}", current_head)
-                run_git(package, 'checkout', "refs/heads/#{local_branch}")
+                run_git(package, 'checkout', local_branch)
                 raise
             end
         end
