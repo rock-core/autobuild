@@ -644,7 +644,11 @@ module Autobuild
 
             # If we are tracking a commit/tag, just check it out and return
             if commit || tag
-                commit_pinning(package, commit || tag, fetch_commit)
+                target_commit =
+                    if commit then commit
+                    else "refs/tags/#{tag}"
+                    end
+                commit_pinning(package, target_commit, fetch_commit)
             elsif !has_local_branch?(package)
                 package.message "%%s: checking out branch %s" % [local_branch]
                 run_git(package, 'checkout', '-b', local_branch, fetch_commit)
