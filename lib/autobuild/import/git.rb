@@ -508,7 +508,11 @@ module Autobuild
 
         def update(package,only_local = false)
             validate_importdir(package)
-            update_alternates(package)
+            # This is really really a hack to workaround how broken the
+            # importdir thing is
+            if package.importdir == package.srcdir
+                update_alternates(package)
+            end
             Dir.chdir(package.importdir) do
                 #Checking if we should only merge our repro to remotes/HEAD without updateing from the remote side...
                 if !only_local
