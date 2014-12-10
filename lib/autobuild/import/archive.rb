@@ -58,7 +58,7 @@ module Autobuild
             # With wget, it is the timeout used for DNS resolution, connection and
             # idle time (time without receiving data)
             #
-            # It defaults to 5s
+            # It defaults to 10s
             attr_accessor :timeout
 
             # The number of time we should retry downloading if the underlying tool
@@ -249,6 +249,12 @@ module Autobuild
         #       Package#srcdir
         # [:no_subdirectory] the archive does not have the custom archive
         #       subdirectory.
+        # [:retries] The number of retries for downloading
+        # [:timeout] The timeout (in seconds) used during downloading, it defaults to 10s
+        # [:filename] Rename the archive to this filename (in cache) -- will be
+        #       also used to infer the mode
+        # [:mode] The unpack mode: one of Zip, Bzip, Gzip or Plain, this is
+        #       usually automatically inferred from the filename
         def initialize(url, options)
             sourceopts, options = Kernel.filter_options options,
                 :source_id, :repository_id, :filename, :mode
