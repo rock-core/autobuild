@@ -251,7 +251,7 @@ module Autobuild
         #       subdirectory.
         def initialize(url, options)
             sourceopts, options = Kernel.filter_options options,
-                :source_id, :repository_id
+                :source_id, :repository_id, :filename, :mode
             super(options)
 
             if !@options.has_key?(:update_cached_file)
