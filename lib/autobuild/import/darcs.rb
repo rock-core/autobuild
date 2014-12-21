@@ -24,15 +24,16 @@ module Autobuild
 
         def update(package,only_local=false) # :nodoc:
             if only_local
-                Autobuild.warn "The importer #{self.class} does not support local updates, skipping #{self}"
+                package.warn "%s: importer #{self.class} does not support local updates, skipping"
                 return
             end
 	    if !File.directory?( File.join(package.srcdir, '_darcs') )
-		raise ConfigException.new(package, 'import'), "#{package.srcdir} is not a Darcs repository"
+		raise ConfigException.new(package, 'import'),
+                    "#{package.srcdir} is not a Darcs repository"
 	    end
 
-	    Subprocess.run(package, :import, @program, 
-	       'pull', '--all', "--repodir=#{package.srcdir}", '--set-scripts-executable', @source, *@pull)
+	    package.run(:import, @program, 
+	       'pull', '--all', "--repodir=#{package.srcdir}", '--set-scripts-executable', @source, *@pull, retry: true)
         end
 
         def checkout(package) # :nodoc:
@@ -41,8 +42,8 @@ module Autobuild
 		FileUtils.mkdir_p(basedir)
 	    end
 
-	    Subprocess.run(package, :import, @program, 
-	       'get', '--set-scripts-executable', @source, package.srcdir, *@get)
+	    package.run(:import, @program, 
+	       'get', '--set-scripts-executable', @source, package.srcdir, *@get, retry: true)
         end
     end
 

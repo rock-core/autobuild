@@ -147,24 +147,61 @@ end
 
 module Autobuild::Subprocess
     class Failed < Exception
+        def retry?; @retry end
         attr_reader :status
-        def initialize(status = nil)
+
+        def initialize(status, do_retry)
             @status = status
+            @retry = do_retry
         end
     end
 
     CONTROL_COMMAND_NOT_FOUND = 1
     CONTROL_UNEXPECTED = 2
     CONTROL_INTERRUPT = 3
+
+    # Run a subcommand and return its standard output
+    #
+    # The command's standard and error outputs, as well as the full command line
+    # and an environment dump are saved in a log file in either the valure
+    # returned by target#logdir, or Autobuild.logdir if the target does not
+    # respond to #logdir.
+    #
+    # The subprocess priority is controlled by Autobuild.nice
+    #
+    # @param [String,(#name,#logdir,#working_directory)] target the target we
+    #   run the subcommand for. In general, it will be a Package object (run from
+    #   Package#run)
+    # @param [String] phase in which build phase this subcommand is executed
+    # @param [Array<String>] the command itself
+    # @yieldparam [String] line if a block is given, each output line from the
+    #   command's standard output are yield to it. This is meant for progress
+    #   display, and is disabled if Autobuild.verbose is set.
+    # @param [Hash] options
+    # @option options [String] :working_directory the directory in which the
+    #   command should be started. If nil, runs in the current directory. The
+    #   default is to either use the value returned by #working_directory on
+    #   {target} if it responds to it, or nil.
+    # @option options [Boolean] :retry (false) controls whether a failure to
+    #   execute this command should be retried by autobuild retry mechanisms (i.e.
+    #   in the importers) or not. {run} will not retry the command by itself, it
+    #   is passed as a hint for error handling clauses about whether the error
+    #   should be retried or not
+    # @option options [Array<IO>] :input_streams list of input streams that
+    #   should be fed to the command standard input. If a file needs to be given,
+    #   the :input argument can be used as well as a shortcut
+    # @option options [String] :input the path to a file whose content should be
+    #   fed to the command standard input
+    # @return [String] the command standard output
     def self.run(target, phase, *command)
         STDOUT.sync = true
 
         input_streams = []
-        options = Hash.new
+        options = Hash[retry: false]
         if command.last.kind_of?(Hash)
             options = command.pop
             options = Kernel.validate_options options,
-                :input => nil, :working_directory => nil
+                input: nil, working_directory: nil, retry: false
             if options[:input]
                 input_streams = [options[:input]]
             end
@@ -207,6 +244,7 @@ module Autobuild::Subprocess
         end
 
         Autobuild.register_logfile(logname)
+        subcommand_output = Array.new
 
         status = File.open(logname, open_flag) do |logfile|
             if Autobuild.keep_oldlogs
@@ -228,26 +266,20 @@ module Autobuild::Subprocess
             if !input_streams.empty?
                 pread, pwrite = IO.pipe # to feed subprocess stdin 
             end
-            if Autobuild.verbose || block_given? # the caller wants the stdout/stderr stream of the process, git it to him
-                outread, outwrite = IO.pipe
-                outread.sync = true
-                outwrite.sync = true
-            end
+
+            outread, outwrite = IO.pipe
+            outread.sync = true
+            outwrite.sync = true
+
             cread, cwrite = IO.pipe # to control that exec goes well
 
             if Autobuild.windows?
-                olddir = Dir.pwd
-                if options[:working_directory] && (options[:working_directory] != Dir.pwd)
-                    Dir.chdir(options[:working_directory])
+                Dir.chdir(options[:working_directory]) do
+                    if !system(*command)
+                        raise Failed.new($?.exitstatus, nil),
+                            "'#{command.join(' ')}' returned status #{status.exitstatus}"
+                    end
                 end
-                system(*command)
-                result=$?.success?
-                if(!result)
-                    error = Autobuild::SubcommandFailed.new(target, command.join(" "), logname, "Systemcall")
-                    error.phase = phase
-                    raise error
-                end
-                Dir.chdir(olddir)
                 return
             end
 
@@ -305,7 +337,8 @@ module Autobuild::Subprocess
                         end
                     end
                 rescue Errno::ENOENT => e
-                    raise Failed.new, "cannot open input files: #{e.message}"
+                    raise Failed.new(nil, false),
+                        "cannot open input files: #{e.message}", retry: false
                 end
                 pwrite.close
             end
@@ -317,43 +350,46 @@ module Autobuild::Subprocess
                 # An error occured
                 value = value.unpack('I').first
                 if value == CONTROL_COMMAND_NOT_FOUND
-                    raise Failed.new, "command '#{command.first}' not found"
+                    raise Failed.new(nil, false),
+                        "command '#{command.first}' not found"
                 elsif value == CONTROL_INTERRUPT
                     raise Interrupt, "command '#{command.first}': interrupted by user"
                 else
-                    raise Failed.new, "something unexpected happened"
+                    raise Failed.new(nil, false),
+                        "something unexpected happened"
                 end
             end
 
             # If the caller asked for process output, provide it to him
             # line-by-line.
-            if outread
-                outwrite.close
-                outread.each_line do |line|
-                    if line.respond_to?(:force_encoding)
-                        line.force_encoding('BINARY')
-                    end
-                    if Autobuild.verbose
-                        STDOUT.print line
-                    end
-                    logfile.puts line
-                    # Do not yield the line if Autobuild.verbose is true, as it
-                    # would mix the progress output with the actual command
-                    # output. Assume that if the user wants the command output,
-                    # the autobuild progress output is unnecessary
-                    if !Autobuild.verbose && block_given?
-                        yield(line)
-                    end
+            outwrite.close
+            outread.each_line do |line|
+                if line.respond_to?(:force_encoding)
+                    line.force_encoding('BINARY')
                 end
-                outread.close
+                if Autobuild.verbose
+                    STDOUT.print line
+                end
+                logfile.puts line
+                # Do not yield the line if Autobuild.verbose is true, as it
+                # would mix the progress output with the actual command
+                # output. Assume that if the user wants the command output,
+                # the autobuild progress output is unnecessary
+                if !Autobuild.verbose && block_given?
+                    yield(line)
+                end
+
+                subcommand_output << line
             end
+            outread.close
 
             childpid, childstatus = Process.wait2(pid)
             childstatus
         end
 
         if !status.exitstatus || status.exitstatus > 0
-            raise Failed.new(status.exitstatus), "'#{command.join(' ')}' returned status #{status.exitstatus}"
+            raise Failed.new(status.exitstatus, nil),
+                "'#{command.join(' ')}' returned status #{status.exitstatus}"
         end
 
         duration = Time.now - start_time
@@ -366,14 +402,16 @@ module Autobuild::Subprocess
         if target.respond_to?(:add_stat)
             target.add_stat(phase, duration)
         end
+        subcommand_output
 
     rescue Failed => e
         error = Autobuild::SubcommandFailed.new(target, command.join(" "), logname, e.status)
+        error.retry = if e.retry?.nil? then options[:retry]
+                      else e.retry?
+                      end
         error.phase = phase
         raise error, e.message
     end
 
 end
-
-
 
