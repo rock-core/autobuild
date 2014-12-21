@@ -14,7 +14,8 @@ module Autobuild
         def initialize(name, package)
             @name = name
             @package = package
-            @enabled = true
+            @available = true
+            @enabled   = true
             @source_ref_dir = nil
         end
 
@@ -108,19 +109,28 @@ module Autobuild
         # This will return true only if a task has been by calling {task} _and_
         # the utility has not been explicitly disabled by setting the {enabled}
         # attribute to false
-        def enabled?
-            if !@enabled
-                return false
-            else
-                return source_dir && @task
-            end
+        #
+        # @return [Boolean]
+        def available?
+            @available && (source_dir && @task)
         end
 
-        # Allows to force {enabled?} to return false, regardless of whether
-        # {task} has been called or not
+        # True if this utility should be executed
         #
-        # This is mainly used for package types that have an e.g. documentation
-        # task by default, so that some packages can disable it.
+        # @return [Boolean]
+        def enabled?
+            @enabled && available?
+        end
+
+        # Allows to override the utility's availability (i.e. whether this
+        # utility is available on the underlying package) regardless of whether
+        # {task} got called or not
+        #
+        # This is mainly used to fine-tune packages whose base type enables the
+        # utility (e.g. testing) but the actual package does not have it
+        attr_writer :available
+
+        # Allows to disable the utility regardless of the value of {available?}
         attr_writer :enabled
 
         def install

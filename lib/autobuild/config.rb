@@ -44,8 +44,8 @@ module Autobuild
         # @see {register_utility_class}
         attr_reader :utilities
 
-        def register_utility_class(name, klass)
-            utilities[name] = klass
+        def register_utility_class(name, klass, options = Hash.new)
+            utilities[name] = [klass, options]
             singleton_class.class_eval do
                 attr_accessor "only_#{name}"
                 attr_accessor "do_#{name}"
@@ -59,8 +59,12 @@ module Autobuild
         end
 
         def create_utility(utility_name, package)
-            if klass = utilities[utility_name]
-                package.utilities[utility_name] = klass.new(utility_name, package)
+            klass, options = utilities[utility_name]
+            if klass
+                utility = klass.new(utility_name, package)
+                package.utilities[utility_name] = utility
+                utility.enabled = !options[:disabled_by_default]
+                utility
             else raise ArgumentError, "there is no utility called #{utility_name}, available utilities are #{utilities.keys.sort.join(", ")}"
             end
         end
@@ -76,8 +80,8 @@ module Autobuild
         end
     end
     @utilities = Hash.new
-    register_utility_class 'doc', Utility
-    register_utility_class 'test', Utility
+    register_utility_class 'doc', Utility, disabled_by_default: false
+    register_utility_class 'test', Utility, disabled_by_default: true
 
     @console = HighLine.new
 
