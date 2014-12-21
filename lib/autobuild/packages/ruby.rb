@@ -47,6 +47,14 @@ module Autobuild
             end
         end
 
+        def invoke_rake(setup_task = rake_setup_task)
+            if setup_task && File.file?(File.join(srcdir, 'Rakefile'))
+                Autobuild::Subprocess.run self, 'post-install',
+                    Autobuild.tool_in_path('ruby'), '-S', Autobuild.tool('rake'), setup_task,
+                    :working_directory => srcdir
+            end
+        end
+
         def install
             progress_start "setting up Ruby package %s", :done_message => 'set up Ruby package %s' do
                 Autobuild.update_environment srcdir
@@ -57,11 +65,7 @@ module Autobuild
                     Autobuild.env_add_path 'RUBYLIB', libdir
                 end
 
-                if rake_setup_task && File.file?(File.join(srcdir, 'Rakefile'))
-                    Autobuild::Subprocess.run self, 'post-install',
-                        Autobuild.tool_in_path('ruby'), '-S', Autobuild.tool('rake'), rake_setup_task,
-                        :working_directory => srcdir
-                end
+                invoke_rake
             end
             super
         end

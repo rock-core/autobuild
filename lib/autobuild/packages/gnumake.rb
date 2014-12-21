@@ -18,31 +18,30 @@ module Autobuild
         make_is_gnumake?(path)
     end
 
-    def self.make_subcommand(pkg, phase, *options, &block)
+    def self.invoke_make_parallel(pkg, cmd_path = Autobuild.tool(:make))
         reserved = nil
-        cmd_path = Autobuild.tool(:make)
-        cmd = [cmd_path]
         if make_has_j_option?(cmd_path) && pkg.parallel_build_level != 1
             if manager = Autobuild.parallel_task_manager
                 job_server = manager.job_server
                 if !make_has_gnumake_jobserver?(cmd_path) || (pkg.parallel_build_level != Autobuild.parallel_build_level)
                     reserved = pkg.parallel_build_level
                     job_server.get(reserved - 1) # We already have one token taken by autobuild itself
-                    cmd << "-j#{pkg.parallel_build_level}"
-                else
-                    cmd << "--jobserver-fds=#{job_server.rio.fileno},#{job_server.wio.fileno}" << "-j"
+                    yield("-j#{pkg.parallel_build_level}")
                 end
-            else
-                cmd << "-j#{pkg.parallel_build_level}"
+                yield("--jobserver-fds=#{job_server.rio.fileno},#{job_server.wio.fileno}", "-j")
             end
+            yield("-j#{pkg.parallel_build_level}")
+        else yield
         end
-
-        cmd.concat(options)
-        Subprocess.run(pkg, phase, *cmd, &block)
-
     ensure
         if reserved
             job_server.put(reserved)
+        end
+    end
+    
+    def self.make_subcommand(pkg, phase, *options, &block)
+        invoke_make_parallel(pkg, Autobuild.tool(:make)) do |*make_parallel_options|
+            Subprocess.run(pkg, phase, Autobuild.tool(:make), *make_parallel_options, *options, &block)
         end
     end
 end
