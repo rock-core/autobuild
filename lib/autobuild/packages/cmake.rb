@@ -76,13 +76,14 @@ module Autobuild
         end
 
         def define(name, value)
-            @defines[name] = value
-        end
-
-        def doc_dir
-            if @doc_dir
-                File.expand_path(@doc_dir, builddir)
-            end
+            @defines[name] =
+                if value.respond_to?(:to_str)
+                    value.to_str
+                elsif value
+                    'ON'
+                else
+                    'OFF'
+                end
         end
 
         DOXYGEN_ACCEPTED_VARIABLES = {
