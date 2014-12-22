@@ -44,6 +44,17 @@ module Autobuild
         # @see {register_utility_class}
         attr_reader :utilities
 
+        # Yields all known utility classes
+        #
+        # @yieldparam [String] utility name
+        # @yieldparam [Class] utility class
+        # @yieldparam [Hash] utility options
+        # @return [void]
+        def each_utility
+            return enum_for(__method__) if !block_given?
+            utilities.each { |name, (utl, options)| yield(name, utl, options) }
+        end
+
         def register_utility_class(name, klass, options = Hash.new)
             utilities[name] = [klass, options]
             singleton_class.class_eval do
