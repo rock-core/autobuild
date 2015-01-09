@@ -50,7 +50,8 @@ module Autobuild
         # Helper method to compare two (partial) versions represented as array
         # of integers
         #
-        # @return [Integer]
+        # @return [Integer] -1 if actual is greater than required, 
+        #   0 if equal, and 1 if actual is smaller than required
         def self.compare_versions(actual, required)
             if actual.size > required.size
                 return -compare_versions(required, actual)
@@ -71,7 +72,7 @@ module Autobuild
         # @return [Boolean] true if the git version is at least the requested
         #   one, and false otherwise
         def self.at_least_version(*version)
-            compare_versions(self.version, version) >= 0
+            compare_versions(self.version, version) <= 0
         end
 
         # Creates an importer which tracks the given repository
