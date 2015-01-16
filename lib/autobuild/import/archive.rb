@@ -72,14 +72,25 @@ module Autobuild
         @cachedir = nil
 
 	# Returns the unpack mode from the file name
-        def self.filename_to_mode(filename)
+        #
+        # @return [Integer,nil] either one of the pack constants (Zip, Plain,
+        #   ...) or nil if it cannot be inferred
+        # @see filename_to_mode
+        def self.find_mode_from_filename(filename)
             case filename
-                when /\.zip$/; Zip
-                when /\.tar$/; Plain
-                when /\.tar\.gz$|\.tgz$/;  Gzip
-                when /\.bz2$/; Bzip
-                else
-                    raise "unknown file type '#{filename}'"
+            when /\.zip$/; Zip
+            when /\.tar$/; Plain
+            when /\.tar\.gz$|\.tgz$/;  Gzip
+            when /\.bz2$/; Bzip
+            end
+        end
+
+	# Returns the unpack mode from the file name
+        def self.filename_to_mode(filename)
+            if mode = find_mode_from_filename(filename)
+                mode
+            else
+                raise "cannot infer the archive type from '#{filename}', use the mode: option"
             end
         end
 
@@ -233,6 +244,16 @@ module Autobuild
         # It defaults to the global ArchiveImporter.retries
         attr_accessor :retries
 
+        # The filename that should be used locally (for remote files)
+        #
+        # This is usually inferred by using the URL's basename, but some
+        # download URLs do not allow this (for instance bitbucket tarballs)
+        #
+        # Change it by calling {relocate}
+        #
+        # @retun [String]
+        attr_reader :filename
+
         # The timeout (in seconds) used during downloading.
         #
         # With wget, it is the timeout used for DNS resolution, connection and
@@ -279,9 +300,9 @@ module Autobuild
             @repository_id = options[:repository_id] || parsed_url
             @source_id = options[:source_id] || parsed_url
 
-            filename = options[:filename] || File.basename(url).gsub(/\?.*/, '')
+            @filename = options[:filename] || @filename || File.basename(url).gsub(/\?.*/, '')
 
-            @mode = options[:mode] || ArchiveImporter.filename_to_mode(filename)
+            @mode = options[:mode] || ArchiveImporter.find_mode_from_filename(filename) || @mode
             if @url.scheme == 'file'
                 @cachefile = @url.path
             else
