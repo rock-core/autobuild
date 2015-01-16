@@ -225,9 +225,11 @@ module Autobuild
 
         def self.validate_git_dir(package, require_working_copy, dir, style)
             if !style
-                raise ConfigException.new(package, 'import'), "while importing #{package.name}, #{package.importdir} does not point to a git repository"
+                raise ConfigException.new(package, 'import', retry: false),
+                    "while importing #{package.name}, #{package.importdir} does not point to a git repository"
             elsif require_working_copy && (style == :bare)
-                raise ConfigException.new(package, 'import'), "while importing #{package.name}, #{package.importdir} points to a bare git repository but a working copy was required"
+                raise ConfigException.new(package, 'import', retry: false),
+                    "while importing #{package.name}, #{package.importdir} points to a bare git repository but a working copy was required"
             end
         end
 
