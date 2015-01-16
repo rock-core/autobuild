@@ -266,7 +266,7 @@ module Autobuild
     end
 
     def self.env_add_path(name, *paths)
-        oldpath = environment[name] || Array.new
+        oldpath = (environment[name] ||= Array.new)
         paths.reverse.each do |path|
             next if oldpath.include?(path)
 
