@@ -40,12 +40,22 @@ module Autobuild
             package.run(:import, Autobuild.tool(:svn), *args, options, &block)
         end
 
+        # Returns the result of the 'svn info' command
+        #
+        # It automatically runs svn upgrade if needed
+        #
+        # @param [Package] package
+        # @return [Array<String>] the lines returned by svn info, with the
+        #   trailing newline removed
+        # @raises [SubcommandFailed] if svn info failed
+        # @raises [ConfigException] if the working copy is not a subversion
+        #   working copy
         def svn_info(package)
             old_lang, ENV['LC_ALL'] = ENV['LC_ALL'], 'C'
             svninfo = []
             begin
                 run_svn package, 'info' do |line|
-                    svninfo << line
+                    svninfo << line.chomp
                 end
             rescue SubcommandFailed
                 if svninfo.find { |l| l =~ /svn upgrade/ }
@@ -53,15 +63,43 @@ module Autobuild
                     run_svn package, 'upgrade', retry: false
                     svninfo.clear
                     run_svn package, 'info' do |line|
-                        svninfo << line
+                        svninfo << line.chomp
                     end
                 else raise
                 end
             end
+
+            if !svninfo.grep(/is not a working copy/).empty?
+                raise ConfigException.new(package, 'import'),
+                    "#{package.importdir} does not appear to be a Subversion working copy"
+            end
+            svninfo
         ensure
             ENV['LC_ALL'] = old_lang
         end
 
+        # Returns the SVN revision of the package
+        #
+        # @param [Package] package
+        # @return [Integer]
+        # @raises ConfigException if 'svn info' did not return a Revision field
+        # @raises (see svn_info)
+        def svn_revision(package)
+            svninfo = svn_info(package)
+            revision = svninfo.grep(/^Revision: /).first
+            if !revision
+                raise ConfigException.new(package, 'import'), "cannot get SVN information for #{package.importdir}"
+            end
+            revision =~ /Revision: (\d+)/
+            Integer($1)
+        end
+
+        # Returns the URL of the remote SVN repository
+        #
+        # @param [Package] package
+        # @return [String]
+        # @raises ConfigException if 'svn info' did not return a URL field
+        # @raises (see svn_info)
         def svn_url(package)
             svninfo = svn_info(package)
             url = svninfo.grep(/^URL: /).first
