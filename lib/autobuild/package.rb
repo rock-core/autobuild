@@ -127,6 +127,7 @@ module Autobuild
         def updated?; !!@updated end
 
 	def initialize(spec = Hash.new)
+            @srcdir = @importdir = nil
 	    @dependencies   = Array.new
 	    @provides       = Array.new
             @parallel_build_level = nil
@@ -187,7 +188,7 @@ module Autobuild
         # target files so that all the build phases of this package gets
         # retriggered. However, it should not clean the build products.
         def prepare_for_forced_build
-            if File.exists?(installstamp)
+            if File.exist?(installstamp)
                 FileUtils.rm_f installstamp
             end
         end
@@ -197,7 +198,7 @@ module Autobuild
         def prepare_for_rebuild
             prepare_for_forced_build
 
-            if File.exists?(installstamp)
+            if File.exist?(installstamp)
                 FileUtils.rm_f installstamp
             end
         end
@@ -268,7 +269,7 @@ module Autobuild
             end
 
             # Add the dependencies declared in spec
-            depends_on *@spec_dependencies if @spec_dependencies
+            depends_on(*@spec_dependencies) if @spec_dependencies
             update_environment
         end
 
@@ -375,33 +376,6 @@ module Autobuild
 
         def run(*args, &block)
             Autobuild::Subprocess.run(self, *args, &block)
-        end
-
-        module TaskExtension
-            attr_accessor :package
-        end
-
-        def source_tree(*args, &block)
-            task = Autobuild.source_tree(*args, &block)
-            task.extend TaskExtension
-            task.package = self
-            task
-        end
-
-        # Calls Rake to define a file task and then extends it with TaskExtension
-        def file(*args, &block)
-            task = super
-            task.extend TaskExtension
-            task.package = self
-            task
-        end
-
-        # Calls Rake to define a plain task and then extends it with TaskExtension
-        def task(*args, &block)
-            task = super
-            task.extend TaskExtension
-            task.package = self
-            task
         end
 
         module TaskExtension

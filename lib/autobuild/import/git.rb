@@ -232,7 +232,7 @@ module Autobuild
         #  :bare or :normal, or nil if path is not a git repository.
         def self.resolve_git_dir(path)
             dir = File.join(path, '.git')
-            if !File.exists?(dir)
+            if !File.exist?(dir)
                 dir = path
             end
 

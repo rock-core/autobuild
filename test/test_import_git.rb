@@ -1,6 +1,4 @@
-require 'minitest/spec'
-require 'minitest/autorun'
-require 'autobuild'
+require 'autobuild/test'
 
 describe Autobuild::Git do
     describe "version_compare" do

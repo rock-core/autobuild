@@ -17,6 +17,8 @@ module Autobuild
             @available = true
             @enabled   = true
             @source_ref_dir = nil
+            @source_dir = nil
+            @target_dir = nil
         end
 
         # Directory in which the utility will generate some files The

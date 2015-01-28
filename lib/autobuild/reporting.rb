@@ -106,7 +106,7 @@ module Autobuild
                     progress(key, *options[:done_message])
                 end
                 progress_done(key, true)
-            rescue Exception => e
+            rescue Exception
                 progress_done(key, false)
                 raise
             end

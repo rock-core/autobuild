@@ -1,5 +1,4 @@
-require 'minitest/spec'
-require 'autobuild'
+require 'autobuild/test'
 require 'fakefs/safe'
 require 'flexmock'
 
@@ -27,9 +26,6 @@ describe Autobuild do
     end
 
     describe "tool_in_path" do
-        include FlexMock::ArgumentTypes
-        include FlexMock::MockContainer
-
         before do
             FakeFS.activate!
             flexmock(Autobuild).should_receive(:tool).with('bla').and_return('a_test_name').by_default

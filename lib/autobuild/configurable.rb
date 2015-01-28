@@ -74,7 +74,7 @@ module Autobuild
         def prepare_for_rebuild
             super
 
-            if File.exists?(builddir) && builddir != srcdir
+            if File.exist?(builddir) && builddir != srcdir
                 FileUtils.rm_rf builddir
             end
         end
@@ -117,7 +117,7 @@ module Autobuild
 
         # Configure the builddir directory before starting make
         def configure
-            if File.exists?(builddir) && !File.directory?(builddir)
+            if File.exist?(builddir) && !File.directory?(builddir)
                 raise ConfigException.new(self, 'configure'), "#{builddir} already exists but is not a directory"
             end
             FileUtils.mkdir_p builddir if !File.directory?(builddir)

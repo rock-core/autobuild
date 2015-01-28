@@ -117,7 +117,7 @@ module Autobuild
 
 	    # Check that the module has been generated with the same flags
 	    genom_mk = "#{srcdir}/autoconf/genom.mk"
-	    if File.exists?(genom_mk)
+	    if File.exist?(genom_mk)
 		contents = File.open(genom_mk).readlines
 		old_file = contents.find { |l| l =~ /^GENFILE/ }.gsub('GENFILE=', '').strip
 		old_flags = Shellwords.shellwords(

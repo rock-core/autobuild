@@ -384,7 +384,7 @@ module Autobuild::Subprocess
             end
             outread.close
 
-            childpid, childstatus = Process.wait2(pid)
+            _, childstatus = Process.wait2(pid)
             childstatus
         end
 

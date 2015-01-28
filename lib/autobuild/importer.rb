@@ -53,8 +53,8 @@ class Importer
         # repository and not in the remote one (would be pushed by an update)
         attr_accessor :local_commits
 
-        def initialize
-            @status = -1
+        def initialize(status = -1)
+            @status = status
             @uncommitted_code = false
             @remote_commits = Array.new
             @local_commits  = Array.new
@@ -250,7 +250,7 @@ class Importer
                 end
             end
 
-        elsif File.exists?(importdir)
+        elsif File.exist?(importdir)
             raise ConfigException.new(package, 'import'), "#{importdir} exists but is not a directory"
         else
             perform_checkout(package)
@@ -309,12 +309,12 @@ class Importer
 
     def currently_applied_patches(package)
         patches_file = patchlist(package)
-        if File.exists?(patches_file)
+        if File.exist?(patches_file)
             return parse_patch_list(package, patches_file)
         end
 
         patches_file = File.join(package.importdir, "patches-autobuild-stamp")
-        if File.exists?(patches_file)
+        if File.exist?(patches_file)
             cur_patches = parse_patch_list(package, patches_file)
             save_patch_state(package, cur_patches)
             FileUtils.rm_f patches_file
@@ -353,9 +353,9 @@ class Importer
                 cur_patches.pop
             end
 
-            patches.to_a.each do |p, level, content|
-                apply(package, p, level)
-                cur_patches << [p, level, content]
+            patches.to_a.each do |new_patch, new_patch_level, content|
+                apply(package, new_patch, new_patch_level)
+                cur_patches << [new_patch, new_patch_level, content]
 	    end
         ensure
             save_patch_state(package, cur_patches)

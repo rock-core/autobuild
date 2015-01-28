@@ -318,7 +318,7 @@ module Autobuild
             #
             # First, check if the command line changed
             needs_regen ||=
-                if File.exists?(genstamp)
+                if File.exist?(genstamp)
                     last_cmdline = File.read(genstamp).split("\n")
                     last_cmdline != cmdline
                 else

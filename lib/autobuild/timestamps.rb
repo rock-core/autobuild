@@ -81,7 +81,7 @@ module Autobuild
     end
             
     def self.get_stamp(stampfile)
-        return Time.at(0) if !File.exists?(stampfile)
+        return Time.at(0) if !File.exist?(stampfile)
         return File.mtime(stampfile)
     end
 
@@ -99,9 +99,9 @@ module Autobuild
     def self.touch_stamp(stampfile)
         Autobuild.message "Touching #{stampfile}" if Autobuild.debug
         dir = File.dirname(stampfile)
-        if File.exists?(dir) && !File.directory?(dir)
+        if File.exist?(dir) && !File.directory?(dir)
             raise "#{dir} exists and is not a directory"
-        elsif !File.exists?(dir)
+        elsif !File.exist?(dir)
             FileUtils.mkdir_p dir
         end
         FileUtils.touch(stampfile)
