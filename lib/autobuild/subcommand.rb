@@ -367,6 +367,8 @@ module Autobuild::Subprocess
                 if line.respond_to?(:force_encoding)
                     line.force_encoding('BINARY')
                 end
+                subcommand_output << line
+
                 if Autobuild.verbose
                     STDOUT.print line
                 end
@@ -378,8 +380,6 @@ module Autobuild::Subprocess
                 if !Autobuild.verbose && block_given?
                     yield(line)
                 end
-
-                subcommand_output << line
             end
             outread.close
 
@@ -405,7 +405,7 @@ module Autobuild::Subprocess
         subcommand_output
 
     rescue Failed => e
-        error = Autobuild::SubcommandFailed.new(target, command.join(" "), logname, e.status)
+        error = Autobuild::SubcommandFailed.new(target, command.join(" "), logname, e.status, subcommand_output)
         error.retry = if e.retry?.nil? then options[:retry]
                       else e.retry?
                       end

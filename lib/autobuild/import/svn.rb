@@ -52,19 +52,13 @@ module Autobuild
         #   working copy
         def svn_info(package)
             old_lang, ENV['LC_ALL'] = ENV['LC_ALL'], 'C'
-            svninfo = []
             begin
-                run_svn package, 'info' do |line|
-                    svninfo << line.chomp
-                end
-            rescue SubcommandFailed
-                if svninfo.find { |l| l =~ /svn upgrade/ }
+                svninfo = run_svn(package, 'info')
+            rescue SubcommandFailed => e
+                if e.output.find { |l| l =~ /svn upgrade/ }
                     # Try svn upgrade and info again
-                    run_svn package, 'upgrade', retry: false
-                    svninfo.clear
-                    run_svn package, 'info' do |line|
-                        svninfo << line.chomp
-                    end
+                    run_svn(package, 'upgrade', retry: false)
+                    svninfo = run_svn(package, 'info')
                 else raise
                 end
             end

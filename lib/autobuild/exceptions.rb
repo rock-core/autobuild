@@ -64,23 +64,24 @@ module Autobuild
     class SubcommandFailed < Exception
         def mail?; true end
         attr_writer :retry
-        attr_reader :command, :logfile, :status
+        attr_reader :command, :logfile, :status, :output
         def initialize(*args)
             if args.size == 1
                 sc = args[0]
-                target, command, logfile, status = 
-                    sc.target, sc.command, sc.logfile, sc.status
+                target, command, logfile, status, output = 
+                    sc.target, sc.command, sc.logfile, sc.status, sc.output
                 @orig_message = sc.exception_message
-            elsif args.size == 4
-                target, command, logfile, status = *args
+            elsif args.size == 4 || args.size == 5
+                target, command, logfile, status, output = *args
             else
-                raise ArgumentError, "wrong number of arguments, should be 1 or 4"
+                raise ArgumentError, "wrong number of arguments, should be 1 or 4..5"
             end
 
             super(target)
             @command = command
             @logfile = logfile
             @status  = status
+            @output = output || Array.new
         end
 
         def to_s
