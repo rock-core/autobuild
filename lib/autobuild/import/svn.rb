@@ -12,19 +12,23 @@ module Autobuild
 	# to 'svn' and can be configured by doing 
 	#   Autobuild.programs['svn'] = 'my_svn_tool'
         def initialize(source, options = {})
-
-            @source = [*source].join("/")
+            source = [*source].join("/")
             svnopts, common = Kernel.filter_options options,
                 :svnup => [], :svnco => [], :revision => nil,
-                :repository_id => "svn:#{@source}"
-            @program    = Autobuild.tool('svn')
-            @options_up = [*svnopts[:svnup]]
-            @options_co = [*svnopts[:svnco]]
-            if rev = svnopts[:revision]
+                :repository_id => "svn:#{source}"
+            common[:repository_id] = svnopts.delete(:repository_id)
+            relocate(source, svnopts)
+            super(common.merge(repository_id: svnopts[:repository_id]))
+        end
+
+        def relocate(root, options = Hash.new)
+            @source = [*root].join("/")
+            @options_up = [*options[:svnup]]
+            @options_co = [*options[:svnco]]
+            if rev = options[:revision]
                 @options_up << "--revision" << rev
                 @options_co << "--revision" << rev
             end
-            super(common.merge(repository_id: svnopts[:repository_id]))
         end
 
         private
