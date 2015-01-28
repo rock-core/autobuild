@@ -98,11 +98,7 @@ module Autobuild
             svninfo = svn_info(package)
             url = svninfo.grep(/^URL: /).first
             if !url
-                if !svninfo.grep(/is not a working copy/).empty?
-                    raise ConfigException.new(package, 'import'), "#{package.importdir} does not appear to be a Subversion working copy"
-                else
-                    raise ConfigException.new(package, 'import'), "cannot get SVN information for #{package.importdir}"
-                end
+                raise ConfigException.new(package, 'import'), "cannot get SVN information for #{package.importdir}"
             end
             url.chomp =~ /URL: (.+)/
             $1
