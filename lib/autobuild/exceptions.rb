@@ -93,7 +93,7 @@ module Autobuild
             # If we do not have a status, it means an error occured in the
             # launching process. More importantly, it means we already have a
             # proper explanation for it. Don't display the logfile at all.
-            if status
+            if status && File.file?(logfile)
                 lines = File.readlines(logfile)
                 logsize = Autobuild.displayed_error_line_count
                 if logsize != Float::INFINITY && lines.size > logsize
