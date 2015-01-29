@@ -46,8 +46,11 @@ module Autobuild
         end
 
         def setup
+            @tempdir = File.join(Dir.tmpdir, "/autobuild-test-#{Process.uid}")
+            FileUtils.mkdir_p(@tempdir, :mode => 0700)
+            Autobuild.logdir = "#{tempdir}/log"
+            FileUtils.mkdir_p Autobuild.logdir
             Autobuild.silent = true
-            @tempdir = nil
             # Setup code for all the tests
         end
 
@@ -69,14 +72,7 @@ module Autobuild
             File.join(File.dirname(__FILE__), '..', '..', 'test', 'data')
         end
 
-
-        def tempdir
-            if !@tempdir
-                @tempdir = File.join(Dir.tmpdir, "/autobuild-test-#{Process.uid}")
-                FileUtils.mkdir_p(@tempdir, :mode => 0700)
-            end
-            @tempdir
-        end
+        attr_reader :tempdir
 
         def build_config(bind, template)
             eval "basedir = '#{self.tempdir}'", bind
