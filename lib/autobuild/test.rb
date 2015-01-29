@@ -13,6 +13,7 @@ if ENV['TEST_ENABLE_COVERAGE'] == '1'
     end
 end
 
+require 'minitest/autorun'
 require 'autobuild'
 require 'tmpdir'
 require 'erb'
