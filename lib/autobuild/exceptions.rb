@@ -84,27 +84,31 @@ module Autobuild
         end
 
         def to_s
-            prefix = super
+            msg = super
             if @orig_message
-                prefix << "\n     #{@orig_message}"
+                msg << "\n     #{@orig_message}"
             end
-            prefix << "\n    see #{logfile} for details"
+            msg << "\n    see #{logfile} for details"
 
             # If we do not have a status, it means an error occured in the
             # launching process. More importantly, it means we already have a
             # proper explanation for it. Don't display the logfile at all.
-            if status && File.file?(logfile)
-                lines = File.readlines(logfile)
-                logsize = Autobuild.displayed_error_line_count
-                if logsize != Float::INFINITY && lines.size > logsize
-                    lines = lines[-logsize, logsize]
-                end
-                prefix << "\n    last #{lines.size} lines are:\n\n"
-                lines.each do |l|
-                    prefix << "    #{l}"
+            if status 
+                if File.file?(logfile)
+                    lines = File.readlines(logfile)
+                    logsize = Autobuild.displayed_error_line_count
+                    if logsize != Float::INFINITY && lines.size > logsize
+                        lines = lines[-logsize, logsize]
+                    end
+                    msg << "\n    last #{lines.size} lines are:\n\n"
+                    lines.each do |l|
+                        msg << "    #{l}"
+                    end
+                else
+                    msg << "\n    the log file does not seem to be present on disk anymore"
                 end
             end
-            prefix
+            msg
         end
     end
 end
