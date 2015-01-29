@@ -127,7 +127,9 @@ module Autobuild
         def updated?; !!@updated end
 
 	def initialize(spec = Hash.new)
-            @srcdir = @importdir = nil
+            @srcdir = @importdir = @logdir = nil
+            @update = nil
+            @failed = nil
 	    @dependencies   = Array.new
 	    @provides       = Array.new
             @parallel_build_level = nil
