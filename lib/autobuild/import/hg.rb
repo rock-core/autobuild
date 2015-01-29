@@ -49,9 +49,9 @@ module Autobuild
             end
         end
 
-        def update(package,only_local=false)
-            if only_local
-                Autobuild.warn "The importer #{self.class} does not support local updates, skipping #{self}"
+        def update(package, options = Hash.new)
+            if options[:only_local]
+                package.warn "%s: the Mercurial importer does not support local updates, skipping"
                 return
             end
             validate_importdir(package)

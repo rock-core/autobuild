@@ -104,27 +104,20 @@ module Autobuild
                 branch: nil,
                 tag: nil,
                 commit: nil,
+                repository_id: nil,
+                source_id: nil,
                 with_submodules: false
             if gitopts[:branch] && branch
                 raise ConfigException, "git branch specified with both the option hash and the explicit parameter"
             end
 
-            sourceopts, common = Kernel.filter_options common,
-                :repository_id, :source_id
-
             super(common)
 
-            @push_to = gitopts[:push_to]
-            @with_submodules = gitopts[:with_submodules]
-            branch = gitopts[:branch] || branch
-            tag    = gitopts[:tag]
-            commit = gitopts[:commit]
-
-            @branch = branch || 'master'
-            @tag    = tag
-            @commit = commit
+            @with_submodules = gitopts.delete(:with_submodules)
             @remote_name = 'autobuild'
-            relocate(repository, sourceopts)
+
+            gitopts[:branch] ||= branch
+            relocate(repository, gitopts)
         end
 
         # The name of the remote that should be set up by the importer
@@ -427,6 +420,16 @@ module Autobuild
             status
         end
 
+        def has_commit?(package, commit_id)
+            run_git_bare(package, 'rev-parse', '-q', '--verify', commit_id)
+            true
+        rescue SubcommandFailed => e
+            if e.status == 1
+                false
+            else raise
+            end
+        end
+
         def has_branch?(package, branch_name)
             run_git_bare(package, 'show-ref', '-q', '--verify', "refs/heads/#{branch_name}")
             true
@@ -517,6 +520,22 @@ module Autobuild
             raise PackageException.new(package, 'import'), "failed to either resolve commit #{commit} or file #{path}"
         end
 
+        # Tests whether a commit is already present in a given history
+        #
+        # @param [Package] the package we are working on
+        # @param [String] commit the commit ID we want to verify the presence of
+        # @param [String] reference the reference commit. The method tests that
+        #   'commit' is present in the history of 'reference'
+        #
+        # @return [Boolean]
+        def commit_present_in?(package, commit, reference)
+            merge_base = run_git_bare(package, 'merge-base', commit, reference).first
+            merge_base == commit
+            
+        rescue Exception
+            raise PackageException.new(package, 'import'), "failed to find the merge-base between #{commit} and #{reference}. Are you sure these commits exist ?"
+        end
+
         # Computes the update status to update a branch whose tip is at
         # reference_commit (which can be a symbolic reference) using the
         # fetch_commit commit
@@ -604,7 +623,7 @@ module Autobuild
             head_to_remote = merge_status(package, fetch_commit, current_head)
             status_to_remote = head_to_remote.status
             if status_to_remote == Status::ADVANCED || status_to_remote == Status::NEEDS_MERGE
-                raise PackageException.new(package, 'import'), "branch #{local_branch} of #{package.name} contains commits that do not seem to be present on the remote repository. I can't go on as it would mean losing some stuff. Push your changes or reset to the remote commit manually before trying again"
+                raise ImporterCannotReset.new(package, 'import'), "branch #{local_branch} of #{package.name} contains commits that do not seem to be present on the remote repository. I can't go on as it would mean losing some stuff. Push your changes or reset to the remote commit manually before trying again"
             end
 
             head_to_target = merge_status(package, target_commit, current_head)
@@ -633,37 +652,53 @@ module Autobuild
             end
         end
 
-        def update(package,only_local = false)
+        # @option (see Package#update)
+        def update(package, options = Hash.new)
             validate_importdir(package)
+            
             # This is really really a hack to workaround how broken the
             # importdir thing is
             if package.importdir == package.srcdir
                 update_alternates(package)
             end
 
-            fetch_commit = current_remote_commit(package, only_local)
+            # Check whether we are already at the requested state
+            pinned_state = (commit || tag)
+            if pinned_state && has_commit?(package, pinned_state)
+                current_head = rev_parse(package, 'HEAD')
+                if options[:reset]
+                    if current_head == pinned_state
+                        return
+                    end
+                elsif commit_present_in?(package, pinned_state, current_head)
+                    return
+                end
+            end
+            fetch_commit = current_remote_commit(package, options[:only_local])
+
+            target_commit =
+                if commit then commit
+                elsif tag then "refs/tags/#{tag}"
+                else fetch_commit
+                end
 
             # If we are tracking a commit/tag, just check it out and return
-            if commit || tag
-                target_commit =
-                    if commit then commit
-                    else "refs/tags/#{tag}"
-                    end
+            if options[:reset]
                 commit_pinning(package, target_commit, fetch_commit)
             elsif !has_local_branch?(package)
                 package.message "%%s: checking out branch %s" % [local_branch]
-                run_git(package, 'checkout', '-b', local_branch, fetch_commit)
+                run_git(package, 'checkout', '-b', local_branch, target_commit)
             else
                 if !on_target_branch?(package)
                     package.message "%%s: switching to branch %s" % [local_branch]
                     run_git(package, 'checkout', local_branch)
                 end
-                status = merge_status(package, fetch_commit)
+                status = merge_status(package, target_commit)
                 if status.needs_update?
                     if !merge? && status.status == Status::NEEDS_MERGE
                         raise PackageException.new(package, 'import'), "the local branch '#{local_branch}' and the remote branch #{branch} of #{package.name} have diverged, and I therefore refuse to update automatically. Go into #{package.importdir} and either reset the local branch or merge the remote changes"
                     end
-                    run_git(package, 'merge', fetch_commit)
+                    run_git(package, 'merge', target_commit)
                 end
             end
         end
@@ -697,11 +732,16 @@ module Autobuild
                 Autobuild.tool('git'), 'clone', '-o', remote_name, *clone_options, repository, package.importdir, retry: true)
 
             update_remotes_configuration(package)
-            update(package, true)
+            update(package, only_local: true)
         end
 
         # Changes the repository this importer is pointing to
         def relocate(repository, options = Hash.new)
+            @push_to = options[:push_to] || @push_to
+            @branch = options[:branch] || @branch || 'master'
+            @tag    = options[:tag] || @tag
+            @commit = options[:commit] || @commit
+
             @repository = repository.to_str
             @repository_id = options[:repository_id] ||
                 "git:#{@repository}"

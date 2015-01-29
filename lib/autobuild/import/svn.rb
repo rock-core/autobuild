@@ -1,5 +1,6 @@
 require 'autobuild/subcommand'
 require 'autobuild/importer'
+require 'rexml/document'
 
 module Autobuild
     class SVN < Importer
@@ -11,69 +12,39 @@ module Autobuild
 	# This importer uses the 'svn' tool to perform the import. It defaults
 	# to 'svn' and can be configured by doing 
 	#   Autobuild.programs['svn'] = 'my_svn_tool'
-        def initialize(source, options = {})
-            source = [*source].join("/")
+        def initialize(svnroot, options = {})
+            svnroot = [*svnroot].join("/")
             svnopts, common = Kernel.filter_options options,
                 :svnup => [], :svnco => [], :revision => nil,
-                :repository_id => "svn:#{source}"
+                :repository_id => "svn:#{svnroot}"
             common[:repository_id] = svnopts.delete(:repository_id)
-            relocate(source, svnopts)
+            relocate(svnroot, svnopts)
             super(common.merge(repository_id: svnopts[:repository_id]))
         end
 
+        # @deprecated use {svnroot} instead
+        #
+        # @return [String]
+        def source; svnroot end
+
+        # Returns the SVN root
+        #
+        # @return [String]
+        attr_reader :svnroot
+
+        attr_reader :revision
+
         def relocate(root, options = Hash.new)
-            @source = [*root].join("/")
+            @svnroot = [*root].join("/")
             @options_up = [*options[:svnup]]
             @options_co = [*options[:svnco]]
-            if rev = options[:revision]
-                @options_up << "--revision" << rev
-                @options_co << "--revision" << rev
+            @revision = options[:revision]
+            if revision
+                @options_co << '--revision' << revision
+                # We do not add it to @options_up as the behaviour depends on
+                # the parameters given to {update} and to the state of the
+                # working copy
             end
-        end
-
-        private
-
-        def run_svn(package, *args, &block)
-            options = Hash.new
-            if args.last.kind_of?(Hash)
-                options = args.pop
-            end
-            options, other_options = Kernel.filter_options options,
-                working_directory: package.importdir, retry: true
-            options = options.merge(other_options)
-            package.run(:import, Autobuild.tool(:svn), *args, options, &block)
-        end
-
-        # Returns the result of the 'svn info' command
-        #
-        # It automatically runs svn upgrade if needed
-        #
-        # @param [Package] package
-        # @return [Array<String>] the lines returned by svn info, with the
-        #   trailing newline removed
-        # @raises [SubcommandFailed] if svn info failed
-        # @raises [ConfigException] if the working copy is not a subversion
-        #   working copy
-        def svn_info(package)
-            old_lang, ENV['LC_ALL'] = ENV['LC_ALL'], 'C'
-            begin
-                svninfo = run_svn(package, 'info')
-            rescue SubcommandFailed => e
-                if e.output.find { |l| l =~ /svn upgrade/ }
-                    # Try svn upgrade and info again
-                    run_svn(package, 'upgrade', retry: false)
-                    svninfo = run_svn(package, 'info')
-                else raise
-                end
-            end
-
-            if !svninfo.grep(/is not a working copy/).empty?
-                raise ConfigException.new(package, 'import'),
-                    "#{package.importdir} does not appear to be a Subversion working copy"
-            end
-            svninfo
-        ensure
-            ENV['LC_ALL'] = old_lang
         end
 
         # Returns the SVN revision of the package
@@ -108,21 +79,129 @@ module Autobuild
             $1
         end
 
-        def update(package,only_local=false) # :nodoc:
-            if only_local
+        # Returns true if the SVN working copy at package.importdir has local
+        # modifications
+        #
+        # @param [Package] package the package we want to test against
+        # @param [Boolean] with_untracked_files if true, the presence of files
+        #   neither ignored nor under version control will count has local
+        #   modification.
+        # @return [Boolean]
+        def has_local_modifications?(package, with_untracked_files = false)
+            status = run_svn(package, 'status', '--xml')
+
+            not_modified = %w{external ignored none normal}
+            if !with_untracked_files
+                not_modified << "unversioned"
+            end
+
+            REXML::Document.new(status.join("")).
+                elements.enum_for(:each, '//wc-status').
+                any? do |status_item|
+                    !not_modified.include?(status_item.attributes['item'].to_s)
+                end
+        end
+
+        # Returns status information for package
+        #
+        # Given that subversion is not a distributed VCS, the only status
+        # returned is {Status::SIMPLE_UPDATE}. Moreover, if the status is
+        # local-only, {Package::Status#remote_commits} will not be filled
+        # (querying the log requires accessing the SVN server)
+        #
+        # @return [Package::Status]
+        def status(package, only_local = false)
+            status = Status.new(Status::SIMPLE_UPDATE)
+            status.uncommitted_code = has_local_modifications?(package)
+            if !only_local
+                log = run_svn(package, 'log', '-r', 'BASE:HEAD', '--xml', '.')
+                log = REXML::Document.new(log.join("\n"))
+                status.remote_commits = log.elements.enum_for(:each, 'log/logentry').map do |l|
+                    rev = l.attributes['revision']
+                    date = l.elements['date'].first.to_s
+                    author = l.elements['author'].first.to_s
+                    msg = l.elements['msg'].first.to_s.split("\n").first
+                    "#{rev} #{DateTime.parse(date)} #{author} #{msg}"
+                end
+                status.remote_commits.shift
+            end
+            status
+        end
+
+        # Helper method to run a SVN command on a package's working copy
+        def run_svn(package, *args, &block)
+            options = Hash.new
+            if args.last.kind_of?(Hash)
+                options = args.pop
+            end
+            options, other_options = Kernel.filter_options options,
+                working_directory: package.importdir, retry: true
+            options = options.merge(other_options)
+            package.run(:import, Autobuild.tool(:svn), *args, options, &block)
+        end
+
+        def validate_importdir(package)
+            # This upgrades the local SVN filesystem if needed and checks that
+            # it actually is a SVN repository in the first place
+            svn_info(package)
+        end
+
+        # Returns the result of the 'svn info' command
+        #
+        # It automatically runs svn upgrade if needed
+        #
+        # @param [Package] package
+        # @return [Array<String>] the lines returned by svn info, with the
+        #   trailing newline removed
+        # @raises [SubcommandFailed] if svn info failed
+        # @raises [ConfigException] if the working copy is not a subversion
+        #   working copy
+        def svn_info(package)
+            old_lang, ENV['LC_ALL'] = ENV['LC_ALL'], 'C'
+            begin
+                svninfo = run_svn(package, 'info')
+            rescue SubcommandFailed => e
+                if e.output.find { |l| l =~ /svn upgrade/ }
+                    # Try svn upgrade and info again
+                    run_svn(package, 'upgrade', retry: false)
+                    svninfo = run_svn(package, 'info')
+                else raise
+                end
+            end
+
+            if !svninfo.grep(/is not a working copy/).empty?
+                raise ConfigException.new(package, 'import'),
+                    "#{package.importdir} does not appear to be a Subversion working copy"
+            end
+            svninfo
+        ensure
+            ENV['LC_ALL'] = old_lang
+        end
+
+        def update(package, options = Hash.new) # :nodoc:
+            if options[:only_local]
                 package.warn "%s: the svn importer does not support local updates, skipping"
                 return
             end
 
             url = svn_url(package)
-            if url != @source
-                raise ConfigException.new(package, 'import'), "current checkout found at #{package.importdir} is from #{url}, was expecting #{@source}"
+            if url != svnroot
+                raise ConfigException.new(package, 'import'), "current checkout found at #{package.importdir} is from #{url}, was expecting #{svnroot}"
             end
-            run_svn(package, 'up', "--non-interactive", *@options_up)
+
+            options_up = @options_up.dup
+            if revision
+                if options[:reset] || svn_revision(package) < revision
+                    options_up << '--revision' << revision
+                end
+            end
+
+            run_svn(package, 'up', "--non-interactive", *options_up)
         end
 
         def checkout(package) # :nodoc:
-            run_svn(package, 'co', "--non-interactive", *@options_co, @source, package.importdir, working_directory: nil)
+            run_svn(package, 'co', "--non-interactive", *@options_co, svnroot, package.importdir,
+                    working_directory: nil)
         end
     end
 

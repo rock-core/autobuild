@@ -310,9 +310,9 @@ module Autobuild
             end
         end
 
-        def update(package,only_local = false) # :nodoc:
-            if only_local
-                Autobuild.warn "The importer #{self.class} does not support local updates, skipping #{self}"
+        def update(package, options = Hash.new) # :nodoc:
+            if options[:only_local]
+                package.warn "%s: the archive importer does not support local updates, skipping"
                 return
             end
             needs_update = update_cache(package)

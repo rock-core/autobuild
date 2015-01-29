@@ -33,8 +33,8 @@ module Autobuild
 
         private
 
-        def update(package,only_local=false) # :nodoc:
-            if only_local
+        def update(package, options = Hash.new) # :nodoc:
+            if options[:only_local]
                 package.warn "%s: the CVS importer does not support local updates, skipping"
                 return
             end

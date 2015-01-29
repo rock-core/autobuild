@@ -58,6 +58,11 @@ module Autobuild
         end
     end
 
+    # Exception thrown by importers when calling update with the reset flag but
+    # some conditiions make the reset impossible
+    class ImporterCannotReset < PackageException
+    end
+
     ## The subcommand is not found
     class CommandNotFound  < Exception; end
     ## An error occured while running a subcommand
