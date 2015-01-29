@@ -87,8 +87,7 @@ module Autobuild
             @git_dir_cache = Array.new
 
             if branch.respond_to?(:to_hash)
-                options = branch.to_hash
-                branch = nil
+                branch, options = nil, branch.to_hash
             end
 
             if branch
@@ -110,13 +109,12 @@ module Autobuild
             if gitopts[:branch] && branch
                 raise ConfigException, "git branch specified with both the option hash and the explicit parameter"
             end
+            gitopts[:branch] ||= branch
 
             super(common)
 
             @with_submodules = gitopts.delete(:with_submodules)
             @remote_name = 'autobuild'
-
-            gitopts[:branch] ||= branch
             relocate(repository, gitopts)
         end
 
@@ -256,6 +254,21 @@ module Autobuild
             dir
         end
 
+        # Validates the return value of {resolve_git_dir}
+        #
+        # @param [Package] package the package we are working on
+        # @param [Boolean] require_working_copy if false, a bare repository will
+        #   be considered as valid, otherwise not
+        # @param [String,nil] dir the path to the repository's git directory, or nil
+        #   if the target is not a valid repository (see the documentation of
+        #   {resolve_git_dir}
+        # @param [Symbol,nil] style either :normal for a git checkout with
+        #   working copy, :bare for a bare repository or nil if {resolve_git_dir}
+        #   did not detect a git repository
+        #
+        # @return [void]
+        # @raise ConfigException if dir/style are nil, or if
+        #   require_working_copy is true and style is :bare
         def self.validate_git_dir(package, require_working_copy, dir, style)
             if !style
                 raise ConfigException.new(package, 'import', retry: false),
@@ -445,15 +458,14 @@ module Autobuild
         end
 
         def detached_head?(package)
-            run_git_bare(package, 'symbolic-ref', 'HEAD', '-q')
-            true
-        rescue SubcommandFailed => e
-            if e.status == 1
-                false
-            else raise
-            end
+            current_branch(package).nil?
         end
 
+        # Returns the branch HEAD is pointing to
+        #
+        # @return [String,nil] the full ref HEAD is pointing to (i.e.
+        #   refs/heads/master), or nil if HEAD is detached
+        # @raises SubcommandFailed if git failed
         def current_branch(package)
             run_git_bare(package, 'symbolic-ref', 'HEAD', '-q').first.strip
         rescue SubcommandFailed => e
@@ -606,15 +618,6 @@ module Autobuild
         end
 
         def commit_pinning(package, target_commit, fetch_commit)
-            # Make sure we are on the requested branch
-            if !has_local_branch?(package)
-                run_git(package, 'checkout', '-b', local_branch, target_commit)
-                return
-            elsif !on_local_branch?(package)
-                package.message "%%s: switching to branch %s" % [local_branch]
-                run_git(package, 'checkout', local_branch)
-            end
-
             current_head = rev_parse(package, 'HEAD')
 
             # Check whether the current HEAD is present on the remote
@@ -683,16 +686,20 @@ module Autobuild
                 end
 
             # If we are tracking a commit/tag, just check it out and return
-            if options[:reset]
-                commit_pinning(package, target_commit, fetch_commit)
-            elsif !has_local_branch?(package)
+            if !has_local_branch?(package)
                 package.message "%%s: checking out branch %s" % [local_branch]
                 run_git(package, 'checkout', '-b', local_branch, target_commit)
+                return
+            end
+
+            if !on_target_branch?(package)
+                package.message "%%s: switching to branch %s" % [local_branch]
+                run_git(package, 'checkout', local_branch)
+            end
+
+            if options[:reset]
+                commit_pinning(package, target_commit, fetch_commit)
             else
-                if !on_target_branch?(package)
-                    package.message "%%s: switching to branch %s" % [local_branch]
-                    run_git(package, 'checkout', local_branch)
-                end
                 status = merge_status(package, target_commit)
                 if status.needs_update?
                     if !merge? && status.status == Status::NEEDS_MERGE
