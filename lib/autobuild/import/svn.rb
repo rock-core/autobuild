@@ -105,25 +105,34 @@ module Autobuild
         # Returns status information for package
         #
         # Given that subversion is not a distributed VCS, the only status
-        # returned is {Status::SIMPLE_UPDATE}. Moreover, if the status is
-        # local-only, {Package::Status#remote_commits} will not be filled
-        # (querying the log requires accessing the SVN server)
+        # returned are either {Status::UP_TO_DATE} or {Status::SIMPLE_UPDATE}.
+        # Moreover, if the status is local-only,
+        # {Package::Status#remote_commits} will not be filled (querying the log
+        # requires accessing the SVN server)
         #
         # @return [Package::Status]
         def status(package, only_local = false)
-            status = Status.new(Status::SIMPLE_UPDATE)
+            status = Status.new
             status.uncommitted_code = has_local_modifications?(package)
-            if !only_local
+            if only_local
+                status.status = Status::UP_TO_DATE
+            else
                 log = run_svn(package, 'log', '-r', 'BASE:HEAD', '--xml', '.')
                 log = REXML::Document.new(log.join("\n"))
-                status.remote_commits = log.elements.enum_for(:each, 'log/logentry').map do |l|
+                missing_revisions = log.elements.enum_for(:each, 'log/logentry').map do |l|
                     rev = l.attributes['revision']
                     date = l.elements['date'].first.to_s
                     author = l.elements['author'].first.to_s
                     msg = l.elements['msg'].first.to_s.split("\n").first
                     "#{rev} #{DateTime.parse(date)} #{author} #{msg}"
                 end
-                status.remote_commits.shift
+                status_remote_commits = missing_revisions[1..-1]
+                status.status =
+                    if missing_revisions.empty?
+                        Status::UP_TO_DATE
+                    else
+                        Status::SIMPLE_UPDATE
+                    end
             end
             status
         end
