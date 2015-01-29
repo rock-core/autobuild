@@ -310,6 +310,30 @@ describe Autobuild::Git do
             common_commit_and_tag_behaviour
         end
         describe "with a specific tag given" do
+            attr_reader :commits
+
+            before do
+                importer = Autobuild.git(gitrepo)
+                pkg = Autobuild::Package.new 'commits'
+                pkg.srcdir = gitrepo
+                pkg.importer = importer
+                importer.run_git_bare(pkg, 'tag', "tag0", "HEAD")
+                importer.run_git_bare(pkg, 'tag', "tag1", "HEAD~1")
+                @commits = [
+                    importer.rev_parse(pkg, 'HEAD'),
+                    importer.rev_parse(pkg, 'HEAD~1')]
+            end
+
+            def assert_on_commit(id)
+                assert_equal commits[id], importer.rev_parse(pkg, 'HEAD')
+            end
+
+            def pin_importer(id, options = Hash.new)
+                importer.relocate(importer.repository, options.merge(tag: "tag#{id}"))
+            end
+
+            common_commit_and_tag_behaviour
         end
     end
 end
+

@@ -668,6 +668,7 @@ module Autobuild
             # Check whether we are already at the requested state
             pinned_state = (commit || tag)
             if pinned_state && has_commit?(package, pinned_state)
+                pinned_state = rev_parse(package, pinned_state)
                 current_head = rev_parse(package, 'HEAD')
                 if options[:reset]
                     if current_head == pinned_state
