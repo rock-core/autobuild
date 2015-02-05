@@ -264,12 +264,13 @@ class Importer
 
         options = Kernel.validate_options options,
             only_local: false,
-            reset: false
+            reset: false,
+            checkout_only: false
 
         importdir = package.importdir
         if File.directory?(importdir)
             package.isolate_errors(false) do
-                if package.update?
+                if !options[:checkout_only] && package.update?
                     perform_update(package, options)
                 else
                     if Autobuild.verbose
