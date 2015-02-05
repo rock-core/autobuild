@@ -261,12 +261,17 @@ module Autobuild
         end
 
         # Call the importer if there is one. Autodetection of "provides" should
-        # be done there as well. See the documentation of Autobuild::Package for
-        # more information.
-	def import(only_local=false)
+        # be done there as well.
+        #
+        # (see Importer#import)
+	def import(options = Hash.new)
+            if !options.respond_to?(:to_hash)
+                options = Hash[only_local: options]
+            end
+
             if @importer
-                @importer.import(self,only_local)
-            elsif Autobuild.do_update
+                @importer.import(self, options)
+            elsif update?
                 message "%s: no importer defined, doing nothing"
             end
 
