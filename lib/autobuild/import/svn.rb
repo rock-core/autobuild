@@ -126,7 +126,7 @@ module Autobuild
                     msg = l.elements['msg'].first.to_s.split("\n").first
                     "#{rev} #{DateTime.parse(date)} #{author} #{msg}"
                 end
-                status_remote_commits = missing_revisions[1..-1]
+                status.remote_commits = missing_revisions[1..-1]
                 status.status =
                     if missing_revisions.empty?
                         Status::UP_TO_DATE

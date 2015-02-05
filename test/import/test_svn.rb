@@ -49,7 +49,7 @@ describe Autobuild::SVN do
             importer.import(pkg_svn)
             importer.relocate(importer.svnroot, revision: nil)
             importer.import(pkg_svn)
-            assert_equal 2, importer.svn_revision(pkg_svn)
+            assert_equal 3, importer.svn_revision(pkg_svn)
         end
 
         it "updates if the target revision is not present even if reset is false" do
@@ -60,7 +60,7 @@ describe Autobuild::SVN do
             assert_equal 2, importer.svn_revision(pkg_svn)
         end
 
-        it "does nothing if the target revision is present and reset if false" do
+        it "does nothing if the target revision is present and reset is false" do
             importer = Autobuild.svn(svnroot, revision: 2)
             importer.import(pkg_svn)
             importer.relocate(importer.svnroot, revision: 1)
@@ -87,7 +87,7 @@ describe Autobuild::SVN do
 
     describe "svn_revision" do
         it "returns the current checkout revision" do
-            importer = Autobuild.svn(svnroot)
+            importer = Autobuild.svn(svnroot, revision: 2)
             importer.import(pkg_svn)
             assert_equal 2, importer.svn_revision(pkg_svn)
         end
@@ -99,7 +99,7 @@ describe Autobuild::SVN do
             importer.import(pkg_svn)
             importer.relocate(importer.svnroot, revision: nil)
             status = importer.status(pkg_svn)
-            assert_equal 1, status.remote_commits.size
+            assert_equal 2, status.remote_commits.size
             assert(/second revision/ === status.remote_commits[0], status.remote_commits[0])
         end
 
