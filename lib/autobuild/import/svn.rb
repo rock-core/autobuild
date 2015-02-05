@@ -202,6 +202,10 @@ module Autobuild
             if revision
                 if options[:reset] || svn_revision(package) < revision
                     options_up << '--revision' << revision
+                elsif revision
+                    # Don't update if the current revision is greater-or-equal
+                    # than the target revision
+                    return
                 end
             end
 
