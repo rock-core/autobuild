@@ -451,15 +451,25 @@ module Autobuild
             end
         end
 
-        if !includes || includes.include?('LD_LIBRARY_PATH')
+        if macos?
+          if !includes || includes.include?('DYLD_LIBRARY_PATH')
+            ld_library_search = ['lib', 'lib/ARCH', 'libARCHSIZE']
+            each_env_search_path(newprefix, ld_library_search) do |path|
+                if !Dir.glob(File.join(path, "lib*.dylib")).empty?
+                    env_add_path('DYLD_LIBRARY_PATH', path)
+                end
+            end
+          end
+        else
+          if !includes || includes.include?('LD_LIBRARY_PATH')
             ld_library_search = ['lib', 'lib/ARCH', 'libARCHSIZE']
             each_env_search_path(newprefix, ld_library_search) do |path|
                 if !Dir.glob(File.join(path, "lib*.so")).empty?
                     env_add_path('LD_LIBRARY_PATH', path)
                 end
             end
+          end
         end
-
         # Validate the new rubylib path
         if !includes || includes.include?('RUBYLIB')
             new_rubylib = "#{newprefix}/lib"
