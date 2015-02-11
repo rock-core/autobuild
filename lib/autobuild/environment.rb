@@ -278,9 +278,8 @@ module Autobuild
     end
 
     def self.env_push_path(name, *values)
-        if current = environment[name]
+        if current = environment.delete(name)
             current = current.dup
-            env_clear(name)
             env_add_path(name, *values)
             env_add_path(name, *current)
         else
