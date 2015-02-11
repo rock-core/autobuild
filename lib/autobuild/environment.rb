@@ -105,7 +105,7 @@ module Autobuild
 
     # Set a new environment variable
     def self.env_set(name, *values)
-        env_reset(name)
+        environment.delete(name)
         env_add(name, *values)
     end
 
@@ -152,10 +152,26 @@ module Autobuild
     #
     # @see env_inherit? env_inherit=
     def self.env_inherit(*names)
-        @env_inherited_variables |= names
-        names.each do |env_name|
-            env_init_from_env(env_name)
+        flag =
+            if !names.last.respond_to?(:to_str)
+                names.pop
+            else true
+            end
+        
+        if flag
+            @env_inherited_variables |= names
+            names.each do |env_name|
+                env_init_from_env(env_name)
+            end
+        else
+            names.each do |n|
+                if @env_inherited_variables.include?(n)
+                    @env_inherited_variables.delete(n)
+                    env_init_from_env(n)
+                end
+            end
         end
+
         @env_inherit
     end
 
