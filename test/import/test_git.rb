@@ -62,11 +62,17 @@ describe Autobuild::Git do
             importer.import(pkg)
         end
 
-        it "returns true if the specified commit is present locally" do
+        it "returns true if the specified name resolves to a commit" do
             assert importer.has_commit?(pkg, importer.rev_parse(pkg, 'HEAD'))
         end
-        it "returns false if the specified commit is not present locally" do
+        it "returns true if the specified commit is present locally" do
+            assert importer.has_commit?(pkg, importer.rev_parse(pkg, '8b09cb0febae222b31e2ee55f839c1e00dc7edc4'))
+        end
+        it "returns false if the specified name does not resolve to an object" do
             assert !importer.has_commit?(pkg, 'blabla')
+        end
+        it "returns false if the specified commit is not present locally" do
+            assert !importer.has_commit?(pkg, '1ddb20665622279700770be09f9a291b37c9b631')
         end
         it "raises for any other error" do
             flexmock(Autobuild::Subprocess).should_receive(:run).

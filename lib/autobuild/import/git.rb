@@ -434,7 +434,7 @@ module Autobuild
         end
 
         def has_commit?(package, commit_id)
-            run_git_bare(package, 'rev-parse', '-q', '--verify', commit_id)
+            run_git_bare(package, 'rev-parse', '-q', '--verify', "#{commit_id}^{commit}")
             true
         rescue SubcommandFailed => e
             if e.status == 1
