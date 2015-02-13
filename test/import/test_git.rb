@@ -313,6 +313,15 @@ describe Autobuild::Git do
                 importer.relocate(importer.repository, options.merge(commit: commits[id]))
             end
 
+            it "fetches from the remote repository if the commit is not present locally" do
+                untar('gitrepo-with-extra-commit-and-tag.tar')
+                importer.import(pkg)
+                extra_repo = File.join(tempdir, 'gitrepo-with-extra-commit-and-tag.git')
+                importer.relocate(extra_repo, commit: '1ddb20665622279700770be09f9a291b37c9b631')
+                importer.import(pkg, reset: false)
+                assert_equal  '1ddb20665622279700770be09f9a291b37c9b631', importer.rev_parse(pkg, 'HEAD')
+            end
+
             common_commit_and_tag_behaviour
         end
         describe "with a specific tag given" do
@@ -336,6 +345,16 @@ describe Autobuild::Git do
 
             def pin_importer(id, options = Hash.new)
                 importer.relocate(importer.repository, options.merge(tag: "tag#{id}"))
+            end
+
+            it "fetches from the remote repository if the commit is not present locally" do
+                untar('gitrepo-with-extra-commit-and-tag.tar')
+                importer.import(pkg)
+                extra_repo = File.join(tempdir, 'gitrepo-with-extra-commit-and-tag.git')
+                importer.relocate(extra_repo, tag: 'third_commit')
+                importer.import(pkg, reset: false)
+                tag_id = importer.rev_parse(pkg, 'third_commit')
+                assert_equal tag_id, importer.rev_parse(pkg, 'HEAD')
             end
 
             common_commit_and_tag_behaviour
