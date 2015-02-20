@@ -362,13 +362,13 @@ module Autobuild
 
         # Do the build in builddir
         def build
+            current_message = String.new
             in_dir(builddir) do
                 progress_start "building %s" do
                     if always_reconfigure || !File.file?('Makefile')
                         Subprocess.run(self, 'build', Autobuild.tool(:cmake), '.')
                     end
 
-                    current_message = String.new
                     warning_count = 0
                     Autobuild.make_subcommand(self, 'build') do |line|
                         needs_display = false
@@ -379,7 +379,7 @@ module Autobuild
                                 warning_count += 1
                             end
                             if show_make_messages?
-                                current_message += line
+                                current_message += line + "\n"
                                 needs_display = true
                             end
                         end
@@ -401,6 +401,11 @@ module Autobuild
                 end
             end
             Autobuild.touch_stamp(buildstamp)
+        rescue ::Exception
+            current_message.split("\n").each do |l|
+                message "%s: #{l}", :magenta
+            end
+            raise
         end
 
         # Install the result in prefix
