@@ -626,7 +626,7 @@ module Autobuild
             head_to_remote = merge_status(package, fetch_commit, current_head)
             status_to_remote = head_to_remote.status
             if status_to_remote == Status::ADVANCED || status_to_remote == Status::NEEDS_MERGE
-                raise ImporterCannotReset.new(package, 'import'), "branch #{local_branch} of #{package.name} contains commits that do not seem to be present on the remote repository. I can't go on as it would mean losing some stuff. Push your changes or reset to the remote commit manually before trying again"
+                raise ImporterCannotReset.new(package, 'import'), "branch #{local_branch} of #{package.name} contains commits that do not seem to be present on the branch #{remote_branch} of the remote repository. I can't go on as it could make you loose some stuff. Update the remote branch in your overrides, push your changes or reset to the remote commit manually before trying again"
             end
 
             head_to_target = merge_status(package, target_commit, current_head)
