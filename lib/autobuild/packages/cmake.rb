@@ -266,13 +266,13 @@ module Autobuild
             # but no Makefile.
             #
             # Delete the CMakeCache to force reconfiguration
-            if !File.exists?( File.join(builddir, 'Makefile') )
+            if !File.exist?( File.join(builddir, 'Makefile') )
                 FileUtils.rm_f cmake_cache
             end
 
             doc_utility.source_ref_dir = builddir
 
-            if File.exists?(cmake_cache)
+            if File.exist?(cmake_cache)
                 all_defines = defines.dup
                 all_defines['CMAKE_INSTALL_PREFIX'] = prefix
                 all_defines['CMAKE_MODULE_PATH'] = "#{CMake.module_path.join(";")}"

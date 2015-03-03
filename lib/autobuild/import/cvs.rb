@@ -33,13 +33,13 @@ module Autobuild
 
         private
 
-        def update(package,only_local=false) # :nodoc:
-            if only_local
+        def update(package, options = Hash.new) # :nodoc:
+            if options[:only_local]
                 package.warn "%s: the CVS importer does not support local updates, skipping"
                 return
             end
 
-            if !File.exists?("#{package.srcdir}/CVS/Root")
+            if !File.exist?("#{package.srcdir}/CVS/Root")
                 raise ConfigException.new(package, 'import'), "#{package.srcdir} is not a CVS working copy"
             end
 
@@ -73,12 +73,12 @@ module Autobuild
 
     # Returns the CVS importer which will get the +name+ module in repository
     # +repo+. The allowed values in +options+ are described in CVSImporter.new.    
-    def self.cvs(module_name, options = {}, backward_compatibility = nil)
+    def self.cvs(root, options = {}, backward_compatibility = nil)
         if backward_compatibility
             backward_compatibility[:module] = options
-            CVSImporter.new(module_name, backward_compatibility)
+            CVSImporter.new(root, backward_compatibility)
         else
-            CVSImporter.new(module_name, options)
+            CVSImporter.new(root, options)
         end
     end
 end

@@ -201,9 +201,13 @@ module Autobuild::Subprocess
         if command.last.kind_of?(Hash)
             options = command.pop
             options = Kernel.validate_options options,
-                input: nil, working_directory: nil, retry: false
+                input: nil, working_directory: nil, retry: false,
+                input_streams: []
             if options[:input]
-                input_streams = [options[:input]]
+                input_streams << File.open(options[:input])
+            end
+            if options[:input_streams]
+                input_streams += options[:input_streams]
             end
         end
 
@@ -331,10 +335,8 @@ module Autobuild::Subprocess
             if !input_streams.empty?
                 pread.close
                 begin
-                    input_streams.each do |infile|
-                        File.open(infile) do |instream|
-                            instream.each_line { |line| pwrite.write(line) }
-                        end
+                    input_streams.each do |instream|
+                        instream.each_line { |line| pwrite.write(line) }
                     end
                 rescue Errno::ENOENT => e
                     raise Failed.new(nil, false),
@@ -364,13 +366,12 @@ module Autobuild::Subprocess
             # line-by-line.
             outwrite.close
             outread.each_line do |line|
-                if line.respond_to?(:force_encoding)
-                    line.force_encoding('BINARY')
-                end
+                line.force_encoding('BINARY')
+                line = line.chomp
                 subcommand_output << line
 
                 if Autobuild.verbose
-                    STDOUT.print line
+                    STDOUT.puts line
                 end
                 logfile.puts line
                 # Do not yield the line if Autobuild.verbose is true, as it
@@ -383,7 +384,7 @@ module Autobuild::Subprocess
             end
             outread.close
 
-            childpid, childstatus = Process.wait2(pid)
+            _, childstatus = Process.wait2(pid)
             childstatus
         end
 

@@ -35,6 +35,46 @@ module Autobuild
             end
         end
 
+        # Returns the git version as a string
+        #
+        # @return [String]
+        def self.version
+            version = Subprocess.run('git', 'setup', Autobuild.tool(:git), '--version').first
+            if version =~ /^git version (\d[\d\.]+)/
+                $1.split(".").map { |i| Integer(i) }
+            else
+                raise ArgumentError, "cannot parse git version string #{version}, was expecting something looking like 'git version 2.1.0'"
+            end
+        end
+
+        # Helper method to compare two (partial) versions represented as array
+        # of integers
+        #
+        # @return [Integer] -1 if actual is greater than required, 
+        #   0 if equal, and 1 if actual is smaller than required
+        def self.compare_versions(actual, required)
+            if actual.size > required.size
+                return -compare_versions(required, actual)
+            end
+
+            actual += [0] * (required.size - actual.size)
+            actual.zip(required).each do |v_act, v_req|
+                if v_act > v_req then return -1
+                elsif v_act < v_req then return 1
+                end
+            end
+            0
+        end
+
+        # Tests the git version
+        #
+        # @param [Array<Integer>] version the git version as an array of integer
+        # @return [Boolean] true if the git version is at least the requested
+        #   one, and false otherwise
+        def self.at_least_version(*version)
+            compare_versions(self.version, version) <= 0
+        end
+
         # Creates an importer which tracks the given repository
         # and branch. +source+ is [repository, branch]
         #
@@ -47,8 +87,7 @@ module Autobuild
             @git_dir_cache = Array.new
 
             if branch.respond_to?(:to_hash)
-                options = branch.to_hash
-                branch = nil
+                branch, options = nil, branch.to_hash
             end
 
             if branch
@@ -64,27 +103,19 @@ module Autobuild
                 branch: nil,
                 tag: nil,
                 commit: nil,
+                repository_id: nil,
+                source_id: nil,
                 with_submodules: false
             if gitopts[:branch] && branch
                 raise ConfigException, "git branch specified with both the option hash and the explicit parameter"
             end
-
-            sourceopts, common = Kernel.filter_options common,
-                :repository_id, :source_id
+            gitopts[:branch] ||= branch
 
             super(common)
 
-            @push_to = gitopts[:push_to]
-            @with_submodules = gitopts[:with_submodules]
-            branch = gitopts[:branch] || branch
-            tag    = gitopts[:tag]
-            commit = gitopts[:commit]
-
-            @branch = branch || 'master'
-            @tag    = tag
-            @commit = commit
+            @with_submodules = gitopts.delete(:with_submodules)
             @remote_name = 'autobuild'
-            relocate(repository, sourceopts)
+            relocate(repository, gitopts)
         end
 
         # The name of the remote that should be set up by the importer
@@ -192,7 +223,7 @@ module Autobuild
         #  :bare or :normal, or nil if path is not a git repository.
         def self.resolve_git_dir(path)
             dir = File.join(path, '.git')
-            if !File.exists?(dir)
+            if !File.exist?(dir)
                 dir = path
             end
 
@@ -223,6 +254,21 @@ module Autobuild
             dir
         end
 
+        # Validates the return value of {resolve_git_dir}
+        #
+        # @param [Package] package the package we are working on
+        # @param [Boolean] require_working_copy if false, a bare repository will
+        #   be considered as valid, otherwise not
+        # @param [String,nil] dir the path to the repository's git directory, or nil
+        #   if the target is not a valid repository (see the documentation of
+        #   {resolve_git_dir}
+        # @param [Symbol,nil] style either :normal for a git checkout with
+        #   working copy, :bare for a bare repository or nil if {resolve_git_dir}
+        #   did not detect a git repository
+        #
+        # @return [void]
+        # @raise ConfigException if dir/style are nil, or if
+        #   require_working_copy is true and style is :bare
         def self.validate_git_dir(package, require_working_copy, dir, style)
             if !style
                 raise ConfigException.new(package, 'import', retry: false),
@@ -387,26 +433,39 @@ module Autobuild
             status
         end
 
-        def has_local_branch?(package)
-            run_git_bare(package, 'show-ref', '-q', '--verify', "refs/heads/#{local_branch}")
+        def has_commit?(package, commit_id)
+            run_git_bare(package, 'rev-parse', '-q', '--verify', "#{commit_id}^{commit}")
             true
         rescue SubcommandFailed => e
             if e.status == 1
                 false
             else raise
             end
+        end
+
+        def has_branch?(package, branch_name)
+            run_git_bare(package, 'show-ref', '-q', '--verify', "refs/heads/#{branch_name}")
+            true
+        rescue SubcommandFailed => e
+            if e.status == 1
+                false
+            else raise
+            end
+        end
+
+        def has_local_branch?(package)
+            has_branch?(package, local_branch)
         end
 
         def detached_head?(package)
-            run_git_bare(package, 'symbolic-ref', 'HEAD', '-q')
-            true
-        rescue SubcommandFailed => e
-            if e.status == 1
-                false
-            else raise
-            end
+            current_branch(package).nil?
         end
 
+        # Returns the branch HEAD is pointing to
+        #
+        # @return [String,nil] the full ref HEAD is pointing to (i.e.
+        #   refs/heads/master), or nil if HEAD is detached
+        # @raises SubcommandFailed if git failed
         def current_branch(package)
             run_git_bare(package, 'symbolic-ref', 'HEAD', '-q').first.strip
         rescue SubcommandFailed => e
@@ -418,10 +477,15 @@ module Autobuild
 
         # Checks if the current branch is the target branch. Expects that the
         # current directory is the package's directory
-        def on_target_branch?(package)
+        def on_local_branch?(package)
             if current_branch = self.current_branch(package)
                 current_branch == "refs/heads/#{local_branch}"
             end
+        end
+
+        # @deprecated use on_local_branch? instead
+        def on_target_branch?(package)
+            on_local_branch?(package)
         end
 
         class Status < Importer::Status
@@ -456,6 +520,34 @@ module Autobuild
             end
         end
 
+        def rev_parse(package, name)
+            run_git_bare(package, 'rev-parse', name).first
+        rescue Autobuild::SubcommandFailed
+            raise PackageException.new(package, 'import'), "failed to resolve #{name}. Are you sure this commit, branch or tag exists ?"
+        end
+
+        def show(package, commit, path)
+            run_git_bare(package, 'show', "#{commit}:#{path}").join("\n")
+        rescue Autobuild::SubcommandFailed
+            raise PackageException.new(package, 'import'), "failed to either resolve commit #{commit} or file #{path}"
+        end
+
+        # Tests whether a commit is already present in a given history
+        #
+        # @param [Package] the package we are working on
+        # @param [String] commit the commit ID we want to verify the presence of
+        # @param [String] reference the reference commit. The method tests that
+        #   'commit' is present in the history of 'reference'
+        #
+        # @return [Boolean]
+        def commit_present_in?(package, commit, reference)
+            merge_base = run_git_bare(package, 'merge-base', commit, reference).first
+            merge_base == commit
+            
+        rescue Exception
+            raise PackageException.new(package, 'import'), "failed to find the merge-base between #{commit} and #{reference}. Are you sure these commits exist ?"
+        end
+
         # Computes the update status to update a branch whose tip is at
         # reference_commit (which can be a symbolic reference) using the
         # fetch_commit commit
@@ -471,13 +563,10 @@ module Autobuild
             rescue Exception
                 raise PackageException.new(package, 'import'), "failed to find the merge-base between #{reference_commit} and #{fetch_commit}. Are you sure these commits exist ?"
             end
-            begin
-                head_commit = run_git_bare(package, 'rev-parse', reference_commit).first.strip
-            rescue Exception
-                raise PackageException.new(package, 'import'), "failed to resolve #{reference_commit}. Are you sure this commit, branch or tag exists ?"
-            end
+            remote_commit = rev_parse(package, fetch_commit)
+            head_commit   = rev_parse(package, reference_commit)
 
-            status = if common_commit != fetch_commit
+            status = if common_commit != remote_commit
                          if common_commit == head_commit
                              Status::SIMPLE_UPDATE
                          else
@@ -528,75 +617,96 @@ module Autobuild
             end
         end
 
-        def update(package,only_local = false)
+        def commit_pinning(package, target_commit, fetch_commit)
+            current_head = rev_parse(package, 'HEAD')
+
+            # Check whether the current HEAD is present on the remote
+            # repository. We'll refuse resetting if there are uncommitted
+            # changes
+            head_to_remote = merge_status(package, fetch_commit, current_head)
+            status_to_remote = head_to_remote.status
+            if status_to_remote == Status::ADVANCED || status_to_remote == Status::NEEDS_MERGE
+                raise ImporterCannotReset.new(package, 'import'), "branch #{local_branch} of #{package.name} contains commits that do not seem to be present on the branch #{remote_branch} of the remote repository. I can't go on as it could make you loose some stuff. Update the remote branch in your overrides, push your changes or reset to the remote commit manually before trying again"
+            end
+
+            head_to_target = merge_status(package, target_commit, current_head)
+            status_to_target = head_to_target.status
+            if status_to_target == Status::UP_TO_DATE
+                return
+            end
+
+            package.message "  %%s: resetting branch %s to %s" % [local_branch, target_commit.to_s]
+            # I don't use a reset --hard here as it would add even more
+            # restrictions on when we can do the operation (as we would refuse
+            # doing it if there are local changes). The checkout creates a
+            # detached HEAD, but makes sure that applying uncommitted changes is
+            # fine (it would abort otherwise). The rest then updates HEAD and
+            # the local_branch ref to match the required target commit
+            resolved_target_commit = rev_parse(package, "#{target_commit}^{commit}")
+            begin
+                run_git(package, 'checkout', target_commit)
+                run_git(package, 'update-ref', "refs/heads/#{local_branch}", resolved_target_commit)
+                run_git(package, 'symbolic-ref', "HEAD", "refs/heads/#{local_branch}")
+            rescue ::Exception
+                run_git(package, 'symbolic-ref', "HEAD", target_commit)
+                run_git(package, 'update-ref', "refs/heads/#{local_branch}", current_head)
+                run_git(package, 'checkout', local_branch)
+                raise
+            end
+        end
+
+        # @option (see Package#update)
+        def update(package, options = Hash.new)
             validate_importdir(package)
+            
             # This is really really a hack to workaround how broken the
             # importdir thing is
             if package.importdir == package.srcdir
                 update_alternates(package)
             end
-            Dir.chdir(package.importdir) do
-                fetch_commit = current_remote_commit(package, only_local)
 
-                # If we are tracking a commit/tag, just check it out and return
-                if commit || tag
-                    target_commit = (commit || tag)
-                    status_to_head = merge_status(package, target_commit, "HEAD")
-                    if status_to_head.status == Status::UP_TO_DATE
-                        # Check if by any chance we could switch back to a
-                        # proper branch instead of having a detached HEAD
-                        if detached_head?(package)
-                            status_to_remote = merge_status(package, target_commit, fetch_commit)
-                            if status_to_remote.status != Status::UP_TO_DATE
-                                package.message "  the package is on a detached HEAD because of commit pinning"
-                                return
-                            end
-                        else
-                            return
-                        end
-                    elsif status_to_head.status != Status::SIMPLE_UPDATE
-                        raise PackageException.new(package, 'import'), "checking out the specified commit #{target_commit} would be a non-simple operation (i.e. the current state of the repository is not a linear relationship with the specified commit), do it manually"
-                    end
-
-                    status_to_remote = merge_status(package, target_commit, fetch_commit)
-                    if status_to_remote.status != Status::UP_TO_DATE
-                        # Try very hard to avoid creating a detached HEAD
-                        if local_branch
-                            status_to_branch = merge_status(package, target_commit, local_branch)
-                            if status_to_branch.status == Status::UP_TO_DATE # Checkout the branch
-                                package.message "  checking out specific commit %s for %s. It will checkout branch %s." % [target_commit.to_s, package.name, local_branch]
-                                run_git(package, 'checkout', local_branch)
-                                return
-                            end
-                        end
-                        package.message "  checking out specific commit %s for %s. This will create a detached HEAD." % [target_commit.to_s, package.name]
-                        run_git(package, 'checkout', target_commit)
+            # Check whether we are already at the requested state
+            pinned_state = (commit || tag)
+            if pinned_state && has_commit?(package, pinned_state)
+                pinned_state = rev_parse(package, pinned_state)
+                current_head = rev_parse(package, 'HEAD')
+                if options[:reset]
+                    if current_head == pinned_state
                         return
                     end
-                end
-
-                if !fetch_commit
+                elsif commit_present_in?(package, pinned_state, current_head)
                     return
                 end
+            end
+            fetch_commit = current_remote_commit(package, options[:only_local])
 
-                if !on_target_branch?(package)
-                    # Check if the target branch already exists. If it is the
-                    # case, check it out. Otherwise, create it.
-                    if system("git", "--git-dir", git_dir(package, false), "show-ref", "--verify", "--quiet", "refs/heads/#{local_branch}")
-                        package.message "%%s: switching to branch %s" % [local_branch]
-                        run_git(package, 'checkout', local_branch)
-                    else
-                        package.message "%%s: checking out branch %s" % [local_branch]
-                        run_git(package, 'checkout', '-b', local_branch, fetch_commit)
-                    end
+            target_commit =
+                if commit then commit
+                elsif tag then "refs/tags/#{tag}"
+                else fetch_commit
                 end
 
-                status = merge_status(package, fetch_commit)
+            # If we are tracking a commit/tag, just check it out and return
+            if !has_local_branch?(package)
+                package.message "%%s: checking out branch %s" % [local_branch]
+                run_git(package, 'checkout', '-b', local_branch, target_commit)
+                return
+            end
+
+            if !on_target_branch?(package)
+                package.message "%%s: switching to branch %s" % [local_branch]
+                run_git(package, 'checkout', local_branch)
+            end
+
+            if options[:reset]
+                commit_pinning(package, target_commit, fetch_commit)
+            else
+                status = merge_status(package, target_commit)
                 if status.needs_update?
                     if !merge? && status.status == Status::NEEDS_MERGE
                         raise PackageException.new(package, 'import'), "the local branch '#{local_branch}' and the remote branch #{branch} of #{package.name} have diverged, and I therefore refuse to update automatically. Go into #{package.importdir} and either reset the local branch or merge the remote changes"
                     end
-                    run_git(package, 'merge', fetch_commit)
+                    run_git(package, 'merge', target_commit)
                 end
             end
         end
@@ -630,14 +740,16 @@ module Autobuild
                 Autobuild.tool('git'), 'clone', '-o', remote_name, *clone_options, repository, package.importdir, retry: true)
 
             update_remotes_configuration(package)
-            if on_target_branch?(package)
-                run_git(package, 'reset', '--hard', "#{remote_name}/#{branch}")
-            else update(package, true)
-            end
+            update(package, only_local: true)
         end
 
         # Changes the repository this importer is pointing to
         def relocate(repository, options = Hash.new)
+            @push_to = options[:push_to] || @push_to
+            @branch = options[:branch] || @branch || 'master'
+            @tag    = options[:tag] || @tag
+            @commit = options[:commit] || @commit
+
             @repository = repository.to_str
             @repository_id = options[:repository_id] ||
                 "git:#{@repository}"

@@ -102,9 +102,9 @@ module Autobuild
                 end
 
             if !programs.kind_of?(Hash)
-                programs = Array[*programs].inject({}) do |programs, spec|
-                    programs[spec.first] = spec.last
-                    programs
+                programs = Array[*programs].inject({}) do |progs, spec|
+                    progs[spec.first] = spec.last
+                    progs
                 end
             end
             programs.each do |name, opt|
@@ -168,7 +168,7 @@ module Autobuild
             # If it is not the case, remove it to force reconfiguration
 	    configureflags.flatten!
 	    force_reconfigure = false
-	    if File.exists?(configurestamp)
+	    if File.exist?(configurestamp)
 		output = IO.popen("#{configurestamp} --version").readlines.grep(/with options/).first.chomp
 		raise "invalid output of config.status --version" unless output =~ /with options "(.*)"$/
 		options = Shellwords.shellwords($1)
@@ -224,11 +224,11 @@ module Autobuild
             end
             using[:aclocal] = using[:autoconf] if using[:aclocal].nil?
             if using[:automake].nil?
-                using[:automake] = File.exists?(File.join(srcdir, 'Makefile.am'))
+                using[:automake] = File.exist?(File.join(srcdir, 'Makefile.am'))
             end
 
             if using[:libtool].nil?
-                using[:libtool] = File.exists?(File.join(srcdir, 'ltmain.sh'))
+                using[:libtool] = File.exist?(File.join(srcdir, 'ltmain.sh'))
             end
         end
 
@@ -237,7 +237,7 @@ module Autobuild
 	    conffile = "#{srcdir}/configure"
 	    if confsource
 		file conffile => confsource
-	    elsif confext = %w{.ac .in}.find { |ext| File.exists?("#{conffile}#{ext}") }
+	    elsif confext = %w{.ac .in}.find { |ext| File.exist?("#{conffile}#{ext}") }
 		file conffile => "#{conffile}#{confext}"
 	    else
 		raise PackageException.new(self, 'prepare'), "neither configure.ac nor configure.in present in #{srcdir}"
@@ -247,7 +247,7 @@ module Autobuild
                 isolate_errors do
                 in_dir(srcdir) do
                     if using[:autogen].nil?
-                        using[:autogen] = %w{autogen autogen.sh}.find { |f| File.exists?(File.join(srcdir, f)) }
+                        using[:autogen] = %w{autogen autogen.sh}.find { |f| File.exist?(File.join(srcdir, f)) }
                     end
 
                     autodetect_needed_stages

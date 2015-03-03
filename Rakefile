@@ -17,6 +17,8 @@ Utilrb::Rake.hoe do
             ['rake', '>= 0.9.0'] <<
             ['utilrb', '>= 1.6.0'] <<
             ['highline', '>= 0']
+
+        self.test_globs = ['test/suite.rb']
     end
     Rake.clear_tasks(/publish_docs/, /default/)
 end

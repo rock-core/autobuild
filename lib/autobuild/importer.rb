@@ -53,8 +53,8 @@ class Importer
         # repository and not in the remote one (would be pushed by an update)
         attr_accessor :local_commits
 
-        def initialize
-            @status = -1
+        def initialize(status = -1)
+            @status = status
             @uncommitted_code = false
             @remote_commits = Array.new
             @local_commits  = Array.new
@@ -235,13 +235,43 @@ class Importer
         fallback(e, package, :import, package)
     end
 
-    # Performs the import of +package+
-    def import(package,only_local = false)
+    # Imports the given package
+    #
+    # The importer will checkout or update code in package.importdir. No update
+    # will be done if {update?} returns false.
+    #
+    # @raises ConfigException if package.importdir exists and is not a directory
+    #
+    # @option options [Boolean] :only_local (false) if true, will only perform
+    #   actions that do not require network access. Importers that do not
+    #   support this mode will simply do nothing
+    # @option options [Boolean] :reset (false) if true, the importer's
+    #   configuration is interpreted as a hard state in which it should put the
+    #   working copy. Otherwise, it tries to update the local repository with
+    #   the remote information. For instance, a git importer for which a commit
+    #   ID is given will, in this mode, reset the repository to the requested ID
+    #   (if that does not involve losing commits). Otherwise, it will only
+    #   ensure that the requested commit ID is present in the current HEAD.
+    def import(package, options = Hash.new)
+        # Backward compatibility
+        if !options.kind_of?(Hash)
+            options = !!options
+            Autoproj.warn "calling #import with a boolean as second argument is deprecated, switch to the named argument interface instead"
+            Autoproj.warn "   e.g. call import(package, only_local: #{options})"
+            Autoproj.warn "   #{caller(1).first}"
+            options = Hash[only_local: !!options]
+        end
+
+        options = Kernel.validate_options options,
+            only_local: false,
+            reset: false,
+            checkout_only: false
+
         importdir = package.importdir
         if File.directory?(importdir)
             package.isolate_errors(false) do
-                if package.update?
-                    perform_update(package,only_local)
+                if !options[:checkout_only] && package.update?
+                    perform_update(package, options)
                 else
                     if Autobuild.verbose
                         package.message "%s: not updating"
@@ -250,7 +280,7 @@ class Importer
                 end
             end
 
-        elsif File.exists?(importdir)
+        elsif File.exist?(importdir)
             raise ConfigException.new(package, 'import'), "#{importdir} exists but is not a directory"
         else
             perform_checkout(package)
@@ -309,12 +339,12 @@ class Importer
 
     def currently_applied_patches(package)
         patches_file = patchlist(package)
-        if File.exists?(patches_file)
+        if File.exist?(patches_file)
             return parse_patch_list(package, patches_file)
         end
 
         patches_file = File.join(package.importdir, "patches-autobuild-stamp")
-        if File.exists?(patches_file)
+        if File.exist?(patches_file)
             cur_patches = parse_patch_list(package, patches_file)
             save_patch_state(package, cur_patches)
             FileUtils.rm_f patches_file
@@ -353,9 +383,9 @@ class Importer
                 cur_patches.pop
             end
 
-            patches.to_a.each do |p, level, content|
-                apply(package, p, level)
-                cur_patches << [p, level, content]
+            patches.to_a.each do |new_patch, new_patch_level, content|
+                apply(package, new_patch, new_patch_level)
+                cur_patches << [new_patch, new_patch_level, content]
 	    end
         ensure
             save_patch_state(package, cur_patches)

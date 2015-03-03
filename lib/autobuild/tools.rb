@@ -23,7 +23,7 @@ module Autobuild
 
         def find_in_path(file)
             path = ENV['PATH'].split(File::PATH_SEPARATOR).
-                find { |dir| File.exists?(File.join(dir, file)) }
+                find { |dir| File.exist?(File.join(dir, file)) }
             if path
                 return File.join(path, file)
             end

@@ -1,14 +1,6 @@
-$LOAD_PATH.unshift File.expand_path(File.join(File.dirname(__FILE__), '..', 'lib'))
-$LOAD_PATH.unshift File.expand_path(File.dirname(__FILE__))
-require 'test/unit'
-require 'tools'
+require 'autobuild/test'
 
-require 'autobuild'
-require 'tmpdir'
-require 'fileutils'
-require 'flexmock/test_unit'
-
-class TC_Subcommand < Test::Unit::TestCase
+class TC_Subcommand < Minitest::Test
 EXAMPLE_1 = <<EOF
 This is a file
 It will be the first part of the two-part cat
@@ -18,24 +10,17 @@ EXAMPLE_2 = <<EOF
 This is another file
 It will be the second part of the two-part cat
 EOF
-
-    attr_reader :tmpdir
     attr_reader :source1, :source2
     def setup
-        @tmpdir = Autobuild.logdir = TestTools.tempdir
+        super
+
+        Autobuild.logdir = tempdir
 
         # Write example files
-        @source1 = File.join(tmpdir, 'source1')
-        @source2 = File.join(tmpdir, 'source2')
+        @source1 = File.join(tempdir, 'source1')
+        @source2 = File.join(tempdir, 'source2')
         File.open(source1, 'w+') { |f| f.write(EXAMPLE_1) }
         File.open(source2, 'w+') { |f| f.write(EXAMPLE_2) }
-
-        super
-    end
-
-    def teardown
-        super
-        TestTools.clean
     end
 
     def test_behaviour_on_unexpected_error

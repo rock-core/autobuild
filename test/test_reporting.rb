@@ -1,18 +1,6 @@
-$LOAD_PATH.unshift File.expand_path(File.join(File.dirname(__FILE__), '..', 'lib'))
-$LOAD_PATH.unshift File.expand_path(File.dirname(__FILE__))
-require 'test/unit'
-require 'tools'
+require 'autobuild/test'
 
-require 'autobuild'
-require 'tmpdir'
-require 'fileutils'
-require 'flexmock/test_unit'
-
-class TC_Reporting < Test::Unit::TestCase
-    def teardown
-        Autobuild::Package.clear
-    end
-
+class TC_Reporting < Minitest::Test
     def test_format_progress_message_does_not_touch_messages_without_prefix
         assert_equal "a | b | c",
             Autobuild.format_progress_message(%w{a b c})
