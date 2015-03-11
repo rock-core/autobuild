@@ -72,7 +72,7 @@ describe Autobuild::Git do
             assert !importer.has_commit?(pkg, 'blabla')
         end
         it "returns false if the specified commit is not present locally" do
-            assert !importer.has_commit?(pkg, '1ddb20665622279700770be09f9a291b37c9b631')
+            assert !importer.has_commit?(pkg, 'c8cf0798b1d53931314a86bdb3e2ad874eb8deb5')
         end
         it "raises for any other error" do
             flexmock(Autobuild::Subprocess).should_receive(:run).
