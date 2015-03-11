@@ -205,9 +205,35 @@ describe Autobuild::Git do
         end
     end
 
+    describe "#commit_present_in?" do
+        attr_reader :commits
+        before do
+            importer.import(pkg)
+            @commits = [
+                importer.rev_parse(pkg, 'HEAD'),
+                importer.rev_parse(pkg, 'HEAD~1')]
+        end
+
+        it "returns true if the revision is in the provided branch" do
+            assert importer.commit_present_in?(pkg, 'HEAD', 'master')
+            assert importer.commit_present_in?(pkg, commits[0], 'master')
+            assert importer.commit_present_in?(pkg, 'HEAD~1', 'master')
+            assert importer.commit_present_in?(pkg, commits[1], 'master')
+        end
+        it "returns false if the revision is not in the provided branch" do
+            importer.run_git(pkg, 'branch', 'fork', 'autobuild/fork')
+            assert !importer.commit_present_in?(pkg, commits[0], "refs/heads/fork")
+        end
+        # git rev-parse return the tag ID for annotated tags instead of the
+        # commit ID. This was in turn breaking commit_present_in?
+        it "handles annotated tags properly" do
+            importer.run_git(pkg, 'tag', '-a', '-m', 'tag0', "tag0", "HEAD~1")
+            assert importer.commit_present_in?(pkg, 'tag0', 'master')
+        end
+    end
+
     describe "update" do
         def self.common_commit_and_tag_behaviour
-
             it "does not access the repository if the target is already merged and reset is false" do
                 importer.import(pkg)
 

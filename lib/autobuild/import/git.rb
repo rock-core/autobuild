@@ -520,7 +520,10 @@ module Autobuild
             end
         end
 
-        def rev_parse(package, name)
+        def rev_parse(package, name, object_type = "commit")
+            if object_type
+                name = "#{name}^{#{object_type}}"
+            end
             run_git_bare(package, 'rev-parse', name).first
         rescue Autobuild::SubcommandFailed
             raise PackageException.new(package, 'import'), "failed to resolve #{name}. Are you sure this commit, branch or tag exists ?"
@@ -540,12 +543,15 @@ module Autobuild
         #   'commit' is present in the history of 'reference'
         #
         # @return [Boolean]
-        def commit_present_in?(package, commit, reference)
-            merge_base = run_git_bare(package, 'merge-base', commit, reference).first
-            merge_base == commit
-            
-        rescue Exception
-            raise PackageException.new(package, 'import'), "failed to find the merge-base between #{commit} and #{reference}. Are you sure these commits exist ?"
+        def commit_present_in?(package, rev, reference)
+            commit = rev_parse(package, rev)
+            begin
+                merge_base = run_git_bare(package, 'merge-base', commit, reference).first
+                merge_base == commit
+                
+            rescue Exception => e
+                raise PackageException.new(package, 'import'), "failed to find the merge-base between #{rev} and #{reference}. Are you sure these commits exist ?"
+            end
         end
 
         # Computes the update status to update a branch whose tip is at
