@@ -746,7 +746,7 @@ module Autobuild
                 Autobuild.tool('git'), 'clone', '-o', remote_name, *clone_options, repository, package.importdir, retry: true)
 
             update_remotes_configuration(package)
-            update(package, only_local: true)
+            update(package, only_local: true, reset: true)
         end
 
         # Changes the repository this importer is pointing to
