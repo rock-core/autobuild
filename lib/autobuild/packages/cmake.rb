@@ -374,7 +374,7 @@ module Autobuild
                         needs_display = false
                         if line =~ /\[\s*(\d+)%\]/
                             progress "building %s (#{Integer($1)}%)"
-                        elsif line !~ /^(?:Linking|Scanning|Building|Built)/
+                        elsif line !~ /^(?:Generating|Linking|Scanning|Building|Built)/
                             if line =~ /warning/
                                 warning_count += 1
                             end
