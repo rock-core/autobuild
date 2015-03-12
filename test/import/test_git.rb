@@ -317,6 +317,17 @@ describe Autobuild::Git do
                     importer.import(pkg)
                 end
             end
+            it "switches to the local branch regardless of the presence of the tag or commit" do
+                importer.import(pkg)
+                head = importer.rev_parse(pkg, 'HEAD')
+                importer.run_git(pkg, 'reset', '--hard', 'master~1')
+                importer.run_git(pkg, 'branch', 'local')
+                importer.local_branch = 'local'
+                importer.relocate(importer.repository, tag: 'third_commit')
+                importer.update(pkg)
+                assert_equal 'refs/heads/local', importer.current_branch(pkg)
+                assert_equal head, importer.rev_parse(pkg, 'refs/remotes/autobuild/master')
+            end
         end
         describe "with a specific commit given" do
             def assert_on_commit(id)

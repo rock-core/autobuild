@@ -671,10 +671,37 @@ module Autobuild
                 update_alternates(package)
             end
 
-            # Check whether we are already at the requested state
-            pinned_state = (commit || tag)
-            if pinned_state && has_commit?(package, pinned_state)
+            pinned_state =
+                if commit then commit
+                elsif tag then "refs/tags/#{tag}"
+                end
+
+            if pinned_state
+                if !has_commit?(package, pinned_state)
+                    fetch_commit = current_remote_commit(package, options[:only_local])
+                end
                 pinned_state = rev_parse(package, pinned_state)
+            end
+
+            target_commit =
+                if pinned_state then pinned_state
+                else fetch_commit ||= current_remote_commit(package, options[:only_local])
+                end
+
+            # If we are tracking a commit/tag, just check it out and return
+            if !has_local_branch?(package)
+                package.message "%%s: checking out branch %s" % [local_branch]
+                run_git(package, 'checkout', '-b', local_branch, target_commit)
+                return
+            end
+
+            if !on_local_branch?(package)
+                package.message "%%s: switching to branch %s" % [local_branch]
+                run_git(package, 'checkout', local_branch)
+            end
+
+            # Check whether we are already at the requested state
+            if pinned_state
                 current_head = rev_parse(package, 'HEAD')
                 if options[:reset]
                     if current_head == pinned_state
@@ -688,26 +715,8 @@ module Autobuild
                     return
                 end
             end
-            fetch_commit = current_remote_commit(package, options[:only_local])
 
-            target_commit =
-                if commit then commit
-                elsif tag then "refs/tags/#{tag}"
-                else fetch_commit
-                end
-
-            # If we are tracking a commit/tag, just check it out and return
-            if !has_local_branch?(package)
-                package.message "%%s: checking out branch %s" % [local_branch]
-                run_git(package, 'checkout', '-b', local_branch, target_commit)
-                return
-            end
-
-            if !on_target_branch?(package)
-                package.message "%%s: switching to branch %s" % [local_branch]
-                run_git(package, 'checkout', local_branch)
-            end
-
+            fetch_commit ||= current_remote_commit(package, options[:only_local])
             if options[:reset]
                 commit_pinning(package, target_commit, fetch_commit)
             else
