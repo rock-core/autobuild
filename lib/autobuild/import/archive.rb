@@ -262,6 +262,16 @@ module Autobuild
         # It defaults to the global ArchiveImporter.timeout
         attr_accessor :timeout
 
+        # Tests whether the archive's content is stored within a subdirectory or
+        # not
+        #
+        # If it has a subdirectory, its name is assumed to be the package's
+        # basename, or the value returned by {archive_dir} if the archive_dir
+        # option was given to {initialize}
+        def has_subdirectory?
+            !@options[:no_subdirectory]
+        end
+
 	# Creates a new importer which downloads +url+ in +cachedir+ and unpacks it. The following options
 	# are allowed:
 	# [:cachedir] the cache directory. Defaults to "#{Autobuild.prefix}/cache"
