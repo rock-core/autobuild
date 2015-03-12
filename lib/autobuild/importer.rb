@@ -242,6 +242,8 @@ class Importer
     #
     # @raises ConfigException if package.importdir exists and is not a directory
     #
+    # @option options [Boolean] :checkout_only (false) if true, the importer
+    #   will not update an already checked-out package.
     # @option options [Boolean] :only_local (false) if true, will only perform
     #   actions that do not require network access. Importers that do not
     #   support this mode will simply do nothing
