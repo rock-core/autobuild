@@ -679,8 +679,12 @@ module Autobuild
                 if options[:reset]
                     if current_head == pinned_state
                         return
+                    elsif merge_if_simple(package, pinned_state)
+                        return
                     end
                 elsif commit_present_in?(package, pinned_state, current_head)
+                    return
+                elsif merge_if_simple(package, pinned_state)
                     return
                 end
             end
@@ -707,13 +711,18 @@ module Autobuild
             if options[:reset]
                 commit_pinning(package, target_commit, fetch_commit)
             else
-                status = merge_status(package, target_commit)
-                if status.needs_update?
-                    if !merge? && status.status == Status::NEEDS_MERGE
-                        raise PackageException.new(package, 'import'), "the local branch '#{local_branch}' and the remote branch #{branch} of #{package.name} have diverged, and I therefore refuse to update automatically. Go into #{package.importdir} and either reset the local branch or merge the remote changes"
-                    end
-                    run_git(package, 'merge', target_commit)
+                merge_if_simple(package, target_commit)
+            end
+        end
+
+        def merge_if_simple(package, target_commit)
+            status = merge_status(package, target_commit)
+            if status.needs_update?
+                if !merge? && status.status == Status::NEEDS_MERGE
+                    raise PackageException.new(package, 'import'), "the local branch '#{local_branch}' and the remote branch #{branch} of #{package.name} have diverged, and I therefore refuse to update automatically. Go into #{package.importdir} and either reset the local branch or merge the remote changes"
                 end
+                run_git(package, 'merge', target_commit)
+                true
             end
         end
 
