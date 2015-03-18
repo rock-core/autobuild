@@ -21,25 +21,6 @@ module Autobuild
     #
     # Finally, the build stage actually calls the package's build targets (of
     # the form "package_name-build", which will trigger the build if needed.
-    #
-    # <b>Autodetecting dependencies</b>
-    # There are two sides in dependency autodetection. The first side is that
-    # packages must declare what they provide. One example is the handling of
-    # pkgconfig dependencies: packages must declare that they provide a
-    # pkgconfig definition. This side of the autodetection must be done just
-    # after the package's import, by overloading the #import method:
-    #
-    #   def import
-    #     super
-    #
-    #     # Do autodetection and call Package#provides
-    #   end
-    #
-    # Note that, in most cases, the overloaded import method *must* begin with
-    # "super".
-    #
-    # The other side is the detection itself. That must be done by overloading
-    # the #prepare method.
     class Package
 	@@packages = {}
 	@@provides = {}
