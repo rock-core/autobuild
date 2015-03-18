@@ -1,0 +1,14 @@
+<package>
+    <description brief="package-level import and build automation">
+        Autobuild is an abstraction layer that provides a package-oriented build
+        system (instead of file-oriented). It assumes that the dirty file-level
+        details are handled by another common build tools such as CMake, but
+        handles building (in parallel) many such packages.
+
+        It also provides the API to import and update packages using common version
+        control systems (git, svn, ...)
+    </description>
+    <maintainer>Sylvain Joyeux/sylvain.joyeux@m4x.org</maintainer>
+    <license>LGPLv3 or later</license>
+    <url>http://rock-robotics.org</url>
+</package>
