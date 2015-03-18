@@ -75,6 +75,24 @@ module Autobuild
             super
         end
 
+        @@defines = Hash.new
+
+        def self.defines
+            @@defines
+        end
+
+        def self.define(name, value)
+            @@defines[name] =
+                if value.respond_to?(:to_str)
+                    value.to_str
+                elsif value
+                    'ON'
+                else
+                    'OFF'
+                end
+        end
+
+
         def define(name, value)
             @defines[name] =
                 if value.respond_to?(:to_str)
@@ -273,7 +291,7 @@ module Autobuild
             doc_utility.source_ref_dir = builddir
 
             if File.exist?(cmake_cache)
-                all_defines = defines.dup
+                all_defines = self.class.defines.merge(defines)
                 all_defines['CMAKE_INSTALL_PREFIX'] = prefix
                 all_defines['CMAKE_MODULE_PATH'] = "#{CMake.module_path.join(";")}"
                 cache = File.read(cmake_cache)
@@ -323,7 +341,7 @@ module Autobuild
 						command << "MSYS Makefiles"
 					end
 					
-                    defines.each do |name, value|
+                    self.class.defines.merge(defines).each do |name, value|
                         command << "-D#{name}=#{value}"
                     end
                     if generator
