@@ -177,10 +177,6 @@ module Autobuild
             FileUtils.rm_f genstamp 
         end
 
-        def import(only_local=false)
-            super
-        end
-
         def update_environment
             super
             typelib_plugin = File.join(prefix, 'share', 'typelib', 'ruby')

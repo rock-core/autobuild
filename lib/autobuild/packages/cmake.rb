@@ -270,7 +270,7 @@ module Autobuild
             end
         end
 
-        def import(only_local=false)
+        def import(options = Hash.new)
             super
 
             Dir.glob(File.join(srcdir, "*.pc.in")) do |file|

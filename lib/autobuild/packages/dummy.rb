@@ -12,7 +12,7 @@ module Autobuild
             super
         end
 
-        def import(only_local=false)
+        def import(options = Hash.new)
         end
 
         def prepare
