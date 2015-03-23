@@ -17,6 +17,15 @@ module Autobuild
         @macos
     end
 
+    @freebsd = RbConfig::CONFIG["host_os"].include?('freebsd') 
+    def self.freebsd?
+	@freebsd
+    end
+
+    def self.bsd?
+	@freebsd #can be extended to some other OSes liek NetBSD
+    end
+
     SYSTEM_ENV = Hash.new
     ORIGINAL_ENV = Hash.new
     ENV.each do |k, v|
