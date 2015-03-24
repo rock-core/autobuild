@@ -23,7 +23,7 @@ module Autobuild
     end
 
     def self.bsd?
-	@freebsd #can be extended to some other OSes liek NetBSD
+	@freebsd || @macos #can be extended to some other OSes liek NetBSD
     end
 
     SYSTEM_ENV = Hash.new
