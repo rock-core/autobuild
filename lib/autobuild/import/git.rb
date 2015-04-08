@@ -116,6 +116,7 @@ module Autobuild
             @with_submodules = gitopts.delete(:with_submodules)
             @remote_name = 'autobuild'
             relocate(repository, gitopts)
+            @additional_remotes = Array.new
         end
 
         # The name of the remote that should be set up by the importer
@@ -172,6 +173,14 @@ module Autobuild
         #
         # @return [Array<String>]
         attr_accessor :alternates
+
+        # A list of remotes that should be set up in the git config
+        #
+        # Use {#declare_alternate_repository} to add one
+        #
+        # @return [(String,String,String)] a list of (name, repository, push_to)
+        #   triplets
+        attr_reader :additional_remotes
 
         # The branch that should be used on the local clone
         #
@@ -331,8 +340,7 @@ module Autobuild
             package.run(:import, Autobuild.tool(:git), '--git-dir', git_dir(package, false), *args)
         end
 
-        # Updates the git repository's configuration for the target remote
-        def update_remotes_configuration(package)
+        def setup_remote(package, remote_name, repository, push_to = repository)
             run_git_bare(package, 'config', '--replace-all', "remote.#{remote_name}.url", repository)
             run_git_bare(package, 'config', '--replace-all', "remote.#{remote_name}.pushurl", push_to || repository)
             run_git_bare(package, 'config', '--replace-all', "remote.#{remote_name}.fetch",  "+refs/heads/*:refs/remotes/#{remote_name}/*")
@@ -341,6 +349,13 @@ module Autobuild
                 run_git_bare(package, 'config', '--replace-all', "remote.#{remote_name}.push",  "refs/heads/#{local_branch}:refs/heads/#{remote_branch}")
             else
                 run_git_bare(package, 'config', '--replace-all', "remote.#{remote_name}.push",  "refs/heads/*:refs/heads/*")
+            end
+        end
+
+        # Updates the git repository's configuration for the target remote
+        def update_remotes_configuration(package)
+            ([['autobuild', repository, push_to]] + additional_remotes).each do |args|
+                setup_remote(package, *args)
             end
 
             if local_branch
@@ -824,6 +839,13 @@ module Autobuild
                     return Hash[:type => :git]
                 end
             end
+        end
+
+        def declare_alternate_repository(name, repository, options = Hash.new)
+            if !name
+                raise ArgumentError, "cannot declare alternate repository #{repository} without a name"
+            end
+            additional_remotes << [name, repository, options[:push_to] || repository]
         end
     end
 
