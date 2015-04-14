@@ -267,11 +267,13 @@ class Importer
         options = Kernel.validate_options options,
             only_local: false,
             reset: false,
-            checkout_only: false
+            checkout_only: false,
+            ignore_errors: false
+        ignore_errors = options.delete(:ignore_errors)
 
         importdir = package.importdir
         if File.directory?(importdir)
-            package.isolate_errors(false) do
+            package.isolate_errors(mark_as_failed: false, ignore_errors: ignore_errors) do
                 if !options[:checkout_only] && package.update?
                     perform_update(package, options)
                 else

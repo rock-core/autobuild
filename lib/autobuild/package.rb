@@ -247,9 +247,16 @@ module Autobuild
         # Moreover, the package will be marked as "failed" and isolate_errors
         # will subsequently be a noop. I.e. if +build+ fails, +install+ will do
         # nothing.
-        def isolate_errors(mark_as_failed = true)
+        def isolate_errors(options = Hash.new)
             # Don't do anything if we already have failed
             return if failed?
+
+            if !options.kind_of?(Hash)
+                options = Hash[mark_as_failed: true]
+            end
+            options = validate_options options,
+                mark_as_failed: true,
+                ignore_errors: Autobuild.ignore_errors
 
             begin
                 toplevel = !Thread.current[:isolate_errors]
@@ -259,11 +266,11 @@ module Autobuild
                 raise
             rescue ::Exception => e
                 @failures << e
-                if mark_as_failed
+                if options[:mark_as_failed]
                     @failed = true
                 end
 
-                if Autobuild.ignore_errors
+                if options[:ignore_errors]
                     lines = e.to_s.split("\n")
                     if lines.empty?
                         lines = e.message.split("\n")
