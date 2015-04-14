@@ -197,12 +197,13 @@ module Autobuild::Subprocess
         STDOUT.sync = true
 
         input_streams = []
-        options = Hash[retry: false]
+        options = Hash[retry: false, env: ENV]
         if command.last.kind_of?(Hash)
             options = command.pop
             options = Kernel.validate_options options,
                 input: nil, working_directory: nil, retry: false,
-                input_streams: []
+                input_streams: [],
+                env: ENV
             if options[:input]
                 input_streams << File.open(options[:input])
             end
@@ -250,6 +251,7 @@ module Autobuild::Subprocess
         Autobuild.register_logfile(logname)
         subcommand_output = Array.new
 
+        env = options[:env]
         status = File.open(logname, open_flag) do |logfile|
             if Autobuild.keep_oldlogs
                 logfile.puts
@@ -258,7 +260,7 @@ module Autobuild::Subprocess
             logfile.puts "#{Time.now}: running"
             logfile.puts "    #{command.join(" ")}"
 	    logfile.puts "with environment:"
-            ENV.keys.sort.each do |key|
+            env.keys.sort.each do |key|
                 logfile.puts "  '#{key}'='#{ENV[key]}'"
             end
             logfile.puts
@@ -291,6 +293,12 @@ module Autobuild::Subprocess
 
             pid = fork do
                 begin
+                    env.each do |k, v|
+                        ENV[k] = v
+                    end
+                    (ENV.keys - env.keys).each do |reset_k|
+                        ENV.delete(reset_k)
+                    end
                     if options[:working_directory] && (options[:working_directory] != Dir.pwd)
                         Dir.chdir(options[:working_directory])
                     end

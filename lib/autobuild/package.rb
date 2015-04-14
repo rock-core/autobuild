@@ -58,6 +58,14 @@ module Autobuild
         # Some statistics about the commands that have been run
         attr_reader :statistics
 
+        EnvOp = Struct.new :type, :name, :values
+
+        # List of environment values added by this package with {#env_add},
+        # {#env_add_path} or {#env_set}
+        #
+        # @return [Array<EnvOp>]
+        attr_reader :env
+
         def add_stat(phase, duration)
             @statistics[phase] ||= 0
             @statistics[phase] += duration
@@ -119,6 +127,7 @@ module Autobuild
             @post_install_blocks = Array.new
             @in_dir_stack = Array.new
             @utilities = Hash.new
+            @env = Array.new
 
 	    if Hash === spec
 		name, depends = spec.to_a.first
@@ -166,6 +175,42 @@ module Autobuild
             # them there for now
             @spec_dependencies = depends
 	end
+
+        def env_add(name, *values)
+            env << EnvOp.new(:add, name, values)
+        end
+
+        def env_add_path(name, *values)
+            env << EnvOp.new(:add_path, name, values)
+        end
+
+        def env_set(name, *values)
+            env << EnvOp.new(:set, name, values)
+        end
+
+        class IncompatibleEnvironment < ConfigException; end
+
+        def resolved_env(root = Autobuild.env)
+            set = Hash.new
+            env = root.dup
+            all_dependencies.each do |pkg_name|
+                pkg = Autobuild::Package[pkg_name]
+                pkg.env.each do |op, name, values|
+                    if op == :set
+                        if last = set[name]
+                            last_pkg, last_values = *last
+                            if last_values != values
+                                raise IncompatibleEnvironment, "trying to reset #{name} to #{values} which conflicts with #{last_pkg.name} already setting it to #{last_values}"
+                            end
+                        else
+                            set[name] = values
+                        end
+                    end
+                    env.send(op, name, *values)
+                end
+            end
+            env.resolved_env
+        end
 
         # Called before a forced build. It should remove all the timestamp and
         # target files so that all the build phases of this package gets
@@ -363,7 +408,13 @@ module Autobuild
         end
 
         def run(*args, &block)
-            Autobuild::Subprocess.run(self, *args, &block)
+            if args.last.kind_of?(Hash)
+                options = args.pop
+            else
+                options = Hash.new
+            end
+            options = options.merge(env: resolved_env)
+            Autobuild::Subprocess.run(self, *args, options, &block)
         end
 
         module TaskExtension

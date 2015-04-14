@@ -1,5 +1,6 @@
 require 'set'
 require 'rbconfig'
+require 'utilrb/hash/map_value'
 
 module Autobuild
     @windows = RbConfig::CONFIG["host_os"] =~%r!(msdos|mswin|djgpp|mingw|[Ww]indows)!
@@ -107,6 +108,24 @@ module Autobuild
             ENV.each do |k, v|
                 resolved_env[k] = v
             end
+        end
+
+        def initialize_copy(old)
+            super
+            @inherited_environment = @inherited_environment.
+                map_value { |k, v| v.dup }
+            @environment = @environment.
+                map_value { |k, v| v.dup }
+            @source_before = @source_before.dup
+            @source_after = @source_after.dup
+            @inherited_variables = @inherited_variables.dup
+
+            @system_env = @system_env.
+                map_value { |k, v| v.dup }
+            @original_env = @original_env.
+                map_value { |k, v| v.dup }
+            @resolved_env = @resolved_env.
+                map_value { |k, v| v.dup }
         end
 
         def [](name)
@@ -311,10 +330,8 @@ module Autobuild
         def update_var(name)
             if value = value(name)
                 resolved_env[name] = value.join(File::PATH_SEPARATOR)
-                ENV[name] = resolved_env[name]
             else
                 resolved_env.delete(name)
-                ENV.delete(name)
             end
         end
 
@@ -328,6 +345,7 @@ module Autobuild
 
             oldpath = (environment[name] ||= Array.new)
             paths.reverse.each do |path|
+                path = path.to_str
                 next if oldpath.include?(path)
 
                 add(name, path)
@@ -396,7 +414,7 @@ module Autobuild
             end
 
             variables = []
-            Autobuild.environment.each do |name, _|
+            environment.each do |name, _|
                 variables << name
                 value_with_inheritance = value(name, inheritance_mode: :keep)
                 value_without_inheritance = value(name, inheritance_mode: :ignore)
@@ -527,7 +545,7 @@ module Autobuild
 
         def isolate
             self.inherit = false
-            self.push_path 'PATH', '/usr/local/bin', '/usr/bin', '/bin'
+            push_path 'PATH', '/usr/local/bin', '/usr/bin', '/bin'
         end
 
         def prepare
