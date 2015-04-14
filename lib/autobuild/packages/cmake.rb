@@ -28,13 +28,24 @@ module Autobuild
             # It can be overriden on a per-package basis with CMake.generator=
             attr_accessor :generator
 
+            attr_reader :prefix_path
             attr_reader :module_path
         end
+        @prefix_path = []
         @module_path = []
         @full_reconfigures = true
 
         # a key => value association of defines for CMake
         attr_reader :defines
+        # The list of all -D options that should be passed on to CMake
+        def all_defines
+            additional_defines = Hash[
+                "CMAKE_INSTALL_PREFIX" => prefix,
+                "CMAKE_MODULE_PATH" => module_path.join(";"),
+                "CMAKE_PREFIX_PATH" => prefix_path.join(";")]
+            self.class.defines.merge(additional_defines).merge(defines)
+        end
+
         # If true, always run cmake before make during the build
         attr_accessor :always_reconfigure
         # If true, we always remove the CMake cache before reconfiguring.
@@ -279,6 +290,25 @@ module Autobuild
             end
         end
 
+        def module_path
+            CMake.module_path
+        end
+
+        def prefix_path
+            seen = Set.new
+            result = Array.new
+
+            raw = (dependencies.map { |pkg_name| Autobuild::Package[pkg_name].prefix } +
+                CMake.prefix_path)
+            raw.each do |path|
+                if !seen.include?(path)
+                    seen << path
+                    result << path
+                end
+            end
+            result
+        end
+
         def prepare
             # A failed initial CMake configuration leaves a CMakeCache.txt file,
             # but no Makefile.
@@ -291,9 +321,7 @@ module Autobuild
             doc_utility.source_ref_dir = builddir
 
             if File.exist?(cmake_cache)
-                all_defines = self.class.defines.merge(defines)
-                all_defines['CMAKE_INSTALL_PREFIX'] = prefix
-                all_defines['CMAKE_MODULE_PATH'] = "#{CMake.module_path.join(";")}"
+                all_defines = self.all_defines
                 cache = File.read(cmake_cache)
                 did_change = all_defines.any? do |name, value|
                     cache_line = cache.each_line.find do |line|
@@ -334,14 +362,14 @@ module Autobuild
                         raise ConfigException.new(self, 'configure'), "#{srcdir} contains no CMakeLists.txt file"
                     end
 
-                    command = [ "cmake", "-DCMAKE_INSTALL_PREFIX=#{prefix}", "-DCMAKE_MODULE_PATH=#{CMake.module_path.join(";")}" ]
+                    command = [ "cmake" ]
 
                     if Autobuild.windows?
                         command << '-G' 
                         command << "MSYS Makefiles"
                     end
-					
-                    self.class.defines.merge(defines).each do |name, value|
+
+                    all_defines.each do |name, value|
                         command << "-D#{name}=#{value}"
                     end
                     if generator
