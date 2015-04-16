@@ -8,14 +8,6 @@ module Autobuild
     LIB_DIR = File.expand_path(File.dirname(__FILE__))
 end
 
-begin
-    require 'rmail'
-    require 'rmail/serialize'
-    Autobuild::HAS_RMAIL = true
-rescue LoadError
-    Autobuild::HAS_RMAIL = false
-end
-
 require 'net/smtp'
 require 'socket'
 require 'etc'
@@ -32,6 +24,7 @@ require 'autobuild/environment'
 require 'autobuild/exceptions'
 require 'autobuild/pkgconfig'
 require 'autobuild/reporting'
+require 'autobuild/mail_reporter'
 require 'autobuild/subcommand'
 require 'autobuild/timestamps'
 require 'autobuild/parallel'
