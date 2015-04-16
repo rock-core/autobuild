@@ -252,6 +252,12 @@ module Autobuild::Subprocess
         subcommand_output = Array.new
 
         env = options[:env]
+        ENV.each do |k, v|
+            if !env.has_key?(k)
+                env[k] = v
+            end
+        end
+
         status = File.open(logname, open_flag) do |logfile|
             if Autobuild.keep_oldlogs
                 logfile.puts
@@ -261,7 +267,7 @@ module Autobuild::Subprocess
             logfile.puts "    #{command.join(" ")}"
 	    logfile.puts "with environment:"
             env.keys.sort.each do |key|
-                logfile.puts "  '#{key}'='#{ENV[key]}'"
+                logfile.puts "  '#{key}'='#{env[key]}'"
             end
             logfile.puts
             logfile.puts "#{Time.now}: running"
@@ -294,10 +300,11 @@ module Autobuild::Subprocess
             pid = fork do
                 begin
                     env.each do |k, v|
-                        ENV[k] = v
-                    end
-                    (ENV.keys - env.keys).each do |reset_k|
-                        ENV.delete(reset_k)
+                        if v
+                            ENV[k] = v
+                        else
+                            ENV.delete(k)
+                        end
                     end
                     if options[:working_directory] && (options[:working_directory] != Dir.pwd)
                         Dir.chdir(options[:working_directory])
