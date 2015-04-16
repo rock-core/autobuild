@@ -287,7 +287,9 @@ class Importer
         elsif File.exist?(importdir)
             raise ConfigException.new(package, 'import'), "#{importdir} exists but is not a directory"
         else
-            perform_checkout(package)
+            package.isolate_errors(mark_as_failed: true, ignore_errors: ignore_errors) do
+                perform_checkout(package)
+            end
         end
     end
 
