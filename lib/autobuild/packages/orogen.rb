@@ -331,7 +331,7 @@ module Autobuild
             if needs_regen
                 progress_start "generating oroGen %s", :done_message => 'generated oroGen %s' do
                     in_dir(srcdir) do
-                        Subprocess.run self, 'orogen', guess_ruby_name, self.class.orogen_bin, *cmdline
+                        run 'orogen', guess_ruby_name, self.class.orogen_bin, *cmdline
                         File.open(genstamp, 'w') do |io|
                             io.print cmdline.join("\n")
                         end

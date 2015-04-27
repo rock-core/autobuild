@@ -30,7 +30,7 @@ module Autobuild
         def with_doc
             doc_task do
                 progress_start "generating documentation for %s", :done_message => 'generated documentation for %s' do
-                    Autobuild::Subprocess.run self, 'doc',
+                    run 'doc',
                         Autobuild.tool_in_path('ruby'), '-S', Autobuild.tool('rake'), rake_doc_task,
                         :working_directory => srcdir
                 end
@@ -40,7 +40,7 @@ module Autobuild
         def with_tests
             test_utility.task do
                 progress_start "running tests for %s", :done_message => 'tests passed for %s' do
-                    Autobuild::Subprocess.run self, 'test',
+                    run 'test',
                         Autobuild.tool_in_path('ruby'), '-S', Autobuild.tool('rake'), rake_test_task,
                         :working_directory => srcdir
                 end
@@ -49,7 +49,7 @@ module Autobuild
 
         def invoke_rake(setup_task = rake_setup_task)
             if setup_task && File.file?(File.join(srcdir, 'Rakefile'))
-                Autobuild::Subprocess.run self, 'post-install',
+                run 'post-install',
                     Autobuild.tool_in_path('ruby'), '-S', Autobuild.tool('rake'), setup_task,
                     :working_directory => srcdir
             end
@@ -86,7 +86,7 @@ module Autobuild
             super
             if rake_clean_task && File.file?(File.join(srcdir, 'Rakefile'))
                 begin
-                    Autobuild::Subprocess.run self, 'clean',
+                    run 'clean',
                         Autobuild.tool_in_path('ruby'), '-S', Autobuild.tool('rake'), rake_clean_task,
                         :working_directory => srcdir
                 rescue Autobuild::SubcommandFailed => e

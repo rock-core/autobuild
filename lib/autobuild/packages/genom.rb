@@ -134,7 +134,7 @@ module Autobuild
                 isolate_errors do
                     in_dir(srcdir) do
                         progress_start "generating GenoM for %s", :done_message => 'generated GenoM for %s' do
-                            Subprocess.run(self, 'genom', *cmdline)
+                            run('genom', *cmdline)
                         end
                     end
                 end
@@ -147,7 +147,7 @@ module Autobuild
                     # since the generation takes care of rebuilding configure
                     # if .gen has changed
                     progress_start "generating autotools for %s", :done_message => 'generated autotools for %s' do
-                        in_dir(srcdir) { Subprocess.run(self, 'genom', File.expand_path('autogen',  srcdir)) }
+                        in_dir(srcdir) { run('genom', File.expand_path('autogen',  srcdir)) }
                     end
                 end
             end

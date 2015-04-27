@@ -187,7 +187,7 @@ module Autobuild
                     if(WINDOWS)
                         get_url_on_windows(@url, "#{cachefile}.partial")
                     elsif Autobuild.bsd?
-                        Subprocess.run(package, :import, Autobuild.tool('curl'), '-Lso',"#{cachefile}.partial", @url)
+                        package.run(:import, Autobuild.tool('curl'), '-Lso',"#{cachefile}.partial", @url)
                     else
                         additional_options = []
                         if timeout = self.timeout

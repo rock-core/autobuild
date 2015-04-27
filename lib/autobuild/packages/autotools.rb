@@ -54,7 +54,7 @@ module Autobuild
                     if internal_doxygen_mode?
                         run_doxygen
                     else
-                        Subprocess.run(self, utility.name, Autobuild.tool(:make), "-j#{parallel_build_level}", target, :working_directory => builddir)
+                        run(utility.name, Autobuild.tool(:make), "-j#{parallel_build_level}", target, :working_directory => builddir)
                     end
                     yield if block_given?
                 end
@@ -254,10 +254,10 @@ module Autobuild
 
                     progress_start "generating autotools for %s", :done_message => 'generated autotools for %s' do
                         if using[:libtool]
-                            Subprocess.run(self, 'configure', Autobuild.tool('libtoolize'), '--copy')
+                            run('configure', Autobuild.tool('libtoolize'), '--copy')
                         end
                         if using[:autogen]
-                            Subprocess.run(self, 'configure', File.expand_path(using[:autogen], srcdir))
+                            run('configure', File.expand_path(using[:autogen], srcdir))
                         else
                             [ :aclocal, :autoconf, :autoheader, :automake ].each do |tool|
                                 if tool_flag = using[tool]
@@ -266,7 +266,7 @@ module Autobuild
                                                    else; Autobuild.tool(tool)
                                                    end
 
-                                    Subprocess.run(self, 'configure', tool_program, *send("#{tool}_flags"))
+                                    run('configure', tool_program, *send("#{tool}_flags"))
                                 end
                             end
                         end
@@ -290,7 +290,7 @@ module Autobuild
                     command += Array[*configureflags]
 
                     progress_start "configuring autotools for %s", :done_message => 'configured autotools for %s' do
-                        Subprocess.run(self, 'configure', *command)
+                        run('configure', *command)
                     end
                 end
             end
@@ -301,9 +301,9 @@ module Autobuild
             in_dir(builddir) do
                 progress_start "building %s [progress not available]", :done_message => 'built %s' do
                     if force_config_status
-                        Subprocess.run(self, 'build', './config.status')
+                        run('build', './config.status')
                     end
-                    Subprocess.run(self, 'build', Autobuild.tool(:make), "-j#{parallel_build_level}")
+                    run('build', Autobuild.tool(:make), "-j#{parallel_build_level}")
                 end
             end
             Autobuild.touch_stamp(buildstamp)
@@ -313,7 +313,7 @@ module Autobuild
         def install
             in_dir(builddir) do
                 progress_start "installing %s", :done_message => 'installed %s' do
-                    Subprocess.run(self, 'install', Autobuild.tool(:make), 'install')
+                    run('install', Autobuild.tool(:make), 'install')
                 end
             end
 

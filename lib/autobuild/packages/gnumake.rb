@@ -41,7 +41,7 @@ module Autobuild
     
     def self.make_subcommand(pkg, phase, *options, &block)
         invoke_make_parallel(pkg, Autobuild.tool(:make)) do |*make_parallel_options|
-            Subprocess.run(pkg, phase, Autobuild.tool(:make), *make_parallel_options, *options, &block)
+            pkg.run(phase, Autobuild.tool(:make), *make_parallel_options, *options, &block)
         end
     end
 end

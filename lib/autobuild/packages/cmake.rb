@@ -226,7 +226,7 @@ module Autobuild
             File.open(doxyfile, 'w') do |io|
                 io.write(doxyfile_data)
             end
-            Subprocess.run(self, 'doc', Autobuild.tool(:doxygen), doxyfile)
+            run('doc', Autobuild.tool(:doxygen), doxyfile)
         end
 
         def common_utility_handling(utility, target, start_msg, done_msg)
@@ -235,11 +235,11 @@ module Autobuild
                     if internal_doxygen_mode?
                         run_doxygen
                     else
-                        Subprocess.run(self, utility.name,
-                                       Autobuild.tool(:make),
-                                       "-j#{parallel_build_level}",
-                                       target,
-                                       :working_directory => builddir)
+                        run(utility.name,
+                            Autobuild.tool(:make),
+                            "-j#{parallel_build_level}",
+                            target,
+                            working_directory: builddir)
                     end
                     yield if block_given?
                 end
@@ -381,7 +381,7 @@ module Autobuild
                         if full_reconfigures?
                             FileUtils.rm_f cmake_cache
                         end
-                        Subprocess.run(self, 'configure', *command)
+                        run('configure', *command)
                     end
                 end
             end
@@ -412,7 +412,7 @@ module Autobuild
             in_dir(builddir) do
                 progress_start "building %s" do
                     if always_reconfigure || !File.file?('Makefile')
-                        Subprocess.run(self, 'build', Autobuild.tool(:cmake), '.')
+                        run('build', Autobuild.tool(:cmake), '.')
                     end
 
                     warning_count = 0
@@ -458,7 +458,7 @@ module Autobuild
         def install
             in_dir(builddir) do
                 progress_start "installing %s", :done_message => 'installed %s' do
-                    Subprocess.run(self, 'install', Autobuild.tool(:make), "-j#{parallel_build_level}", 'install')
+                    run('install', Autobuild.tool(:make), "-j#{parallel_build_level}", 'install')
                 end
             end
             super
