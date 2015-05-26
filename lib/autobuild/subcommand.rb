@@ -197,13 +197,15 @@ module Autobuild::Subprocess
         STDOUT.sync = true
 
         input_streams = []
-        options = Hash[retry: false, env: ENV]
+        options = Hash[retry: false, env: ENV.to_hash, env_inherit: true]
         if command.last.kind_of?(Hash)
             options = command.pop
             options = Kernel.validate_options options,
                 input: nil, working_directory: nil, retry: false,
                 input_streams: [],
-                env: ENV
+                env: ENV.to_hash,
+                env_inherit: true
+
             if options[:input]
                 input_streams << File.open(options[:input])
             end
@@ -251,10 +253,12 @@ module Autobuild::Subprocess
         Autobuild.register_logfile(logname)
         subcommand_output = Array.new
 
-        env = options[:env]
-        ENV.each do |k, v|
-            if !env.has_key?(k)
-                env[k] = v
+        env = options[:env].dup
+        if options[:env_inherit]
+            ENV.each do |k, v|
+                if !env.has_key?(k)
+                    env[k] = v
+                end
             end
         end
 
