@@ -447,8 +447,8 @@ module Autobuild
         end
 
         def each_env_search_path(prefix, patterns)
-            arch_names = Autobuild.arch_names
-            arch_size  = Autobuild.arch_size
+            arch_names = self.arch_names
+            arch_size  = self.arch_size
             
             seen = Set.new
             patterns.each do |base_path|
@@ -473,26 +473,53 @@ module Autobuild
             end
         end
 
-        def self.arch_size
+        def arch_size
             if @arch_size
                 return @arch_size
             end
 
-            @arch_size =
-                if RbConfig::CONFIG['host_cpu'] =~ /64/
-                    64
-                else 32
+            if File.file?('/usr/bin/dpkg-architecture')
+                cmdline = ['/usr/bin/dpkg-architecture']
+                if target_arch
+                    cmdline << "-T" << target_arch
                 end
+                arch = `#{cmdline.join(" ")}`.split.grep(/DEB_TARGET_ARCH_BITS/).first
+                if arch
+                    @arch_size = Integer(arch.chomp.split('=').last)
+                end
+            end
+
+            if !@arch_size
+                @arch_size =
+                    if RbConfig::CONFIG['host_cpu'] =~ /64/
+                        64
+                    else 32
+                    end
+            end
+            @arch_size
         end
 
-        def self.arch_names
+        def target_arch=(archname)
+            @target_arch = archname
+            @arch_size, @arch_names = nil
+        end
+
+        def target_arch
+            @target_arch
+        end
+
+        def arch_names
             if @arch_names
                 return @arch_names
             end
 
             result = Set.new
             if File.file?('/usr/bin/dpkg-architecture')
-                arch = `/usr/bin/dpkg-architecture`.split.grep(/DEB_BUILD_MULTIARCH/).first
+                cmdline = ['/usr/bin/dpkg-architecture']
+                if target_arch
+                    cmdline << "-T" << target_arch
+                end
+                arch = `#{cmdline.join(" ")}`.split.grep(/DEB_TARGET_MULTIARCH/).first
                 if arch
                     result << arch.chomp.split('=').last
                 end
@@ -665,30 +692,13 @@ module Autobuild
     end
 
     def self.arch_size
-        if @arch_size
-            return @arch_size
-        end
-
-        @arch_size =
-            if RbConfig::CONFIG['host_cpu'] =~ /64/
-                64
-            else 32
-            end
+        Autobuild.warn 'Autobuild.arch_size is deprecated, use Autobuild.env.arch_size instead'
+        env.arch_size
     end
 
     def self.arch_names
-        if @arch_names
-            return @arch_names
-        end
-
-        result = Set.new
-        if File.file?('/usr/bin/dpkg-architecture')
-            arch = `/usr/bin/dpkg-architecture`.split.grep(/DEB_BUILD_MULTIARCH/).first
-            if arch
-                result << arch.chomp.split('=').last
-            end
-        end
-        @arch_names = result
+        Autobuild.warn 'Autobuild.arch_names is deprecated, use Autobuild.env.arch_names instead'
+        env.arch_names
     end
 end
 
