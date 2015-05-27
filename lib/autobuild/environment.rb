@@ -46,7 +46,19 @@ module Autobuild
         if windows? then "%s"
         else ". \"%s\""
         end
-	
+
+    LIBRARY_PATH =
+      if macos? then 'DYLD_LIBRARY_PATH'
+      elsif windows? then 'PATH'
+      end
+
+    LIBRARY_SUFFIX =
+      if macos? then 'dylib'
+      elsif windows? then 'dll'
+      else 'so'
+      end
+
+
     class << self
         # List of the environment that should be set before calling a subcommand
         #
@@ -426,21 +438,11 @@ module Autobuild
             end
         end
 
-        library_path =
-          if macos? then 'DYLD_LIBRARY_PATH'
-          else 'LD_LIBRARY_PATH'
-          end
-
-        library_suffix =
-          if macos? then 'dylib'
-          else 'so'
-          end
-
-        if !includes || includes.include?(library_path)
+        if !includes || includes.include?(LIBRARY_PATH)
           ld_library_search = ['lib', 'lib/ARCH', 'libARCHSIZE']
           each_env_search_path(newprefix, ld_library_search) do |path|
-            if !Dir.glob(File.join(path, "lib*."+library_suffix)).empty?
-              env_add_path(library_path, path)
+            if !Dir.glob(File.join(path, "lib*.#{LIBRARY_SUFFIX}")).empty?
+              env_add_path(LIBRARY_PATH, path)
             end
           end
         end
