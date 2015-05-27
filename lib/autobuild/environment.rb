@@ -57,15 +57,16 @@ module Autobuild
         end
 
     LIBRARY_PATH =
-      if macos? then 'DYLD_LIBRARY_PATH'
-      elsif windows? then 'PATH'
-      end
+        if macos? then 'DYLD_LIBRARY_PATH'
+        elsif windows? then 'PATH'
+        else 'LD_LIBRARY_PATH'
+        end
 
     LIBRARY_SUFFIX =
-      if macos? then 'dylib'
-      elsif windows? then 'dll'
-      else 'so'
-      end
+        if macos? then 'dylib'
+        elsif windows? then 'dll'
+        else 'so'
+        end
 
 
     class << self
@@ -473,12 +474,12 @@ module Autobuild
         end
 
         if !includes || includes.include?(LIBRARY_PATH)
-          ld_library_search = ['lib', 'lib/ARCH', 'libARCHSIZE']
-          each_env_search_path(newprefix, ld_library_search) do |path|
-            if !Dir.glob(File.join(path, "lib*.#{LIBRARY_SUFFIX}")).empty?
-              env_add_path(LIBRARY_PATH, path)
+            ld_library_search = ['lib', 'lib/ARCH', 'libARCHSIZE']
+            each_env_search_path(newprefix, ld_library_search) do |path|
+                if !Dir.glob(File.join(path, "lib*.#{LIBRARY_SUFFIX}")).empty?
+                    env_add_path(LIBRARY_PATH, path)
+                end
             end
-          end
         end
 
         # Validate the new rubylib path
