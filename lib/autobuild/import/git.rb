@@ -710,9 +710,14 @@ module Autobuild
                         return
                     end
                 elsif commit_present_in?(package, pinned_state, current_head)
+                    if current_head != pinned_state
+                        Autoproj.warn "The package #{package.name} is not fixed anymore, it is newer than #{commit || tag}. To reset it call 'aup --reset --no-deps --local #{package.name}'"
+                    end
                     return
                 elsif merge_if_simple(package, pinned_state)
                     return
+                else
+                    raise PackageException.new(package, 'import'), "the local branch '#{local_branch}' and the requested pinned version from  #{commit || tag} of #{package.name} have diverged, and I therefore refuse to update automatically."
                 end
             end
 
