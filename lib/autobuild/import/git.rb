@@ -623,22 +623,36 @@ module Autobuild
             end
         end
 
-        def commit_pinning(package, target_commit, fetch_commit)
-            current_head = rev_parse(package, 'HEAD')
-
-            # Check whether the current HEAD is present on the remote
-            # repository. We'll refuse resetting if there are uncommitted
-            # changes
-            head_to_remote = merge_status(package, fetch_commit, current_head)
-            status_to_remote = head_to_remote.status
-            if status_to_remote == Status::ADVANCED || status_to_remote == Status::NEEDS_MERGE
-                raise ImporterCannotReset.new(package, 'import'), "branch #{local_branch} of #{package.name} contains commits that do not seem to be present on the branch #{remote_branch} of the remote repository. I can't go on as it could make you loose some stuff. Update the remote branch in your overrides, push your changes or reset to the remote commit manually before trying again"
-            end
-
-            head_to_target = merge_status(package, target_commit, current_head)
+        # Safely resets the current branch to a given commit
+        #
+        # This method safely resets the current branch to a given commit,
+        # not requiring a clean working copy (i.e. it can handle local changes).
+        #
+        # It verifies that the current HEAD will not be lost by the operation,
+        # either because it is included in the target commit or because it is
+        # present remotely
+        #
+        # @param [Package] package the package we handle
+        # @param [String] target_commit the commit we want to reset HEAD to
+        # @param [String] fetch_commit the state of the remote branch. This is
+        #   used to avoid losing commits if HEAD is not included in
+        #   target_commit
+        def reset_head_to_commit(package, target_commit, fetch_commit)
+            current_head     = rev_parse(package, 'HEAD')
+            head_to_target   = merge_status(package, target_commit, current_head)
             status_to_target = head_to_target.status
+
             if status_to_target == Status::UP_TO_DATE
                 return
+            elsif status_to_target == Status::SIMPLE_UPDATE
+                run_git(package, 'merge', target_commit)
+            else
+                # Check whether the current HEAD is present on the remote
+                # repository. We'll refuse resetting if there are uncommitted
+                # changes
+                if !commit_present_in?(package, current_head, fetch_commit)
+                    raise ImporterCannotReset.new(package, 'import'), "branch #{local_branch} of #{package.name} contains commits that do not seem to be present on the branch #{remote_branch} of the remote repository. I can't go on as it could make you loose some stuff. Update the remote branch in your overrides, push your changes or reset to the remote commit manually before trying again"
+                end
             end
 
             package.message "  %%s: resetting branch %s to %s" % [local_branch, target_commit.to_s]
@@ -706,8 +720,6 @@ module Autobuild
                 if options[:reset]
                     if current_head == pinned_state
                         return
-                    elsif merge_if_simple(package, pinned_state)
-                        return
                     end
                 elsif commit_present_in?(package, pinned_state, current_head)
                     return
@@ -718,7 +730,7 @@ module Autobuild
 
             fetch_commit ||= current_remote_commit(package, options[:only_local])
             if options[:reset]
-                commit_pinning(package, target_commit, fetch_commit)
+                reset_head_to_commit(package, target_commit, fetch_commit)
             else
                 merge_if_simple(package, target_commit)
             end
