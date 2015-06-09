@@ -42,9 +42,6 @@ samples/openrobots.autobuild
 test/data/cvsroot.tar
 test/data/gitrepo-with-extra-commit-and-tag.tar
 test/data/gitrepo.tar
-test/data/gitrepo/test
-test/data/gitrepo/test2
-test/data/gitrepo/test3
 test/data/svnroot.tar
 test/data/tarimport.tar.gz
 test/import/test_cvs.rb
