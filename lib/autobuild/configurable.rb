@@ -52,7 +52,6 @@ module Autobuild
         @builddir = 'build'
         
         def builddir=(new)
-            raise ConfigException.new(self), "absolute builddirs are not supported" if (Pathname.new(new).absolute?)
             raise ConfigException.new(self), "builddir must be non-empty" if new.empty?
             @builddir = new
         end
