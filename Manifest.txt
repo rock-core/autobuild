@@ -18,6 +18,7 @@ lib/autobuild/import/hg.rb
 lib/autobuild/import/svn.rb
 lib/autobuild/import/tar.rb
 lib/autobuild/importer.rb
+lib/autobuild/mail_reporter.rb
 lib/autobuild/package.rb
 lib/autobuild/packages/autotools.rb
 lib/autobuild/packages/cmake.rb
