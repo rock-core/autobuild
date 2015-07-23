@@ -188,27 +188,44 @@ module Autobuild
             env << EnvOp.new(:set, name, values)
         end
 
+        def env_add_prefix(prefix, includes = nil)
+            env << EnvOp.new(:add_prefix, prefix, [includes])
+        end
+
+        def update_environment
+            env_add_prefix prefix
+        end
+
         class IncompatibleEnvironment < ConfigException; end
+
+        def apply_env(env, set = Set.new)
+            self.env.each do |env_op|
+                if env_op.type == :set
+                    if last = set[env_op.name]
+                        last_pkg, last_values = *last
+                        if last_values != env_op.values
+                            raise IncompatibleEnvironment, "trying to reset #{name} to #{values} which conflicts with #{last_pkg.name} already setting it to #{last_values}"
+                        end
+                    else
+                        set[name] = [self, values]
+                    end
+                end
+                env.send(env_op.type, env_op.name, *env_op.values)
+            end
+        end
+
+        def resolve_dependency_env(env, set = Set.new)
+            all_dependencies.each do |pkg_name|
+                pkg = Autobuild::Package[pkg_name]
+                pkg.apply_env(env, set)
+            end
+        end
 
         def resolved_env(root = Autobuild.env)
             set = Hash.new
             env = root.dup
-            all_dependencies.each do |pkg_name|
-                pkg = Autobuild::Package[pkg_name]
-                pkg.env.each do |op, name, values|
-                    if op == :set
-                        if last = set[name]
-                            last_pkg, last_values = *last
-                            if last_values != values
-                                raise IncompatibleEnvironment, "trying to reset #{name} to #{values} which conflicts with #{last_pkg.name} already setting it to #{last_values}"
-                            end
-                        else
-                            set[name] = values
-                        end
-                    end
-                    env.send(op, name, *values)
-                end
-            end
+            resolve_dependency_env(env, set)
+            apply_env(env, set)
             env.resolved_env
         end
 
@@ -310,14 +327,6 @@ module Autobuild
 
             # Add the dependencies declared in spec
             depends_on(*@spec_dependencies) if @spec_dependencies
-            update_environment
-        end
-
-        # Called to set/update all environment variables at import and after
-        # install time
-        def update_environment
-            super if defined? super
-            Autobuild.update_environment prefix
         end
 
         # Create all the dependencies required to reconfigure and/or rebuild the
@@ -411,7 +420,6 @@ module Autobuild
             progress_done
 
             Autobuild.touch_stamp(installstamp)
-            update_environment
         end
 
         def run(*args, &block)

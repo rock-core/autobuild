@@ -527,8 +527,12 @@ module Autobuild
             @arch_names = result
         end
 
-        # Updates the environment when a new prefix has been added
         def update_environment(newprefix, includes = nil)
+            add_prefix(newprefix, includes)
+        end
+
+        # Updates the environment when a new prefix has been added
+        def add_prefix(newprefix, includes = nil)
             if !includes || includes.include?('PATH')
                 if File.directory?("#{newprefix}/bin")
                     add_path('PATH', "#{newprefix}/bin")

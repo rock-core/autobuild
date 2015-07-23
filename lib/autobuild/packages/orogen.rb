@@ -178,15 +178,10 @@ module Autobuild
         end
 
         def update_environment
-            super
             typelib_plugin = File.join(prefix, 'share', 'typelib', 'ruby')
-            if File.directory?(typelib_plugin)
-                Autobuild.env_add_path 'TYPELIB_RUBY_PLUGIN_PATH', typelib_plugin
-            end
+            env_add_path 'TYPELIB_RUBY_PLUGIN_PATH', typelib_plugin
             roby_plugin = File.join(prefix, 'share', 'orocos', 'roby')
-            if File.directory?(roby_plugin)
-                Autobuild.env_add_path 'OROCOS_ROBY_PLUGIN_PATH',  roby_plugin
-            end
+            env_add_path 'OROCOS_ROBY_PLUGIN_PATH',  roby_plugin
         end
 
         def prepare

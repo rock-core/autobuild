@@ -57,14 +57,6 @@ module Autobuild
 
         def install
             progress_start "setting up Ruby package %s", :done_message => 'set up Ruby package %s' do
-                Autobuild.update_environment srcdir
-                # Add lib/ unconditionally, as we know that it is a ruby package.
-                # update_environment will add it only if there is a .rb file in the directory
-                libdir = File.join(srcdir, 'lib')
-                if File.directory?(libdir)
-                    Autobuild.env_add_path 'RUBYLIB', libdir
-                end
-
                 invoke_rake
             end
             super
@@ -98,10 +90,10 @@ module Autobuild
         end
 
         def update_environment
-            Autobuild.update_environment srcdir
+            env_add_prefix srcdir
             libdir = File.join(srcdir, 'lib')
             if File.directory?(libdir)
-                Autobuild.env_add_path 'RUBYLIB', libdir
+                env_add_path 'RUBYLIB', libdir
             end
         end
     end
