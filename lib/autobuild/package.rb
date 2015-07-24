@@ -43,6 +43,8 @@ module Autobuild
         # The set of utilities attached to this package
         # @return [{String=>Utility}]
         attr_reader :utilities
+        # Whether {#apply_post_install} has been called
+        def applied_post_install?; !!@applied_post_install end
 	
 	# Sets importer object for this package. Defined for backwards compatibility.
 	# Use the #importer attribute instead
@@ -125,6 +127,7 @@ module Autobuild
             @statistics     = Hash.new
             @failures = Array.new
             @post_install_blocks = Array.new
+            @applied_post_install = false
             @in_dir_stack = Array.new
             @utilities = Hash.new
             @env = Array.new
@@ -474,14 +477,20 @@ module Autobuild
             Autobuild.progress_done(self)
         end
 
-        # Install the result in prefix
-        def install
+        def apply_post_install
             Autobuild.post_install_handlers.each do |b|
                 Autobuild.apply_post_install(self, b)
             end
             @post_install_blocks.each do |b|
                 Autobuild.apply_post_install(self, b)
             end
+            @applied_post_install = true
+        end
+
+        # Install the result in prefix
+        def install
+            apply_post_install
+
             # Safety net for forgotten progress_done
             progress_done
 
