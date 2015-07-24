@@ -176,28 +176,70 @@ module Autobuild
             @spec_dependencies = depends
 	end
 
+        # Add value(s) to a list-based environment variable
+        #
+        # This differs from {#env_add_path} in that a value can be added
+        # multiple times in the list.
+        #
+        # @param [String] name the environment variable name
+        # @param [Array<String>] values list of values to be added
+        # @return [void]
         def env_add(name, *values)
             env << EnvOp.new(:add, name, values)
         end
 
+        # Add a new path to a PATH-like environment variable
+        #
+        # It differs from {#env_add} in its handling of duplicate values.  Any
+        # value already existing will be removed, and re-appended to the value
+        # so that it takes priority.
+        #
+        # @param [String] name the environment variable name
+        # @param [Array<String>] values list of values. They will be joined
+        #   using the platform's standard separator (e.g. : on Unices)
+        # @return [void]
         def env_add_path(name, *values)
             env << EnvOp.new(:add_path, name, values)
         end
 
+        # Set an environment variable to a list of values
+        #
+        # @param [String] name the environment variable name
+        # @param [Array<String>] values list of values. They will be joined
+        #   using the platform's standard separator (e.g. : on Unices)
+        # @return [void]
         def env_set(name, *values)
             env << EnvOp.new(:set, name, values)
         end
 
+        # Add a prefix to be resolved into the environment
+        #
+        # Autoproj will update all "standard" environment variables based on
+        # what it finds as subdirectories from the prefix
         def env_add_prefix(prefix, includes = nil)
             env << EnvOp.new(:add_prefix, prefix, [includes])
         end
 
+        # Hook called by autoproj to set up the default environment for this
+        # package
+        #
+        # By default, it calls {#env_add_prefix} with this package's prefix
         def update_environment
             env_add_prefix prefix
         end
 
         class IncompatibleEnvironment < ConfigException; end
 
+        # Apply this package's environment to the given {Environment} object
+        #
+        # It does *not* apply the dependencies' environment. Call
+        # {#resolved_env} for that.
+        #
+        # @param [Environment] env the environment to be updated
+        # @param [Set] set a set of environment variable names which have
+        #   already been set by a {#env_set}. Autoproj will verify that only one
+        #   package sets a variable as to avoid unexpected conflicts.
+        # @return [void]
         def apply_env(env, set = Set.new)
             self.env.each do |env_op|
                 if env_op.type == :set
@@ -214,6 +256,8 @@ module Autobuild
             end
         end
 
+        # Updates an {Environment} object with the environment of the package's
+        # dependencies
         def resolve_dependency_env(env, set = Set.new)
             all_dependencies.each do |pkg_name|
                 pkg = Autobuild::Package[pkg_name]
@@ -221,6 +265,11 @@ module Autobuild
             end
         end
 
+        # Resolves this package's environment into Hash form
+        #
+        # @param [Environment] root the base environment object to update
+        # @return [Hash<String,String>] the full environment
+        # @see Autobuild::Environment#resolved_env
         def resolved_env(root = Autobuild.env)
             set = Hash.new
             env = root.dup
