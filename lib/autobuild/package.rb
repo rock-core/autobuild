@@ -176,6 +176,17 @@ module Autobuild
             @spec_dependencies = depends
 	end
 
+        # @api private
+        #
+        # Adds a new operation to this package's environment setup. This is a
+        # helper for the other env_* methods
+        #
+        # @param [EnvOp] op
+        # @return [void]
+        def add_env_op(op)
+            env << op
+        end
+
         # Add value(s) to a list-based environment variable
         #
         # This differs from {#env_add_path} in that a value can be added
@@ -185,7 +196,7 @@ module Autobuild
         # @param [Array<String>] values list of values to be added
         # @return [void]
         def env_add(name, *values)
-            env << EnvOp.new(:add, name, values)
+            add_env_op EnvOp.new(:add, name, values)
         end
 
         # Add a new path to a PATH-like environment variable
@@ -199,7 +210,7 @@ module Autobuild
         #   using the platform's standard separator (e.g. : on Unices)
         # @return [void]
         def env_add_path(name, *values)
-            env << EnvOp.new(:add_path, name, values)
+            add_env_op EnvOp.new(:add_path, name, values)
         end
 
         # Set an environment variable to a list of values
@@ -209,7 +220,7 @@ module Autobuild
         #   using the platform's standard separator (e.g. : on Unices)
         # @return [void]
         def env_set(name, *values)
-            env << EnvOp.new(:set, name, values)
+            add_env_op EnvOp.new(:set, name, values)
         end
 
         # Add a prefix to be resolved into the environment
@@ -217,7 +228,7 @@ module Autobuild
         # Autoproj will update all "standard" environment variables based on
         # what it finds as subdirectories from the prefix
         def env_add_prefix(prefix, includes = nil)
-            env << EnvOp.new(:add_prefix, prefix, [includes])
+            add_env_op EnvOp.new(:add_prefix, prefix, [includes])
         end
 
         # Hook called by autoproj to set up the default environment for this
@@ -239,9 +250,11 @@ module Autobuild
         # @param [Set] set a set of environment variable names which have
         #   already been set by a {#env_set}. Autoproj will verify that only one
         #   package sets a variable as to avoid unexpected conflicts.
-        # @return [void]
-        def apply_env(env, set = Set.new)
+        # @return [Array<EnvOp>] list of environment-modifying operations
+        #   applied so far
+        def apply_env(env, set = Set.new, ops = Array.new)
             self.env.each do |env_op|
+                next if ops.last == env_op
                 if env_op.type == :set
                     if last = set[env_op.name]
                         last_pkg, last_values = *last
@@ -253,16 +266,19 @@ module Autobuild
                     end
                 end
                 env.send(env_op.type, env_op.name, *env_op.values)
+                ops << env_op
             end
+            ops
         end
 
         # Updates an {Environment} object with the environment of the package's
         # dependencies
-        def resolve_dependency_env(env, set = Set.new)
+        def resolve_dependency_env(env, set = Set.new, ops = Array.new)
             all_dependencies.each do |pkg_name|
                 pkg = Autobuild::Package[pkg_name]
-                pkg.apply_env(env, set)
+                ops = pkg.apply_env(env, set, ops)
             end
+            ops
         end
 
         # Resolves this package's environment into Hash form
@@ -273,8 +289,9 @@ module Autobuild
         def resolved_env(root = Autobuild.env)
             set = Hash.new
             env = root.dup
-            resolve_dependency_env(env, set)
-            apply_env(env, set)
+            ops = Array.new
+            ops = resolve_dependency_env(env, set, ops)
+            apply_env(env, set, ops)
             env.resolved_env
         end
 
