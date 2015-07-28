@@ -286,7 +286,7 @@ module Autobuild
         #       also used to infer the mode
         # [:mode] The unpack mode: one of Zip, Bzip, Gzip or Plain, this is
         #       usually automatically inferred from the filename
-        def initialize(url, options)
+        def initialize(url, options = Hash.new)
             sourceopts, options = Kernel.filter_options options,
                 :source_id, :repository_id, :filename, :mode
             super(options)
@@ -426,7 +426,9 @@ module Autobuild
         rescue OpenURI::HTTPError
             raise Autobuild::PackageException.new(package.name, :import)
         rescue SubcommandFailed
-            FileUtils.rm_f cachefile
+            if cachefile != url.path
+                FileUtils.rm_f cachefile
+            end
             raise
         end
     end
