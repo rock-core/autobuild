@@ -302,13 +302,13 @@ module Autobuild
 
         # Changes the URL from which we should pick the archive
         def relocate(url, options = Hash.new)
-            parsed_url = URI.parse(url)
+            parsed_url = URI.parse(url).normalize
             @url = parsed_url
             if !VALID_URI_SCHEMES.include?(@url.scheme)
                 raise ConfigException, "invalid URL #{@url} (local files must be prefixed with file://)" 
             end
-            @repository_id = options[:repository_id] || parsed_url
-            @source_id = options[:source_id] || parsed_url
+            @repository_id = options[:repository_id] || parsed_url.to_s
+            @source_id = options[:source_id] || parsed_url.to_s
 
             @filename = options[:filename] || @filename || File.basename(url).gsub(/\?.*/, '')
 
