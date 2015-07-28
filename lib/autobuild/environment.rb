@@ -531,6 +531,24 @@ module Autobuild
             add_prefix(newprefix, includes)
         end
 
+        # Returns the system-wide search path that is embedded in pkg-config
+        def default_pkgconfig_search_suffixes
+            found_path_rx = /Scanning directory '(.*\/)((?:lib|lib64|share)\/.*)'$/
+            nonexistent_path_rx = /Cannot open directory '.*\/((?:lib|lib64|share)\/.*)' in package search path:.*/
+
+            if !@default_pkgconfig_search_suffixes
+                output = `LANG=C PKG_CONFIG_PATH= #{Autobuild.tool("pkg-config")} --debug 2>&1`.split("\n")
+                found_paths = output.grep(found_path_rx).
+                    map { |l| l.gsub(found_path_rx, '\2') }.
+                    to_set
+                not_found = output.grep(nonexistent_path_rx).
+                    map { |l| l.gsub(nonexistent_path_rx, '\1') }.
+                    to_set
+                @default_pkgconfig_search_suffixes = found_paths | not_found
+            end
+            return @default_pkgconfig_search_suffixes
+        end
+
         # Updates the environment when a new prefix has been added
         def add_prefix(newprefix, includes = nil)
             if !includes || includes.include?('PATH')
@@ -540,8 +558,7 @@ module Autobuild
             end
 
             if !includes || includes.include?('PKG_CONFIG_PATH')
-                pkg_config_search = ['lib/pkgconfig', 'lib/ARCH/pkgconfig', 'libARCHSIZE/pkgconfig']
-                each_env_search_path(newprefix, pkg_config_search) do |path|
+                each_env_search_path(newprefix, default_pkgconfig_search_suffixes) do |path|
                     add_path('PKG_CONFIG_PATH', path)
                 end
             end
