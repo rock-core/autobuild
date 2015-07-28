@@ -288,7 +288,7 @@ module Autobuild
         #       also used to infer the mode
         # [:mode] The unpack mode: one of Zip, Bzip, Gzip or Plain, this is
         #       usually automatically inferred from the filename
-        def initialize(url, options)
+        def initialize(url, options = Hash.new)
             sourceopts, options = Kernel.filter_options options,
                 :source_id, :repository_id, :filename, :mode
             super(options)
@@ -304,13 +304,13 @@ module Autobuild
 
         # Changes the URL from which we should pick the archive
         def relocate(url, options = Hash.new)
-            parsed_url = URI.parse(url)
+            parsed_url = URI.parse(url).normalize
             @url = parsed_url
             if !VALID_URI_SCHEMES.include?(@url.scheme)
                 raise ConfigException, "invalid URL #{@url} (local files must be prefixed with file://)" 
             end
-            @repository_id = options[:repository_id] || parsed_url
-            @source_id = options[:source_id] || parsed_url
+            @repository_id = options[:repository_id] || parsed_url.to_s
+            @source_id = options[:source_id] || parsed_url.to_s
 
             @filename = options[:filename] || @filename || File.basename(url).gsub(/\?.*/, '')
 
@@ -428,7 +428,9 @@ module Autobuild
         rescue OpenURI::HTTPError
             raise Autobuild::PackageException.new(package.name, :import)
         rescue SubcommandFailed
-            FileUtils.rm_f cachefile
+            if cachefile != url.path
+                FileUtils.rm_f cachefile
+            end
             raise
         end
     end

@@ -82,6 +82,7 @@ class Importer
     # two git importers that point to the same repository but different branches
     # would have the same repository_id but different source_id
     #
+    # @return [String]
     # @see source_id
     attr_reader :repository_id
 
@@ -92,6 +93,7 @@ class Importer
     # point to the same repository but different branches would have the same
     # repository_id but different source_id
     #
+    # @return [String]
     # @see repository_id
     attr_reader :source_id
 

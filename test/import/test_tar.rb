@@ -25,6 +25,25 @@ class TC_TarImporter < Minitest::Test
         assert_equal(TarImporter::Bzip, TarImporter.filename_to_mode('tarfile.tar.bz2'))
     end
 
+    def test_it_sets_the_repository_id_to_the_normalized_URL
+        importer = TarImporter.new "FILE://test/file"
+        assert_equal "file://test/file", importer.repository_id.to_str
+    end
+
+    def test_it_sets_the_source_id_to_the_normalized_URL
+        importer = TarImporter.new "FILE://test/file"
+        assert_equal "file://test/file", importer.source_id.to_str
+    end
+
+    def test_it_does_not_delete_a_locally_specified_archive_on_error
+        dummy_tar = File.join(@datadir, "dummy.tar")
+        FileUtils.touch dummy_tar
+        importer = TarImporter.new "file://#{dummy_tar}"
+        pkg = Package.new 'tarimport'
+        assert_raises(Autobuild::SubcommandFailed) { importer.checkout(pkg) }
+        assert File.file?(dummy_tar)
+    end
+
     def test_tar_valid_url
         assert_raises(ConfigException) {
             TarImporter.new 'ccc://localhost/files/tarimport.tar.gz', :cachedir => @cachedir
