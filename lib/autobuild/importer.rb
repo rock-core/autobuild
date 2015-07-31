@@ -72,6 +72,7 @@ class Importer
         @options = options.dup
         @options[:retry_count] = Integer(@options[:retry_count] || 0)
         @repository_id = options[:repository_id] || "#{self.class.name}:#{object_id}"
+        @interactive = options[:interactive]
         @source_id = options[:source_id] || @repository_id
     end
 
@@ -96,6 +97,10 @@ class Importer
     # @return [String]
     # @see repository_id
     attr_reader :source_id
+
+    # Whether this importer will need interaction with the user, for instance to
+    # give credentials
+    def interactive?; !!@interactive end
 
     # The number of times update / checkout should be retried before giving up.
     # The default is 0 (do not retry)
