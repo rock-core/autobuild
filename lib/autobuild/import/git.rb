@@ -652,7 +652,9 @@ module Autobuild
         # @param [String] fetch_commit the state of the remote branch. This is
         #   used to avoid losing commits if HEAD is not included in
         #   target_commit
-        def reset_head_to_commit(package, target_commit, fetch_commit)
+        # @option options [Boolean] force (false) bypasses checks that verify
+        #   that some commits won't be lost by resetting
+        def reset_head_to_commit(package, target_commit, fetch_commit, options = Hash.new)
             current_head     = rev_parse(package, 'HEAD')
             head_to_target   = merge_status(package, target_commit, current_head)
             status_to_target = head_to_target.status
@@ -661,7 +663,7 @@ module Autobuild
                 return
             elsif status_to_target == Status::SIMPLE_UPDATE
                 run_git(package, 'merge', target_commit)
-            else
+            elsif !options[:force]
                 # Check whether the current HEAD is present on the remote
                 # repository. We'll refuse resetting if there are uncommitted
                 # changes
@@ -745,7 +747,7 @@ module Autobuild
 
             fetch_commit ||= current_remote_commit(package, options[:only_local])
             if options[:reset]
-                reset_head_to_commit(package, target_commit, fetch_commit)
+                reset_head_to_commit(package, target_commit, fetch_commit, force: (options[:reset] == :force))
             else
                 merge_if_simple(package, target_commit)
             end
