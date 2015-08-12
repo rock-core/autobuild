@@ -298,7 +298,13 @@ module Autobuild
 
             rescue Autobuild::Exception => e
                 error(e)
-                exit(1) if e.fatal?
+                if e.fatal?
+                    if Autobuild.debug
+                        raise
+                    else
+                        exit 1
+                    end
+                end
             end
         end
         
