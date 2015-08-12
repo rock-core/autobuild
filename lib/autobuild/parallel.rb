@@ -229,6 +229,7 @@ module Autobuild
         end
 
         def resolve_cycle(tasks)
+            cycle = tasks.dup
             chain = []
             next_task = tasks.first
             while true
@@ -244,7 +245,7 @@ module Autobuild
                     end
                 end
                 if !next_task
-                    raise "something fishy while resolving a cycle in #{tasks.map(&:name).join(", ")}. Some of these packages might have added new dependencies during the task resolution, which is forbidden"
+                    raise "something fishy while resolving a cycle in #{cycle.map(&:name).join(", ")}. Some of these packages might have added new dependencies during the task resolution, which is forbidden"
                 end
             end
             chain
