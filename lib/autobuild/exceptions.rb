@@ -117,5 +117,12 @@ module Autobuild
             msg
         end
     end
+
+    # Exception raised in contexts where user interaction is forbidden but
+    # required by the import/build process
+    #
+    # This is for instance used during package import if the importer has to ask
+    # the user a question and allow_interactive is false
+    class InteractionRequired < RuntimeError; end
 end
 

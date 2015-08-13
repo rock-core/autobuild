@@ -212,7 +212,7 @@ module Autobuild
             run_svn(package, 'up', "--non-interactive", *options_up)
         end
 
-        def checkout(package) # :nodoc:
+        def checkout(package, options = Hash.new) # :nodoc:
             run_svn(package, 'co', "--non-interactive", *@options_co, svnroot, package.importdir,
                     working_directory: nil)
         end

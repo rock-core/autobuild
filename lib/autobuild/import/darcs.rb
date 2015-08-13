@@ -36,7 +36,7 @@ module Autobuild
 	       'pull', '--all', "--repodir=#{package.srcdir}", '--set-scripts-executable', @source, *@pull, retry: true)
         end
 
-        def checkout(package) # :nodoc:
+        def checkout(package, options = Hash.new) # :nodoc:
 	    basedir = File.dirname(package.srcdir)
 	    unless File.directory?(basedir)
 		FileUtils.mkdir_p(basedir)

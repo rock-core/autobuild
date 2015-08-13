@@ -334,7 +334,7 @@ module Autobuild
             end
 
             if needs_update || archive_changed?(package)
-                checkout(package)
+                checkout(package, allow_interactive: options[:allow_interactive])
             end
         rescue OpenURI::HTTPError
             raise Autobuild::Exception.new(package.name, :import)
@@ -357,7 +357,10 @@ module Autobuild
             checkout_digest != cachefile_digest
         end
 
-        def checkout(package) # :nodoc:
+        def checkout(package, options = Hash.new) # :nodoc:
+            options = Kernel.validate_options options,
+                allow_interactive: true
+
             update_cache(package)
 
             # Check whether the archive file changed, and if that is the case
@@ -365,7 +368,7 @@ module Autobuild
             if File.file?(checkout_digest_stamp(package)) && archive_changed?(package)
                 if ArchiveImporter.auto_update?
                     response = 'yes'
-                else
+                elsif options[:allow_interactive]
                     package.progress_done
                     package.message "The archive #{@url.to_s} is different from the one currently checked out at #{package.srcdir}", :bold
                     package.message "I will have to delete the current folder to go on with the update"
@@ -375,6 +378,8 @@ module Autobuild
                         q.default = 'yes'
                         q.case = :downcase
                     end
+                else
+                    raise Autobuild::InteractionRequired, "importing #{package.name} would have required user interaction and allow_interactive is false"
                 end
 
                 if response == "no"

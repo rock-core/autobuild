@@ -211,11 +211,11 @@ class Importer
         fallback(e, package, :import, package)
     end
 
-    def perform_checkout(package)
+    def perform_checkout(package, options = Hash.new)
         package.progress_start "checking out %s", :done_message => 'checked out %s' do
             retry_count = 0
             begin
-                checkout(package)
+                checkout(package, options)
             rescue Interrupt
                 raise
             rescue ::Exception => original_error
@@ -275,7 +275,8 @@ class Importer
             only_local: false,
             reset: false,
             checkout_only: false,
-            ignore_errors: false
+            ignore_errors: false,
+            allow_interactive: true
         ignore_errors = options.delete(:ignore_errors)
 
         importdir = package.importdir
@@ -295,7 +296,7 @@ class Importer
             raise ConfigException.new(package, 'import'), "#{importdir} exists but is not a directory"
         else
             package.isolate_errors(mark_as_failed: true, ignore_errors: ignore_errors) do
-                perform_checkout(package)
+                perform_checkout(package, allow_interactive: options[:allow_interactive])
             end
         end
     end

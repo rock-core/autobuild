@@ -776,7 +776,7 @@ module Autobuild
             nil
         end
 
-        def checkout(package)
+        def checkout(package, options = Hash.new)
             base_dir = File.expand_path('..', package.importdir)
             if !File.directory?(base_dir)
                 FileUtils.mkdir_p base_dir

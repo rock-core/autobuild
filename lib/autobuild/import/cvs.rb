@@ -61,7 +61,7 @@ module Autobuild
                         retry: true, working_directory: package.importdir)
         end
 
-        def checkout(package) # :nodoc:
+        def checkout(package, options = Hash.new) # :nodoc:
             head, tail = File.split(package.srcdir)
             cvsroot = @root
                
