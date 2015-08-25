@@ -364,11 +364,35 @@ module Autobuild
             end
         end
 
+        # Resolve a commit ref to a tag or commit ID
+        def describe_rev(package, rev)
+            tag = run_git_bare(package, 'describe', '--tags', '--exact-match', rev).first.strip
+            return true, tag.encode('UTF-8')
+        rescue Autobuild::SubcommandFailed
+            commit = rev_parse(package, rev)
+            return false, commit.encode('UTF-8')
+        end
+
+        # Enumerates the ref that are present on the remote
+        #
+        # @yieldparam [String] ref_name the ref name
+        # @yieldparam [String] commit_id the ref's commit ID
+        def each_remote_ref(package)
+            return enum_for(__method__, package) if !block_given?
+            run_git_bare(package, 'ls-remote', remote_name).each do |line|
+                commit_id, ref_name = line.split(/\s+/)
+                yield(ref_name, commit_id)
+            end
+        end
+
         # Fetches updates from the remote repository. Returns the remote commit
         # ID on success, nil on failure. Expects the current directory to be the
         # package's source directory.
-        def fetch_remote(package)
+        def fetch_remote(package, options = Hash.new)
             validate_importdir(package)
+            options = Kernel.validate_options options,
+                refspec: remote_branch || tag
+
             git_dir = git_dir(package, false)
 
             # If we are checking out a specific commit, we don't know which
@@ -381,7 +405,7 @@ module Autobuild
             # Doing it now is better as it makes sure that we replace the
             # configuration parameters only if the repository and branch are
             # OK (i.e. we keep old working configuration instead)
-            refspec = [branch || tag].compact
+            refspec = Array(options[:refspec])
             run_git_bare(package, 'fetch', '--tags', repository, *refspec, retry: true)
 
             update_remotes_configuration(package)
@@ -553,7 +577,7 @@ module Autobuild
         # Tests whether a commit is already present in a given history
         #
         # @param [Package] the package we are working on
-        # @param [String] commit the commit ID we want to verify the presence of
+        # @param [String] rev what we want to verify the presence of
         # @param [String] reference the reference commit. The method tests that
         #   'commit' is present in the history of 'reference'
         #
@@ -567,6 +591,71 @@ module Autobuild
             rescue Exception => e
                 raise PackageException.new(package, 'import'), "failed to find the merge-base between #{rev} and #{reference}. Are you sure these commits exist ?"
             end
+        end
+
+        # Finds a remote reference that contains a commit
+        #
+        # It will favor the configured {#remote_branch} if it matches
+        #
+        # @param [Autobuild::Package] package the package we are working on
+        # @param [String] commit_id the commit ID (can be a rev)
+        # @return [String] a remote ref
+        # @raise [PackageException] if there is no such commit on the remote
+        def describe_commit_on_remote(package, rev = 'HEAD', options = Hash.new)
+            rev = rev.to_str
+            options = Kernel.validate_options options,
+                tags: true
+
+            commit_id = rev_parse(package, rev)
+
+            remote_refs = Hash[*each_remote_ref(package).to_a.flatten]
+            remote_branch_ref = "refs/heads/#{remote_branch}"
+            remote_branch_id = remote_refs.delete(remote_branch_ref)
+            begin
+                if commit_present_in?(package, commit_id, remote_branch_id)
+                    return remote_branch
+                end
+            rescue PackageException # We have to fetch. Fetch all branches at once
+                fetch_remote(package, refspec: [remote_branch_ref, *remote_refs.keys])
+                if commit_present_in?(package, commit_id, remote_branch_id)
+                    return remote_branch
+                end
+            end
+
+            if !options[:tags]
+                remote_refs.delete_if { |r| r =~ /^refs\/tags\// }
+            end
+
+            # Prefer tags, then heads, then the rest (e.g. github pull requests)
+            remote_refs = remote_refs.sort_by do |rev_name, rev_id|
+                case rev_name
+                when /^refs\/tags\// then 0
+                when /^refs\/heads\// then 1
+                else 2
+                end
+            end
+
+            remote_refs.delete_if do |rev_name, rev_id|
+                begin
+                    if commit_present_in?(package, commit_id, rev_id)
+                        return rev_name
+                    end
+                    true
+                rescue PackageException
+                    false
+                end
+            end
+
+            if !remote_refs.empty?
+                fetch_remote(package, refspec: remote_refs.map(&:first))
+                remote_refs.each do |rev_name, rev_id|
+                    if commit_present_in?(package, commit_id, rev_id)
+                        return rev_name
+                    end
+                end
+            end
+
+            raise PackageException.new(package), "current HEAD (#{commit_id}) does not seem to be present on the remote"
         end
 
         # Computes the update status to update a branch whose tip is at
