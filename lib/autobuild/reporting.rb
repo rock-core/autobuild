@@ -102,11 +102,12 @@ module Autobuild
 
         if block_given?
             begin
-                yield
+                result = yield
                 if options[:done_message] && has_progress_for?(key)
                     progress(key, *options[:done_message])
                 end
                 progress_done(key, true)
+                result
             rescue Exception
                 progress_done(key, false)
                 raise
