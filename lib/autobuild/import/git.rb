@@ -421,7 +421,7 @@ module Autobuild
             end
 
             # Update the remote tag if needs be
-            if branch && commit_id
+            if remote_branch && commit_id
                 run_git_bare(package, 'update-ref', "-m", "updated by autobuild", "refs/remotes/#{remote_name}/#{remote_branch}", commit_id)
             end
 
@@ -887,8 +887,18 @@ module Autobuild
 
         # Changes the repository this importer is pointing to
         def relocate(repository, options = Hash.new)
+            options = Hash[options.map { |k, v| [k.to_sym, v] }]
+
             @push_to = options[:push_to] || @push_to
-            @branch = options[:branch] || @branch || 'master'
+            @branch = @local_branch = @remote_branch = nil
+            local_branch  = options[:local_branch]  || options[:branch] || local_branch || 'master'
+            remote_branch = options[:remote_branch] || options[:branch] || remote_branch || 'master'
+            if local_branch == remote_branch
+                @branch = local_branch
+            else
+                @local_branch = local_branch
+                @remote_branch = remote_branch
+            end
             @tag    = options[:tag] || @tag
             @commit = options[:commit] || @commit
 
@@ -896,7 +906,7 @@ module Autobuild
             @repository_id = options[:repository_id] ||
                 "git:#{@repository}"
             @source_id = options[:source_id] ||
-                "#{@repository_id} branch=#{self.branch} tag=#{self.tag} commit=#{self.commit}"
+                "#{@repository_id} branch=#{remote_branch} tag=#{self.tag} commit=#{self.commit}"
         end
 
         # Tests whether the given directory is a git repository
