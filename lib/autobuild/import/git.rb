@@ -469,6 +469,13 @@ module Autobuild
             remote_commit = current_remote_commit(package, only_local)
             status = merge_status(package, remote_commit)
             status.uncommitted_code = self.class.has_uncommitted_changes?(package)
+            if current_branch = self.current_branch(package)
+                if current_branch != "refs/heads/#{local_branch}"
+                    status.unexpected_working_copy_state << "working copy is on branch #{current_branch}, the autoproj configuration expected it to be on #{local_branch}"
+                end
+            else
+                status.unexpected_working_copy_state << "working copy is on a detached HEAD"
+            end
             status
         end
 

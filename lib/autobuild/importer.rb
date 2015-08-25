@@ -45,6 +45,14 @@ class Importer
         attr_accessor :status
         # True if there is code in the working copy that is not committed
         attr_accessor :uncommitted_code
+        # A list of messages describing differences between the local working
+        # copy and its expected state
+        #
+        # On git, it would for instance mention that currently checked out
+        # branch is not the one autoproj expects
+        #
+        # @return [Array<String>]
+        attr_reader :unexpected_working_copy_state
 
         # An array of strings that represent commits that are in the remote
         # repository and not in this one (would be merged by an update)
@@ -55,6 +63,7 @@ class Importer
 
         def initialize(status = -1)
             @status = status
+            @unexpected_working_copy_state = Array.new
             @uncommitted_code = false
             @remote_commits = Array.new
             @local_commits  = Array.new
