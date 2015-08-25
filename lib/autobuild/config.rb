@@ -275,7 +275,10 @@ module Autobuild
             utilities.keys
     end
 
-    def self.apply(packages, buildname = "autobuild", phases = [])
+    def self.apply(packages, buildname = "autobuild", phases = [], options = Hash.new)
+        options = Kernel.validate_options options,
+            parallel: Autobuild.parallel_build_level
+
         if Autobuild.mail[:to]
             if !Autobuild::HAS_RMAIL
                 Autobuild.warn "RMail is not available. Mail notification is disabled"
@@ -322,7 +325,7 @@ module Autobuild
         end
 
         begin
-            invoker = Autobuild::RakeTaskParallelism.new
+            invoker = Autobuild::RakeTaskParallelism.new(options[:parallel])
             Autobuild.parallel_task_manager = invoker
             phases.each do |phase|
                 invoker.invoke_parallel([Rake::Task["#{buildname}-#{phase}"]])
