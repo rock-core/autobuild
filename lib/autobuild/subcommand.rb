@@ -197,14 +197,15 @@ module Autobuild::Subprocess
         STDOUT.sync = true
 
         input_streams = []
-        options = Hash[retry: false, env: ENV.to_hash, env_inherit: true]
+        options = Hash[retry: false, env: ENV.to_hash, env_inherit: true, encoding: 'BINARY']
         if command.last.kind_of?(Hash)
             options = command.pop
             options = Kernel.validate_options options,
                 input: nil, working_directory: nil, retry: false,
                 input_streams: [],
                 env: ENV.to_hash,
-                env_inherit: true
+                env_inherit: true,
+                encoding: 'BINARY'
 
             if options[:input]
                 input_streams << File.open(options[:input])
@@ -246,9 +247,7 @@ module Autobuild::Subprocess
                     elsif Autobuild.registered_logfile?(logname) then 'a'
                     else 'w'
                     end
-        if defined? Encoding
-            open_flag << ":BINARY"
-        end
+        open_flag << ":BINARY"
 
         Autobuild.register_logfile(logname)
         subcommand_output = Array.new
@@ -385,7 +384,7 @@ module Autobuild::Subprocess
             # line-by-line.
             outwrite.close
             outread.each_line do |line|
-                line.force_encoding('BINARY')
+                line.force_encoding(options[:encoding])
                 line = line.chomp
                 subcommand_output << line
 
