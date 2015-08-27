@@ -1,9 +1,3 @@
-require 'optparse'
-require 'rake'
-require 'singleton'
-require 'highline'
-require 'autobuild/tools'
-
 # Evaluates +script+ in autobuild context
 def Autobuild(&script)
     Autobuild.send(:module_eval, &script)
@@ -82,9 +76,6 @@ module Autobuild
 	# The directory in which logs are saved. Defaults to PREFIX/log.
         attr_writer :logdir
 
-        # A HighLine object that allows to colorize the output
-        attr_reader :console
-
         # True if we build and if the build is applied on all packages
         def full_build?
             do_build && !only_doc && packages.empty?
@@ -94,22 +85,19 @@ module Autobuild
     register_utility_class 'doc', Utility, disabled_by_default: false
     register_utility_class 'test', Utility, disabled_by_default: true
 
-    @console = HighLine.new
-
+    @colorizer = Pastel.new
     class << self
-        attr_writer :color
+        def color=(flag)
+            @colorizer = Pastel.new(enabled: flag)
+        end
+
         def color?
-            !!@color
+            @colorizer.enabled?
         end
     end
-    @color = true
 
-    def self.color(*args)
-        if color?
-            console.color(*args)
-        else
-            args.first
-        end
+    def self.color(message, *style)
+        @colorizer.decorate(message, *style)
     end
 
     DEFAULT_OPTIONS = { :nice => nil,

@@ -16,7 +16,8 @@ Utilrb::Rake.hoe do
         self.extra_deps <<
             ['rake', '>= 0.9.0'] <<
             ['utilrb', '>= 1.6.0'] <<
-            ['highline', '>= 0']
+            ['pastel', '>= 0.4.0'] <<
+            ['tty', '>= 0.2.0']
 
         self.test_globs = ['test/suite.rb']
     end

@@ -372,17 +372,14 @@ module Autobuild
                     package.progress_done
                     package.message "The archive #{@url.to_s} is different from the one currently checked out at #{package.srcdir}", :bold
                     package.message "I will have to delete the current folder to go on with the update"
-                    response = HighLine.new.ask "  Continue (yes or no) ? If no, this update will be ignored, which can lead to build problems.", String do |q|
-                        q.overwrite = true
-                        q.in = ['yes', 'no']
-                        q.default = 'yes'
-                        q.case = :downcase
-                    end
+                    response = TTY::Shell.new.ask "  Continue (yes or no) ? If no, this update will be ignored, which can lead to build problems." do
+                        modify :downcase
+                    end.read_string
                 else
                     raise Autobuild::InteractionRequired, "importing #{package.name} would have required user interaction and allow_interactive is false"
                 end
 
-                if response == "no"
+                if response == 'no' || response == 'n'
                     package.message "not updating #{package.srcdir}"
                     package.progress_done
                     return
