@@ -379,7 +379,7 @@ module Autobuild
         # @yieldparam [String] commit_id the ref's commit ID
         def each_remote_ref(package)
             return enum_for(__method__, package) if !block_given?
-            run_git_bare(package, 'ls-remote', remote_name).each do |line|
+            run_git_bare(package, 'ls-remote', repository).each do |line|
                 commit_id, ref_name = line.split(/\s+/)
                 yield(ref_name, commit_id)
             end
