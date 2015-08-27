@@ -381,7 +381,9 @@ module Autobuild
             return enum_for(__method__, package) if !block_given?
             run_git_bare(package, 'ls-remote', repository).each do |line|
                 commit_id, ref_name = line.split(/\s+/)
-                yield(ref_name, commit_id)
+                if ref_name !~ /\^/
+                    yield(ref_name, commit_id)
+                end
             end
         end
 
