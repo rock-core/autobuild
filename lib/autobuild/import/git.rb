@@ -352,9 +352,21 @@ module Autobuild
             end
         end
 
+        # Enumerates the remotes that this importer would set up on the
+        # repository
+        #
+        # @yieldparam [String] remote_name the remote name
+        # @yieldparam [String] url the remote URL
+        # @yieldparam [String] push_to the remote push-to URL
+        def each_configured_remote
+            ([['autobuild', repository, push_to]] + additional_remotes).each do |args|
+                yield(args[0], args[1], args[2] || args[1])
+            end
+        end
+
         # Updates the git repository's configuration for the target remote
         def update_remotes_configuration(package)
-            ([['autobuild', repository, push_to]] + additional_remotes).each do |args|
+            each_configured_remote do |*args|
                 setup_remote(package, *args)
             end
 
