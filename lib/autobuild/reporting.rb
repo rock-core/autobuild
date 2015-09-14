@@ -288,9 +288,7 @@ module Autobuild
                 # it
                 errors = []
                 Autobuild::Package.each do |name, pkg|
-                    if pkg.failed?
-                        errors.concat(pkg.failures)
-                    end
+                    errors.concat(pkg.failures)
                 end
 
                 if !errors.empty?
