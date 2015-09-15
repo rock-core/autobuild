@@ -46,6 +46,10 @@ module Autobuild
                 retry: false
             super(target, phase, options.merge(other_options))
         end
+
+        def to_s
+            super + "\nIf the VCS type changed, please delete your working copy first."
+        end
     end
     ## An error occured in a package
     class PackageException < Exception
