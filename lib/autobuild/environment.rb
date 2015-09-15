@@ -19,11 +19,16 @@ module Autobuild
 
     @freebsd = RbConfig::CONFIG["host_os"].include?('freebsd') 
     def self.freebsd?
-	@freebsd
+        @freebsd
     end
 
     def self.bsd?
-	@freebsd || @macos #can be extended to some other OSes liek NetBSD
+        @freebsd || @macos #can be extended to some other OSes liek NetBSD
+    end
+
+    @msys =  RbConfig::CONFIG["host_os"] =~%r!(msys)!
+    def self.msys?
+        @msys
     end
 
     SYSTEM_ENV = Hash.new
