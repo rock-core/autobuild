@@ -1,3 +1,11 @@
+== Version 1.10.0
+
+Apart from a bunch of extensions to the Git importer API, and a host of
+bugfixes, the main change is a modularized environment handling. Environment can
+now be declared on a per-package basis, and commands executed through
+Package#run will get the environment as stored in their package and its
+dependencies, instead of always using a global environment.
+
 == Version 1.7.1
 * fix problems with encoding of subcommand output
 
