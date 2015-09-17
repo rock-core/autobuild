@@ -911,9 +911,9 @@ module Autobuild
             options = Hash[options.map { |k, v| [k.to_sym, v] }]
 
             @push_to = options[:push_to] || @push_to
+            local_branch  = options[:local_branch]  || options[:branch] || self.local_branch || 'master'
+            remote_branch = options[:remote_branch] || options[:branch] || self.remote_branch || 'master'
             @branch = @local_branch = @remote_branch = nil
-            local_branch  = options[:local_branch]  || options[:branch] || local_branch || 'master'
-            remote_branch = options[:remote_branch] || options[:branch] || remote_branch || 'master'
             if local_branch == remote_branch
                 @branch = local_branch
             else

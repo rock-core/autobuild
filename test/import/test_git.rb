@@ -25,6 +25,43 @@ describe Autobuild::Git do
         end
     end
 
+    describe "#relocate" do
+        it "reuses the branch if not given as option" do
+            importer.branch = 'random'
+            importer.relocate('test')
+            assert_equal 'random', importer.local_branch
+            assert_equal 'random', importer.remote_branch
+        end
+        it "overrides the branch by the given option" do
+            importer.branch = 'random'
+            importer.relocate('test', branch: 'test')
+            assert_equal 'test', importer.local_branch
+            assert_equal 'test', importer.remote_branch
+        end
+        it "overrides the local branch by the given option" do
+            importer.branch = 'random'
+            importer.relocate('test', local_branch: 'test')
+            assert_equal 'test', importer.local_branch
+            assert_equal 'random', importer.remote_branch
+        end
+        it "overrides the remote branch by the given option" do
+            importer.branch = 'random'
+            importer.relocate('test', remote_branch: 'test')
+            assert_equal 'random', importer.local_branch
+            assert_equal 'test', importer.remote_branch
+        end
+        it "reuses the local branch if not given as option" do
+            importer.local_branch = 'random'
+            importer.relocate('test')
+            assert_equal 'random', importer.local_branch
+        end
+        it "reuses the remote branch if not given as option" do
+            importer.remote_branch = 'random'
+            importer.relocate('test')
+            assert_equal 'random', importer.remote_branch
+        end
+    end
+
     describe "version_compare" do
         it "should return -1 if the actual version is greater" do
             assert_equal(-1, Autobuild::Git.compare_versions([2, 1, 0], [2, 0, 1]))
