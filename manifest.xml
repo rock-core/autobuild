@@ -11,4 +11,11 @@
     <maintainer>Sylvain Joyeux/sylvain.joyeux@m4x.org</maintainer>
     <license>LGPLv3 or later</license>
     <url>http://rock-robotics.org</url>
+
+    <depend package="tty" />
+    <depend package="pastel" />
+    <depend package="tty" />
+    <depend package="utilrb" />
+    <test_depend package="minitest" />
+    <test_depend package="flexmock" />
 </package>
