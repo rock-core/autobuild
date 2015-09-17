@@ -1,3 +1,7 @@
+[![Build Status](https://travis-ci.org/rock-core/autobuild.svg?branch=autoproj-2.0)](https://travis-ci.org/rock-core/autobuild)
+[![Gem Version](https://badge.fury.io/rb/autobuild.svg)](http://badge.fury.io/rb/autobuild)
+[![Documentation](http://b.repl.ca/v1/yard-docs-blue.png)](http://rubydoc.info/gems/autobuild/frames)
+
 ## What's autobuild ?
 
 Autobuild is a collection of classes to interface with build systems (e.g.
