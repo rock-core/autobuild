@@ -18,8 +18,7 @@ require 'autobuild'
 require 'tmpdir'
 require 'erb'
 require 'fileutils'
-## Uncomment this to enable flexmock
-require 'flexmock/test_unit'
+require 'flexmock/minitest'
 require 'minitest/spec'
 
 if ENV['TEST_ENABLE_PRY'] != '0'
@@ -41,11 +40,6 @@ module Autobuild
     #   end
     #
     module SelfTest
-        if defined? FlexMock
-            include FlexMock::ArgumentTypes
-            include FlexMock::MockContainer
-        end
-
         def setup
             @tempdir = File.join(Dir.tmpdir, "/autobuild-test-#{Process.uid}")
             FileUtils.mkdir_p(@tempdir, :mode => 0700)
@@ -57,9 +51,6 @@ module Autobuild
 
         def teardown
             Autobuild.silent = false
-            if defined? FlexMock
-                flexmock_teardown
-            end
             super
 
             Autobuild::Package.clear
@@ -98,7 +89,4 @@ module Autobuild
     end
 end
 
-class Minitest::Test
-    include Autobuild::SelfTest
-end
-
+Minitest::Test.include Autobuild::SelfTest
