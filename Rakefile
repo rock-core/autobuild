@@ -1,28 +1,13 @@
 require 'utilrb/rake_common'
 
-Utilrb::Rake.hoe do
-    Hoe.spec 'autobuild' do
-        developer "Sylvain Joyeux", "sylvain.joyeux@m4x.org"
+require "bundler/gem_tasks"
+require "rake/testtask"
 
-        self.urls         = ["http://rock-robotics.org/stable/documentation/autoproj"]
-        self.summary = 'Library to handle build systems and import mechanisms'
-        self.description = "Collection of classes to handle build systems (CMake, autotools, ...) and import mechanisms (tarballs, CVS, SVN, git, ...). It also offers a Rake integration to import and build such software packages. It is the backbone of the autoproj (http://rock-robotics.org/autoproj) integrated software project management tool."
-        self.email = %q{rock-dev@dfki.de}
+task 'default'
+task 'gem' => 'build'
 
-        license 'BSD'
-
-        self.spec_extras[:required_ruby_version] = ">= 1.9.2"
-
-        self.extra_deps <<
-            ['rake', '>= 0.9.0'] <<
-            ['utilrb', '>= 1.6.0'] <<
-            ['pastel', '>= 0.4.0'] <<
-            ['tty', '>= 0.2.0']
-
-        self.test_globs = ['test/suite.rb']
-    end
-    Rake.clear_tasks(/publish_docs/, /default/)
+Rake::TestTask.new(:test) do |t|
+    t.libs << "lib" << Dir.pwd
+    t.test_files = ['test/suite.rb']
 end
-
-task "default"
 

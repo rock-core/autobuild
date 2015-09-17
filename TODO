@@ -1,9 +1,0 @@
-TODO list for Autobuild
-  * create HTML log pages
-  * use Logger to be able to remove all non-error output
-   add a disable_packages attribute to Autobuild to disable the build of specific
-    packages. This would allow to use autobuild in scripts where the list of packages
-    is asked to the user
-  * add an --interactive option, which could ask to disable/enable packages before doing
-    the build
-
