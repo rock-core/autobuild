@@ -25,5 +25,6 @@ Gem::Specification.new do |s|
     s.add_development_dependency "flexmock", ">= 2.0.0"
     s.add_development_dependency "minitest", ">= 5.0", "~> 5.0"
     s.add_development_dependency "fakefs"
+    s.add_development_dependency "simplecov"
 end
 
