@@ -35,18 +35,14 @@ module Autobuild
         class << self
             # The directory in which downloaded files are saved
             #
-            # It defaults, by order of priority, to the archives/ subdirectory
-            # of the environment variable AUTOBUILD_CACHE_DIR (if set), to the
-            # AUTOBUILD_ARCHIVES_CACHE_DIR (if set) environment variable and to
-            # #{prefix}/cache
+            # It defaults, if set, to the value returned by
+            # {Importer.cache_dirs} and falls back #{prefix}/cache
             def cachedir
                 if @cachedir then @cachedir
-                elsif dir = ENV['AUTOBUILD_ARCHIVES_CACHE_DIR']
-                    @cachedir = File.expand_path(dir)
-                elsif dir = ENV['AUTOBUILD_CACHE_DIR']
-                    @cachedir = File.join(File.expand_path(dir), 'archives')
+                elsif cache_dirs = Importer.cache_dirs('archives')
+                    @cachedir = cache_dirs.first
                 else
-                    @cachedir = "#{Autobuild.prefix}/cache"
+                    "#{Autobuild.prefix}/cache"
                 end
             end
 

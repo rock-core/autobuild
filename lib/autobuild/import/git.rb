@@ -26,10 +26,8 @@ module Autobuild
             # @see default_alternates=, Git#alternates
             def default_alternates
                 if @default_alternates then @default_alternates
-                elsif cache_dir = ENV['AUTOBUILD_GIT_CACHE_DIR']
-                    @default_alternates = cache_dir.split(':').map { |path| File.expand_path(path) }
-                elsif cache_dir = ENV['AUTOBUILD_CACHE_DIR']
-                    @default_alternates = cache_dir.split(':').map { |path| File.join(File.expand_path(path), 'git', '%s') }
+                elsif cache_dirs = Importer.cache_dirs('git')
+                    @default_alternates = cache_dirs.map { |path| File.join(File.expand_path(path), '%s') }
                 else Array.new
                 end
             end

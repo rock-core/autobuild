@@ -70,6 +70,73 @@ class Importer
         end
     end
 
+    # The cache directories for the given importer type.
+    #
+    # This is used by some importers to save disk space and/or avoid downloading
+    # the same things over and over again
+    #
+    # The default global cache directory is initialized from the
+    # AUTOBUILD_CACHE_DIR environment variable. Per-importer cache directories
+    # can be overriden by setting AUTOBUILD_{TYPE}_CACHE_DIR (e.g.
+    # AUTOBUILD_GIT_CACHE_DIR)
+    #
+    # The following importers use caches:
+    # - the archive importer saves downloaded files in the cache. They are
+    #   saved under an archives/ subdirectory of the default cache if set, or to
+    #   the value of AUTOBUILD_ARCHIVES_CACHE_DIR
+    # - the git importer uses the cache directories as alternates for the git
+    #   checkouts
+    #
+    # @param [String] type the importer type. If set, it Given a root cache
+    #   directory X, and importer specific cache is setup as a subdirectory of X
+    #   with e.g. X/git or X/archives. The subdirectory name is defined by this
+    #   argument
+    # @return [nil,Array<String>]
+    #
+    # @see .set_cache_dirs .default_cache_dirs .default_cache_dirs=
+    def self.cache_dirs(type)
+        if @cache_dirs[type] || (env = ENV["AUTOBUILD_#{type.upcase}_CACHE_DIR"])
+            @cache_dirs[type] ||= env.split(":")
+        elsif dirs = default_cache_dirs
+            dirs.map { |d| File.join(d, type) }
+        end
+    end
+
+    # Returns the default cache directory if there is one
+    #
+    # @return [Array<String>,nil]
+    # @see .cache_dirs
+    def self.default_cache_dirs
+        if @default_cache_dirs ||= ENV['AUTOBUILD_CACHE_DIR']
+            [@default_cache_dirs]
+        end
+    end
+
+    # Sets the cache directory for a given importer type
+    #
+    # @param [String] type the importer type
+    # @param [String] dir the cache directory
+    # @see .cache_dirs
+    def self.set_cache_dirs(type, *dirs)
+        @cache_dirs[type] = dirs
+    end
+
+    # Sets the default cache directory
+    #
+    # @param [Array<String>,String] the directories
+    # @see .cache_dirs
+    def self.default_cache_dirs=(dirs)
+        @default_cache_dirs = Array(dirs)
+    end
+
+    # Unset all cache directories
+    def self.unset_cache_dirs
+        @cache_dirs = Hash.new
+        @default_cache_dirs = nil
+    end
+
+    unset_cache_dirs
+
     # @return [Hash] the original option hash as given to #initialize
     attr_reader :options
 
