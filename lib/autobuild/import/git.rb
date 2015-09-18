@@ -729,7 +729,7 @@ module Autobuild
                 File.join(path, 'objects')
             end
 
-            if current_alternates.sort != alternates.sort
+            if !(current_alternates.sort - alternates.sort).empty?
                 # Warn that something is fishy, but assume that the user knows
                 # what he is doing
                 package.warn "%s: the list of git alternates listed in the repository differs from the one set up in autobuild."
