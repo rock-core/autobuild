@@ -309,12 +309,12 @@ module Autobuild
         
         ## Reports a successful build to the user
         def self.success
-            @@reporters.each do |rep| rep.success end
+            each_reporter { |rep| rep.success }
         end
 
         ## Reports that the build failed to the user
         def self.error(error)
-            @@reporters.each do |rep| rep.error(error) end
+            each_reporter { |rep| rep.error(error) }
         end
 
         ## Add a new reporter
