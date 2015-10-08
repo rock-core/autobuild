@@ -582,7 +582,7 @@ module Autobuild
             if object_type
                 name = "#{name}^{#{object_type}}"
             end
-            run_git_bare(package, 'rev-parse', name).first
+            run_git_bare(package, 'rev-parse', '-q', '--verify', name).first
         rescue Autobuild::SubcommandFailed
             raise PackageException.new(package, 'import'), "failed to resolve #{name}. Are you sure this commit, branch or tag exists ?"
         end
