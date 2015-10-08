@@ -171,6 +171,14 @@ module Autobuild
             add(name, *values)
         end
 
+        # Unset the given environment variable
+        #
+        # It is different from {#delete} in that it will lead to the environment
+        # variable being actively unset, while 'delete' will leave it to its
+        # original value
+        def unset(name)
+            environment[name] = nil
+        end
 
         # Returns true if the given environment variable must not be reset by the
         # env.sh script, but that new values should simply be prepended to it.
@@ -303,7 +311,9 @@ module Autobuild
                 inheritance_mode: :expand
             inheritance_mode = options[:inheritance_mode]
 
-            if !environment[name] && !inherited_environment[name] && !system_env[name]
+            if !include?(name)
+                nil
+            elsif !environment[name]
                 nil
             else
                 inherited =
@@ -327,9 +337,18 @@ module Autobuild
             end
         end
 
+        # Whether this object manages the given environment variable
+        def include?(name)
+            environment.has_key?(name)
+        end
+
         def update_var(name)
-            if value = value(name)
-                resolved_env[name] = value.join(File::PATH_SEPARATOR)
+            if include?(name)
+                if value = value(name)
+                    resolved_env[name] = value.join(File::PATH_SEPARATOR)
+                else
+                    resolved_env[name] = nil
+                end
             else
                 resolved_env.delete(name)
             end
@@ -413,6 +432,7 @@ module Autobuild
                 io.puts SHELL_SOURCE_SCRIPT % path
             end
 
+            unset_variables = Set.new
             variables = []
             environment.each do |name, _|
                 variables << name
@@ -420,6 +440,7 @@ module Autobuild
                 value_without_inheritance = value(name, inheritance_mode: :ignore)
 
                 if !value_with_inheritance
+                    unset_variables << name
                     shell_line = SHELL_UNSET_COMMAND % [name]
                 elsif value_with_inheritance == value_without_inheritance # no inheritance
                     shell_line = SHELL_SET_COMMAND % [name, value_with_inheritance.join(File::PATH_SEPARATOR)]
@@ -429,7 +450,9 @@ module Autobuild
                 io.puts shell_line
             end
             variables.each do |var|
-                io.puts SHELL_EXPORT_COMMAND % [var]
+                if !unset_variables.include?(var)
+                    io.puts SHELL_EXPORT_COMMAND % [var]
+                end
             end
             @source_after.each do |path|
                 io.puts SHELL_SOURCE_SCRIPT % [path]
