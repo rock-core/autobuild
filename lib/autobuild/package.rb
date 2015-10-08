@@ -503,7 +503,7 @@ module Autobuild
             else
                 options = Hash.new
             end
-            options = options.merge(env: resolved_env)
+            options[:env] = (options[:env] || Hash.new).merge(resolved_env)
             Autobuild::Subprocess.run(self, *args, options, &block)
         end
 
