@@ -322,6 +322,10 @@ module Autobuild
             @@reporters << reporter
         end
 
+        def self.remove(reporter)
+            @@reporters.delete(reporter)
+        end
+
         def self.clear_reporters
             @@reporters.clear
         end
