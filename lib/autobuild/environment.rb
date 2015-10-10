@@ -22,6 +22,11 @@ module Autobuild
         @freebsd || @macos #can be extended to some other OSes liek NetBSD
     end
 
+    @msys =  RbConfig::CONFIG["host_os"] =~%r!(msys)!
+    def self.msys?
+        @msys
+    end
+
     SHELL_VAR_EXPANSION =
         if windows? then "%%%s%%"
         else "$%s"
