@@ -118,19 +118,19 @@ module Autobuild
         def initialize_copy(old)
             super
             @inherited_environment = @inherited_environment.
-                map_value { |k, v| v.dup }
+                map_value { |k, v| v.dup if v }
             @environment = @environment.
-                map_value { |k, v| v.dup }
+                map_value { |k, v| v.dup if v }
             @source_before = @source_before.dup
             @source_after = @source_after.dup
             @inherited_variables = @inherited_variables.dup
 
             @system_env = @system_env.
-                map_value { |k, v| v.dup }
+                map_value { |k, v| v.dup if v }
             @original_env = @original_env.
-                map_value { |k, v| v.dup }
+                map_value { |k, v| v.dup if v }
             @resolved_env = @resolved_env.
-                map_value { |k, v| v.dup }
+                map_value { |k, v| v.dup if v }
         end
 
         def [](name)
