@@ -248,9 +248,13 @@ module Autobuild
             @inherit
         end
 
+        def filter_original_env(name, parent_env)
+            parent_env.dup
+        end
+
         def init_from_env(name)
             if inherit?(name) && (parent_env = original_env[name])
-                inherited_environment[name] = parent_env.split(File::PATH_SEPARATOR)
+                inherited_environment[name] = filter_original_env(name, parent_env.split(File::PATH_SEPARATOR))
             else
                 inherited_environment[name] = Array.new
             end
