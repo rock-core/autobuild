@@ -397,13 +397,16 @@ module Autobuild
             end
         end
 
+        # @api private
+        #
         # Fetches updates from the remote repository. Returns the remote commit
         # ID on success, nil on failure. Expects the current directory to be the
         # package's source directory.
         def fetch_remote(package, options = Hash.new)
             validate_importdir(package)
-            options = Kernel.validate_options options,
-                refspec: tag || remote_branch
+            if !options[:refspec]
+                raise ArgumentError, "required argument 'refspec' not given"
+            end
 
             git_dir = git_dir(package, false)
 
@@ -418,7 +421,7 @@ module Autobuild
             # configuration parameters only if the repository and branch are
             # OK (i.e. we keep old working configuration instead)
             refspec = Array(options[:refspec])
-            run_git_bare(package, 'fetch', '--tags', repository, *refspec, retry: true)
+            run_git_bare(package, 'fetch', repository, *refspec, retry: true)
 
             update_remotes_configuration(package)
 
@@ -453,26 +456,40 @@ module Autobuild
         # commit
         #
         # @param [Package] package
-        # @param [Boolean] only_local if true, no remote access should be
+        # @options options [Boolean] only_local if true, no remote access should be
         #   performed, in which case the current known state of the remote will be
         #   used. If false, we access the remote repository to fetch the actual
         #   commit ID
+        # @options options [Array] refspec list of refs to fetch. Only the first
+        #   one is returned by this method
         # @return [String] the commit ID as a string
-        def current_remote_commit(package, only_local = false)
+        def current_remote_commit(package, options = Hash.new)
+            if !options.kind_of?(Hash)
+                options = Hash[only_local: options]
+            end
+            only_local = options.delete(:only_local)
+
+
             if only_local
+                refspec = options[:refspec] ||
+                    ("refs/tags/#{tag}" if tag) ||
+                    "refs/remotes/#{remote_name}/#{remote_branch}"
+                refspec = Array(refspec).first
                 begin
-                    run_git_bare(package, 'show-ref', '-s', "refs/remotes/#{remote_name}/#{remote_branch}").first.strip
+                    run_git_bare(package, 'show-ref', '-s', refspec).first.strip
                 rescue SubcommandFailed
-                    raise PackageException.new(package, "import"), "cannot resolve remote HEAD #{remote_name}/#{remote_branch}"
+                    raise PackageException.new(package, "import"), "cannot resolve #{refspec}"
                 end
-            else	
-                begin fetch_remote(package)
+            else
+                refspec = options[:refspec] ||
+                    ("refs/tags/#{tag}" if tag) ||
+                    "refs/heads/#{remote_branch}"
+                begin fetch_remote(package, refspec: refspec)
                 rescue Exception => e
                     return fallback(e, package, :status, package, only_local)
                 end
             end
         end
-
 
         # Returns a Importer::Status object that represents the status of this
         # package w.r.t. the root repository
@@ -803,6 +820,8 @@ module Autobuild
         # @option (see Package#update)
         def update(package, options = Hash.new)
             validate_importdir(package)
+            only_local = options.fetch(:only_local, false)
+            reset = options.fetch(:reset, false)
             
             # This is really really a hack to workaround how broken the
             # importdir thing is
@@ -817,15 +836,16 @@ module Autobuild
 
             if pinned_state
                 if !has_commit?(package, pinned_state)
-                    fetch_commit = current_remote_commit(package, options[:only_local])
+                    fetch_commit = current_remote_commit(
+                        package,
+                        only_local: only_local,
+                        refspec: [remote_branch, tag])
                 end
-                pinned_state = rev_parse(package, pinned_state)
+                target_commit = pinned_state = rev_parse(package, pinned_state)
+            else
+                target_commit = fetch_commit  =
+                    current_remote_commit(package, only_local: only_local)
             end
-
-            target_commit =
-                if pinned_state then pinned_state
-                else fetch_commit ||= current_remote_commit(package, options[:only_local])
-                end
 
             # If we are tracking a commit/tag, just check it out and return
             if !has_local_branch?(package)
@@ -842,7 +862,7 @@ module Autobuild
             # Check whether we are already at the requested state
             if pinned_state
                 current_head = rev_parse(package, 'HEAD')
-                if options[:reset]
+                if reset
                     if current_head == pinned_state
                         return
                     end
@@ -853,9 +873,10 @@ module Autobuild
                 end
             end
 
-            fetch_commit ||= current_remote_commit(package, options[:only_local])
-            if options[:reset]
-                reset_head_to_commit(package, target_commit, fetch_commit, force: (options[:reset] == :force))
+            fetch_commit ||= current_remote_commit(
+                package, only_local: only_local, refspec: [remote_branch, tag])
+            if reset
+                reset_head_to_commit(package, target_commit, fetch_commit, force: (reset == :force))
             else
                 merge_if_simple(package, target_commit)
             end
