@@ -403,7 +403,7 @@ module Autobuild
         def fetch_remote(package, options = Hash.new)
             validate_importdir(package)
             options = Kernel.validate_options options,
-                refspec: remote_branch || tag
+                refspec: tag || remote_branch
 
             git_dir = git_dir(package, false)
 
@@ -433,7 +433,7 @@ module Autobuild
             end
 
             # Update the remote tag if needs be
-            if remote_branch && commit_id
+            if (options[:refspec] == tag) && commit_id
                 run_git_bare(package, 'update-ref', "-m", "updated by autobuild", "refs/remotes/#{remote_name}/#{remote_branch}", commit_id)
             end
 
