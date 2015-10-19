@@ -623,6 +623,14 @@ module Autobuild
             end
         end
 
+        def find_in_path(file, path_var = 'PATH')
+            path = (value(path_var) || Array.new).
+                find { |dir| File.exist?(File.join(dir, file)) }
+            if path
+                return File.join(path, file)
+            end
+        end
+
         def isolate
             self.inherit = false
             push_path 'PATH', '/usr/local/bin', '/usr/bin', '/bin'
