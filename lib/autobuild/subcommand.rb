@@ -304,13 +304,6 @@ module Autobuild::Subprocess
 
             pid = fork do
                 begin
-                    env.each do |k, v|
-                        if v
-                            ENV[k] = v
-                        else
-                            ENV.delete(k)
-                        end
-                    end
                     if options[:working_directory] && (options[:working_directory] != Dir.pwd)
                         Dir.chdir(options[:working_directory])
                     end
@@ -338,7 +331,7 @@ module Autobuild::Subprocess
                     if RUBY_VERSION >= "1.9"
                         command << Hash[:close_others => false]
                     end
-                    exec(*command)
+                    exec(env, *command)
                 rescue Errno::ENOENT
                     cwrite.write([CONTROL_COMMAND_NOT_FOUND].pack('I'))
                     exit(100)
