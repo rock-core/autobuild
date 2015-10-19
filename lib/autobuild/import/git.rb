@@ -73,13 +73,32 @@ module Autobuild
             compare_versions(self.version, version) <= 0
         end
 
-        # Creates an importer which tracks the given repository
-        # and branch. +source+ is [repository, branch]
+        # Creates an importer which tracks a repository and branch.
         #
-        # This importer uses the 'git' tool to perform the
-        # import. It defaults to 'git' and can be configured by
-        # doing 
+        # This importer uses the 'git' tool to perform the import. It defaults
+        # to 'git' and can be configured by doing 
+        #
 	#   Autobuild.programs['git'] = 'my_git_tool'
+        #
+        # @param [String] branch deprecated, use the 'branch' named option
+        #   instead
+        #
+        # @option options [String] push_to (repository) the URL to set up as push_to URL in
+        #   the remote(s). Note that it is not used internally by this class
+        # @option options [String] branch (master) the branch we should track. It is used
+        #   both as {#local_branch} and {#remote_branch}
+        # @option options [String] tag (nil) a tag at which we should pin the
+        #   checkout. Cannot be given at the same time than :commit
+        # @option options [String] commit (nil) a commit ID at which we should pin the
+        #   checkout. Cannot be given at the same time than :tag
+        # @option options [String] repository_id (git:#{repository}) a string that allows to
+        #   uniquely identify a repository. The meaning is caller-specific. For
+        #   instance, autoproj uses repository_id to check whether two Git
+        #   importers fetches from the same repository.
+        # @option options [Boolean] with_submodules (false) whether the importer should
+        #   checkout and update submodules. Note that in an autobuild-based
+        #   workflow, it is recommended to not use submodules but checkout all
+        #   repositories separately instead.
         def initialize(repository, branch = nil, options = {})
             @alternates = Git.default_alternates.dup
             @git_dir_cache = Array.new
@@ -124,35 +143,31 @@ module Autobuild
 
         # The remote repository URL.
         #
-        # See also #push_to
+        # @see push_to
         attr_accessor :repository
 
         # If set, this URL will be listed as a pushurl for the tracked branch.
         # It makes it possible to have a read-only URL for fetching and specify
         # a push URL for people that have commit rights
         #
-        # #repository is always used for read-only operations
-        attr_accessor :push_to
-
-        # The remote branch to which we should push
+        # It is not used by the importer itself
         #
-        # Defaults to #branch
-        attr_writer :remote_branch
+        # {#repository} is always used for read-only operations
+        attr_accessor :push_to
 
         # Set to true if checkout should be done with submodules
         #
-        # Defaults to #false
+        # Defaults to false
         attr_writer :with_submodules
 
         # The branch this importer is tracking
-        #
-        # If set, both commit and tag have to be nil.
         attr_accessor :branch
 
-        # The branch that should be used on the local clone
-        #
-        # If not set, it defaults to #branch
+        # Set {#local_branch}
         attr_writer :local_branch
+
+        # Set {#remote_branch}
+        attr_writer :remote_branch
 
         # A list of local (same-host) repositories that will be used instead of
         # the remote one when possible. It has one major issue (see below), so
@@ -182,26 +197,28 @@ module Autobuild
 
         # The branch that should be used on the local clone
         #
-        # Defaults to #branch
+        # Defaults to {#branch}
         def local_branch
             @local_branch || branch
         end
 
         # The remote branch to which we should push
         #
-        # Defaults to #branch
+        # Defaults to {#branch}
         def remote_branch
             @remote_branch || branch
         end
 
         # The tag we are pointing to. It is a tag name.
         #
-        # If set, both branch and commit have to be nil.
+        # Setting it through this method is deprecated, use {#relocate} to set
+        # the tag
         attr_accessor :tag
 
         # The commit we are pointing to. It is a commit ID.
         #
-        # If set, both branch and tag have to be nil.
+        # Setting it through this method is deprecated, use {#relocate} to set
+        # the commit
         attr_accessor :commit
 
         # True if it is allowed to merge remote updates automatically. If false
@@ -209,19 +226,22 @@ module Autobuild
         # a fast-forward
         def merge?; !!@merge end
 
-        #Return true if the git checkout should be done with submodules
-        #detaul it false
-        def with_submodules?; !!@with_submodules end
-
         # Set the merge flag. See #merge?
         def merge=(flag); @merge = flag end
 
-        # Raises ConfigException if the current directory is not a git
+        # Whether the git checkout should be done with submodules
+        def with_submodules?; !!@with_submodules end
+
+        # @api private
+        #
+        # Verifies that the package's {Package#importdir} points to a git
         # repository
         def validate_importdir(package)
             return git_dir(package, true)
         end
 
+        # @api private
+        #
         # Resolves the git directory associated with path, and tells whether it
         # is a bare repository or not
         #
@@ -243,6 +263,15 @@ module Autobuild
             end
         end
 
+        # @api private
+        #
+        # Returns either the package's working copy or git directory
+        #
+        # @param [Package] package the package to resolve
+        # @param [Boolean] require_working_copy whether a working copy is
+        #   required
+        # @raise if the package's {Package#importdir} is not a git repository,
+        #   or if it is a bare repository and require_working_copy is true
         def git_dir(package, require_working_copy)
             if @git_dir_cache[0] == package.importdir
                 dir, style = *@git_dir_cache[1, 2]
@@ -255,12 +284,17 @@ module Autobuild
             dir
         end
 
+        # @api private
+        #
+        # (see Git#git_dir)
         def self.git_dir(package, require_working_copy)
             dir, style = Git.resolve_git_dir(package.importdir)
             validate_git_dir(package, require_working_copy, dir, style)
             dir
         end
 
+        # @api private
+        #
         # Validates the return value of {resolve_git_dir}
         #
         # @param [Package] package the package we are working on
@@ -287,7 +321,11 @@ module Autobuild
         end
 
         # Computes the merge status for this package between two existing tags
-        # Raises if a tag is unknown
+        #
+        # @param [Package] package
+        # @param [String] from_tag the source tag
+        # @param [String] to_tag the target tag
+        # @raise [ArgumentError] if one of the tags is unknown
         def delta_between_tags(package, from_tag, to_tag)
             pkg_tags = tags(package)
             if not pkg_tags.has_key?(from_tag)
@@ -303,8 +341,17 @@ module Autobuild
             merge_status(package, to_commit, from_commit)
         end
 
-        # Retrieve the tags of this packages as a hash mapping to the commit id
-        def tags(package)
+        # The tags of this packages
+        #
+        # @param [Package] package
+        # @option options [Boolean] only_local (false) whether the tags should
+        #   be fetch from the remote first, or if one should only list tags that
+        #   are already known locally 
+        # @return [Hash<String,String>] a mapping from a tag name to its commit
+        #   ID
+        def tags(package, options = Hash.new)
+            only_local = options.fetch(only_local: false)
+
             run_git_bare(package, 'fetch', '--tags')
             tag_list = run_git_bare(package, 'show-ref', '--tags').map(&:strip)
             tags = Hash.new
@@ -315,10 +362,21 @@ module Autobuild
             tags
         end
 
+        # @api private
+        #
+        # Run a git command that require a working copy
+        #
+        # @param [Package] package
+        # @param [Array] args the git arguments, excluding the git command
+        #   itself. The last argument can be a hash, in which case it is passed
+        #   as an option hash to {Package#run}
         def run_git(package, *args)
             self.class.run_git(package, *args)
         end
 
+        # @api private
+        #
+        # (see Git#run_git)
         def self.run_git(package, *args)
             options = Hash.new
             if args.last.kind_of?(Hash)
@@ -330,14 +388,25 @@ module Autobuild
                         Hash[working_directory: working_directory].merge(options))
         end
 
+        # @api private
+        #
+        # Run a git command that only need a git directory
+        #
+        # @param (see Git#run_git)
         def run_git_bare(package, *args)
             self.class.run_git_bare(package, *args)
         end
 
+        # @api private
+        #
+        # (see Git#run_git_bare)
         def self.run_git_bare(package, *args)
             package.run(:import, Autobuild.tool(:git), '--git-dir', git_dir(package, false), *args)
         end
 
+        # @api private
+        #
+        # Set a remote up in the repositorie's configuration
         def setup_remote(package, remote_name, repository, push_to = repository)
             run_git_bare(package, 'config', '--replace-all', "remote.#{remote_name}.url", repository)
             run_git_bare(package, 'config', '--replace-all', "remote.#{remote_name}.pushurl", push_to || repository)
@@ -362,6 +431,8 @@ module Autobuild
             end
         end
 
+        # @api private
+        #
         # Updates the git repository's configuration for the target remote
         def update_remotes_configuration(package)
             each_configured_remote do |*args|
@@ -443,6 +514,13 @@ module Autobuild
             commit_id
         end
 
+        # @api private
+        #
+        # Tests whether the package's working copy has uncommitted changes
+        #
+        # @param [Package] package
+        # @param [Boolean] with_untracked_files whether untracked files are
+        #   considered uncommitted changes
         def self.has_uncommitted_changes?(package, with_untracked_files = false)
             status = run_git(package, 'status', '--porcelain').map(&:strip)
             if with_untracked_files
@@ -452,6 +530,8 @@ module Autobuild
             end
         end
 
+        # @api private
+        #
         # Returns the commit ID of what we should consider being the remote
         # commit
         #
@@ -491,9 +571,15 @@ module Autobuild
             end
         end
 
-        # Returns a Importer::Status object that represents the status of this
-        # package w.r.t. the root repository
-        def status(package, only_local = false)
+        # Returns a {Status} object that represents the status of this package
+        # w.r.t. the expected remote repository and branch
+        def status(package, options = Hash.new)
+            if !options.kind_of?(Hash)
+                only_local = options
+            else
+                only_local = options.fetch(:only_local, false)
+            end
+
             validate_importdir(package)
             remote_commit = current_remote_commit(package, only_local)
             status = merge_status(package, remote_commit)
@@ -563,6 +649,10 @@ module Autobuild
             on_local_branch?(package)
         end
 
+        # A {Importer::Status} object extended to store more git-specific
+        # information
+        #
+        # This is the value returned by {Git#status}
         class Status < Importer::Status
             attr_reader :fetch_commit
             attr_reader :head_commit
@@ -595,6 +685,15 @@ module Autobuild
             end
         end
 
+        # @api private
+        #
+        # Resolves a revision into a commit ID
+        #
+        # @param [Package] package
+        # @param [String] name the revspec that is to be resolved
+        # @param [String] objecT_type the type of git object we want to resolve to
+        # @return [String] the commit ID
+        # @raise [PackageException] if name cannot be found
         def rev_parse(package, name, object_type = "commit")
             if object_type
                 name = "#{name}^{#{object_type}}"
@@ -604,6 +703,12 @@ module Autobuild
             raise PackageException.new(package, 'import'), "failed to resolve #{name}. Are you sure this commit, branch or tag exists ?"
         end
 
+        # Returns the file's conents at a certain commit 
+        #
+        # @param [Package] package
+        # @param [String] commit
+        # @param [String] path
+        # @return [String]
         def show(package, commit, path)
             run_git_bare(package, 'show', "#{commit}:#{path}").join("\n")
         rescue Autobuild::SubcommandFailed
@@ -729,6 +834,8 @@ module Autobuild
             Status.new(package, status, fetch_commit, head_commit, common_commit)
         end
 
+        # @api private
+        #
         # Updates the git alternates file in the already checked out package to
         # match {#alternates}
         #
@@ -763,6 +870,8 @@ module Autobuild
             end
         end
 
+        # @api private
+        #
         # Safely resets the current branch to a given commit
         #
         # This method safely resets the current branch to a given commit,
@@ -882,6 +991,7 @@ module Autobuild
             end
         end
 
+        # @api private
         def merge_if_simple(package, target_commit)
             status = merge_status(package, target_commit)
             if status.needs_update?
