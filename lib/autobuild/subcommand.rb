@@ -234,7 +234,7 @@ module Autobuild::Subprocess
             options[:working_directory] ||= target.working_directory
         end
 
-		logname = File.join(logdir, "#{target_name.gsub(/[:]/,'_')}-#{phase.to_s.gsub(/[:]/,'_')}.log")
+        logname = File.join(logdir, "#{target_name.gsub(/[:]/,'_')}-#{phase.to_s.gsub(/[:]/,'_')}.log")
         if !File.directory?(File.dirname(logname))
             FileUtils.mkdir_p File.dirname(logname)
         end
@@ -270,7 +270,9 @@ module Autobuild::Subprocess
             logfile.puts "    #{command.join(" ")}"
 	    logfile.puts "with environment:"
             env.keys.sort.each do |key|
-                logfile.puts "  '#{key}'='#{env[key]}'"
+                if value = env[key]
+                    logfile.puts "  '#{key}'='#{value}'"
+                end
             end
             logfile.puts
             logfile.puts "#{Time.now}: running"
