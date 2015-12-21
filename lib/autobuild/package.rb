@@ -348,6 +348,8 @@ module Autobuild
                 toplevel = !Thread.current[:isolate_errors]
                 Thread.current[:isolate_errors] = true
                 yield
+            rescue InteractionRequired
+                raise
             rescue Interrupt
                 raise
             rescue ::Exception => e
