@@ -223,12 +223,12 @@ module Autobuild
 
             not_processed = tasks.find_all { |t| !t.already_invoked? }
             if !not_processed.empty?
-                cycle = resolve_cycle(not_processed)
+                cycle = resolve_cycle(tasks, not_processed, reverse_dependencies)
                 raise "cycle in task graph: #{cycle.map(&:name).sort.join(", ")}"
             end
         end
 
-        def resolve_cycle(tasks)
+        def resolve_cycle(all_tasks, tasks, reverse_dependencies)
             cycle = tasks.dup
             chain = []
             next_task = tasks.first
@@ -245,7 +245,23 @@ module Autobuild
                     end
                 end
                 if !next_task
-                    raise "something fishy while resolving a cycle in #{cycle.map(&:name).join(", ")}. Some of these packages might have added new dependencies during the task resolution, which is forbidden"
+                    Autobuild.fatal "parallel processing stopped prematurely, but no cycle is present in the remaining tasks"
+                    Autobuild.fatal "remaining tasks: #{cycle.map(&:name).join(", ")}"
+                    Autobuild.fatal "known dependencies at initialization time that could block the processing of the remaining tasks"
+                    reverse_dependencies.each do |task, parents|
+                        if cycle.include?(task)
+                            parents.each do |p|
+                                Autobuild.fatal "  #{p}: #{task}"
+                            end
+                        end
+                    end
+                    Autobuild.fatal "known dependencies right now that could block the processing of the remaining tasks"
+                    all_tasks.each do |p|
+                        (cycle & p.prerequisite_tasks).each do |t|
+                            Autobuild.fatal "  #{p}: #{t}"
+                        end
+                    end
+                    raise "failed to resolve cycle in #{cycle.map(&:name).join(", ")}"
                 end
             end
             chain

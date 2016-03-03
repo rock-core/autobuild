@@ -4,8 +4,11 @@ if defined? Rake::DSL
     include Rake::DSL
 end
 
+require 'utilrb/logger'
+
 module Autobuild
     LIB_DIR = File.expand_path(File.dirname(__FILE__))
+    extend Logger::Root('Autobuild', Logger::INFO)
 end
 
 require 'net/smtp'
