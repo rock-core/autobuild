@@ -309,6 +309,13 @@ module Autobuild
             result
         end
 
+        def update_environment
+            super
+            prefix_path.each do |p|
+                env_add_path 'CMAKE_PREFIX_PATH', p
+            end
+        end
+
         def prepare
             # A failed initial CMake configuration leaves a CMakeCache.txt file,
             # but no Makefile.
