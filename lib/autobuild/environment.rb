@@ -565,8 +565,8 @@ module Autobuild
 
         # Returns the system-wide search path that is embedded in pkg-config
         def default_pkgconfig_search_suffixes
-            found_path_rx = /Scanning directory '(.*\/)((?:lib|lib64|share)\/.*)'$/
-            nonexistent_path_rx = /Cannot open directory '.*\/((?:lib|lib64|share)\/.*)' in package search path:.*/
+            found_path_rx = /Scanning directory (?:#\d+ )?'(.*\/)((?:lib|lib64|share)\/.*)'$/
+            nonexistent_path_rx = /Cannot open directory (?:#\d+ )?'.*\/((?:lib|lib64|share)\/.*)' in package search path:.*/
 
             if !@default_pkgconfig_search_suffixes
                 output = `LANG=C PKG_CONFIG_PATH= #{Autobuild.tool("pkg-config")} --debug 2>&1`.split("\n")
