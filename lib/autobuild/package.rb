@@ -584,6 +584,41 @@ module Autobuild
             end
             super
         end
+
+        # For forward compatibility with autobuild 1.11+
+        #
+        # It simply calls the corresponding method on {Autobuild}
+        def env_add(name, *values)
+            Autobuild.env_add(name, *values)
+        end
+
+        # For forward compatibility with autobuild 1.11+
+        #
+        # It simply calls the corresponding method on {Autobuild}
+        def env_add_path(name, *values)
+            Autobuild.env_add_path(name, *values)
+        end
+
+        # For forward compatibility with autobuild 1.11+
+        #
+        # It simply calls the corresponding method on {Autobuild}
+        def env_set(name, *values)
+            Autobuild.env_add_path(name, *values)
+        end
+
+        # For forward compatibility with autobuild 1.11+
+        #
+        # It simply calls the corresponding method on {Autobuild}
+        def env_add_prefix(newprefix, includes = nil)
+            Autobuild.update_environment(newprefix, includes)
+        end
+
+        # For forward compatibility with autobuild 1.11+
+        #
+        # It returns ENV as the environment is global on autobuild 1.10
+        def resolved_env(_ignored = nil)
+            ENV.dup
+        end
     end
 
     def self.package_set(spec)
