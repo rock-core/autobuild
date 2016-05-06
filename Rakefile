@@ -1,5 +1,3 @@
-require 'utilrb/rake_common'
-
 require "bundler/gem_tasks"
 require "rake/testtask"
 
