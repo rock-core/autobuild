@@ -95,9 +95,14 @@ module Autobuild
 
         attr_reader :inherited_variables
 
-        attr_reader :resolved_env
         attr_reader :system_env
         attr_reader :original_env
+
+        # The set of environment variables that are known to hold paths on the
+        # filesystem
+        #
+        # @see declare_path_variable
+        attr_reader :path_variables
 
         def initialize
             @inherited_environment = Hash.new
@@ -106,13 +111,26 @@ module Autobuild
             @source_after = Set.new
             @inherit = true
             @inherited_variables = Set.new
+            @path_variables = Set.new
 
             @system_env = Hash.new
             @original_env = ORIGINAL_ENV.dup
-            @resolved_env = Hash.new
-            ENV.each do |k, v|
-                resolved_env[k] = v
-            end
+        end
+
+        # Declares that the given environment variable holds a path
+        #
+        # Non-existent paths in these variables are filtered out. It is called
+        # automatically if one of the 'path' methods are called ({#set_path},
+        # {#push_path}, ...)
+        #
+        # @param [String] name
+        def declare_path_variable(name)
+            path_variables << name
+        end
+
+        # Whether the given environment variable contains path(s)
+        def path_variable?(name)
+            path_variables.include?(name)
         end
 
         def initialize_copy(old)
@@ -128,8 +146,6 @@ module Autobuild
             @system_env = @system_env.
                 map_value { |k, v| v.dup if v }
             @original_env = @original_env.
-                map_value { |k, v| v.dup if v }
-            @resolved_env = @resolved_env.
                 map_value { |k, v| v.dup if v }
         end
 
@@ -162,7 +178,6 @@ module Autobuild
             if name
                 environment[name] = nil
                 inherited_environment[name] = nil
-                update_var(name)
             else
                 environment.keys.each do |env_key|
                     clear(env_key)
@@ -258,7 +273,6 @@ module Autobuild
             else
                 inherited_environment[name] = Array.new
             end
-            update_var(name)
         end
 
         def push(name, *values)
@@ -291,7 +305,6 @@ module Autobuild
 
             values.concat(set)
             @environment[name] = values
-            update_var(name)
         end
 
         # Returns an environment variable value
@@ -351,24 +364,29 @@ module Autobuild
             environment.has_key?(name)
         end
 
-        def update_var(name)
-            if include?(name)
+        def resolved_env
+            resolved_env = Hash.new
+            environment.each_key do |name|
                 if value = value(name)
+                    if path_variable?(name)
+                        value = value.find_all { |p| File.exist?(p) }
+                    end
                     resolved_env[name] = value.join(File::PATH_SEPARATOR)
                 else
                     resolved_env[name] = nil
                 end
-            else
-                resolved_env.delete(name)
             end
+            resolved_env
         end
 
         def set_path(name, *paths)
+            declare_path_variable(name)
             clear(name)
             add_path(name, *paths)
         end
 
         def add_path(name, *paths)
+            declare_path_variable(name)
             paths = paths.map { |p| expand(p) }
 
             oldpath = (environment[name] ||= Array.new)
@@ -385,13 +403,14 @@ module Autobuild
         end
 
         def remove_path(name, *paths)
+            declare_path_variable(name)
             paths.each do |p|
                 environment[name].delete(p)
             end
-            update_var(name)
         end
 
         def push_path(name, *values)
+            declare_path_variable(name)
             if current = environment.delete(name)
                 current = current.dup
                 add_path(name, *values)
@@ -443,10 +462,15 @@ module Autobuild
 
             unset_variables = Set.new
             variables = []
-            environment.each do |name, _|
+            environment.each_key do |name|
                 variables << name
-                value_with_inheritance = value(name, inheritance_mode: :keep)
+                value_with_inheritance    = value(name, inheritance_mode: :keep)
                 value_without_inheritance = value(name, inheritance_mode: :ignore)
+                if path_variable?(name)
+                    [value_with_inheritance, value_without_inheritance].each do |paths|
+                        paths.delete_if { |p| !File.exist?(p) }
+                    end
+                end
 
                 if !value_with_inheritance
                     unset_variables << name
@@ -701,9 +725,8 @@ module Autobuild
     def self.env_value(name, options = Hash.new)
         env.value(name, options)
     end
-    # @deprecated, use the API on {env} instead
+    # @deprecated, there is no corresponding API on the {Environment}
     def self.env_update_var(name)
-        env.update_var(name)
     end
     # @deprecated, use the API on {env} instead
     def self.env_add_path(name, *paths)
