@@ -539,7 +539,9 @@ module Autobuild
                 if target_arch
                     cmdline << "-T" << target_arch
                 end
-                arch = `#{cmdline.join(" ")}`.split.grep(/DEB_TARGET_ARCH_BITS/).first
+                out = `#{cmdline.join(" ")}`.split
+                arch = out.grep(/DEB_TARGET_ARCH_BITS/).first ||
+		       out.grep(/DEB_BUILD_ARCH_BITS/).first
                 if arch
                     @arch_size = Integer(arch.chomp.split('=').last)
                 end
@@ -575,7 +577,9 @@ module Autobuild
                 if target_arch
                     cmdline << "-T" << target_arch
                 end
-                arch = `#{cmdline.join(" ")}`.split.grep(/DEB_TARGET_MULTIARCH/).first
+                out = `#{cmdline.join(" ")}`.split
+                arch = out.grep(/DEB_TARGET_MULTIARCH/).first ||
+		       out.grep(/DEB_BUILD_MULTIARCH/).first
                 if arch
                     result << arch.chomp.split('=').last
                 end
