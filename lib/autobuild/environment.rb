@@ -669,7 +669,7 @@ module Autobuild
         def prepare
             # Set up some important autobuild parameters
             inherit 'PATH', 'PKG_CONFIG_PATH', 'RUBYLIB', \
-                'LD_LIBRARY_PATH', 'CMAKE_PREFIX_PATH', 'PYTHONPATH'
+                LIBRARY_PATH, 'CMAKE_PREFIX_PATH', 'PYTHONPATH'
         end
 
         # Method called to filter the environment variables before they are set,
