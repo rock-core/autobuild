@@ -468,7 +468,7 @@ module Autobuild
                 value_without_inheritance = value(name, inheritance_mode: :ignore)
                 if path_variable?(name)
                     [value_with_inheritance, value_without_inheritance].each do |paths|
-                        paths.delete_if { |p| !File.exist?(p) }
+                        paths.delete_if { |p| p !~ /^\$/ && !File.exist?(p) }
                     end
                 end
 
