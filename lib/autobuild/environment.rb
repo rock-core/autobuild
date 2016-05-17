@@ -626,7 +626,9 @@ module Autobuild
             if !includes || includes.include?(LIBRARY_PATH)
                 ld_library_search = ['lib', 'lib/ARCH', 'libARCHSIZE']
                 each_env_search_path(newprefix, ld_library_search) do |path|
-                    if !Dir.glob(File.join(path, "lib*.#{LIBRARY_SUFFIX}")).empty?
+                    has_sofile = Dir.enum_for(:glob, File.join(path, "lib*.#{LIBRARY_SUFFIX}")).
+                        find { true }
+                    if has_sofile
                         add_path(LIBRARY_PATH, path)
                     end
                 end
