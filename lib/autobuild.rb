@@ -25,7 +25,6 @@ require 'optparse'
 require 'rake'
 require 'singleton'
 require 'pastel'
-require 'tty'
 require 'tty-prompt'
 require 'autobuild/tools'
 

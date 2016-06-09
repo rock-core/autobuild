@@ -368,7 +368,7 @@ module Autobuild
                     package.progress_done
                     package.message "The archive #{@url.to_s} is different from the one currently checked out at #{package.srcdir}", :bold
                     package.message "I will have to delete the current folder to go on with the update"
-                    response = TTY::Prompt.new.ask "  Continue (yes or no) ? If no, this update will be ignored, which can lead to build problems.", type: :bool
+                    response = TTY::Prompt.new.ask "  Continue (yes or no) ? If no, this update will be ignored, which can lead to build problems.", convert: :bool
                 else
                     raise Autobuild::InteractionRequired, "importing #{package.name} would have required user interaction and allow_interactive is false"
                 end
