@@ -18,10 +18,10 @@ Gem::Specification.new do |s|
     s.extensions = []
     s.files         = `git ls-files -z`.split("\x0").reject { |f| f.match(%r{^(test|spec|features)/}) }
 
-    s.add_runtime_dependency "rake", ">= 0.9.0"
-    s.add_runtime_dependency "utilrb", ">= 2.0"
-    s.add_runtime_dependency 'tty-prompt', '>= 0.6.0'
-    s.add_runtime_dependency 'pastel', '>= 0.5.0'
+    s.add_runtime_dependency "rake", ">= 11.1.0", '~> 11.1'
+    s.add_runtime_dependency "utilrb", ">= 3.0"
+    s.add_runtime_dependency 'tty-prompt', '>= 0.6.0', '~> 0.6.0'
+    s.add_runtime_dependency 'pastel', '>= 0.6.0', '~> 0.6.0'
     s.add_development_dependency "flexmock", ">= 2.0.0"
     s.add_development_dependency "minitest", ">= 5.0", "~> 5.0"
     s.add_development_dependency "fakefs"
