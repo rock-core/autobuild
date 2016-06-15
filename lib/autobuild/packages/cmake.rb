@@ -329,7 +329,7 @@ module Autobuild
                     end
 
                     value = value.to_s
-                    old_value = cache_line.split("=")[1].chomp if cache_line
+                    old_value = cache_line.partition("=").last.chomp if cache_line
                     if !old_value || !equivalent_option_value?(old_value, value)
                         if Autobuild.debug
                             message "%s: option '#{name}' changed value: '#{old_value}' => '#{value}'"
