@@ -32,6 +32,13 @@ module Autobuild
         # @return [String]
         attr_reader :svnroot
 
+        # Alias for {#svnroot}
+        #
+        # For consistency with the other importers
+        def repository
+            svnroot
+        end
+
         attr_reader :revision
 
         def relocate(root, options = Hash.new)
