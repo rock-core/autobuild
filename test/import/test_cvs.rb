@@ -3,47 +3,58 @@ require 'autobuild/test'
 class TC_CVSImport < Minitest::Test
     include Autobuild
 
+    attr_reader :cvsroot, :pkg_cvs
+
     def setup
         super
         Autobuild.logdir = "#{tempdir}/log"
         FileUtils.mkdir_p(Autobuild.logdir)
+        @cvsroot = File.join(tempdir, 'cvsroot')
+        @pkg_cvs = Package.new 'cvs'
+        pkg_cvs.srcdir = File.join(tempdir, 'cvs')
     end
     
     def test_cvs
-        Autobuild.verbose = true
         untar('cvsroot.tar')
-        cvsroot = File.join(tempdir, 'cvsroot')
-        pkg_cvs = Package.new 'cvs'
-        pkg_cvs.srcdir = File.join(tempdir, 'cvs')
-
-        # Make a checkout
         importer = Autobuild.cvs(cvsroot, module: 'cvs')
         importer.import(pkg_cvs)
         assert( File.exists?(File.join(pkg_cvs.srcdir, 'test')) )
+    end
 
-        # Make an update
+    def test_update
+        untar('cvsroot.tar')
+        importer = Autobuild.cvs(cvsroot, module: 'cvs')
         importer.import(pkg_cvs)
+        importer.import(pkg_cvs)
+    end
 
-        # Make an update fail because the repository does not exist anymore
+    def test_update_fails_on_a_non_existent_directory
+        untar('cvsroot.tar')
+        importer = Autobuild.cvs(cvsroot, module: 'cvs')
+        importer.import(pkg_cvs)
         FileUtils.rm_rf cvsroot
         assert_raises(Autobuild::SubcommandFailed) { importer.import pkg_cvs }
+    end
 
-        # Make a checkout fail because the repository does not exist anymore
-        FileUtils.rm_rf pkg_cvs.srcdir
+    def test_checkout_fails_if_the_source_directory_is_not_a_cvs_repository
+        FileUtils.mkdir_p cvsroot
+        importer = Autobuild.cvs(cvsroot, module: 'cvs')
         assert_raises(Autobuild::SubcommandFailed) { importer.import pkg_cvs }
+    end
 
-	# Recreate the repository, and make a checkout fail because the 
-	# WC is not a CVS WC
-        untar('cvsroot.tar')
-        FileUtils.mkdir pkg_cvs.srcdir
+    def test_update_fails_if_the_package_directory_is_not_a_cvs_repository
+        untar 'cvsroot.tar'
+        importer = Autobuild.cvs(cvsroot, module: 'cvs')
+        FileUtils.mkdir_p pkg_cvs.srcdir
         assert_raises(Autobuild::ConfigException) { importer.import pkg_cvs }
+    end
 
-	# Create two repositories, and make the update fail because the
-	# WC is of the wrong source
-	FileUtils.rm_rf pkg_cvs.srcdir
+    def test_update_fails_if_the_package_directory_is_a_checkout_from_another_CVS_repository
+        untar 'cvsroot.tar'
+        FileUtils.cp_r cvsroot, "#{cvsroot}-dup"
+        importer = Autobuild.cvs(cvsroot, module: 'cvs')
         importer.import(pkg_cvs)
-	FileUtils.mv cvsroot, "#{cvsroot}.2"
-        importer = Autobuild.cvs("#{cvsroot}.2", module: 'cvs')
+        importer = Autobuild.cvs("#{cvsroot}-dup", module: 'cvs')
         assert_raises(Autobuild::ConfigException) { importer.import pkg_cvs }
     end
 end
