@@ -334,15 +334,20 @@ module Autobuild
         # will subsequently be a noop. I.e. if +build+ fails, +install+ will do
         # nothing.
         def isolate_errors(options = Hash.new)
-            # Don't do anything if we already have failed
-            return if failed?
-
             if !options.kind_of?(Hash)
                 options = Hash[mark_as_failed: true]
             end
             options = validate_options options,
                 mark_as_failed: true,
                 ignore_errors: Autobuild.ignore_errors
+
+            # Don't do anything if we already have failed
+            if failed?
+                if !options[:ignore_errors]
+                    raise AlreadyFailedError, "attempting to do an operation on a failed package"
+                end
+                return
+            end
 
             begin
                 toplevel = !Thread.current[:isolate_errors]

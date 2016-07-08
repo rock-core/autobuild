@@ -124,5 +124,7 @@ module Autobuild
     # This is for instance used during package import if the importer has to ask
     # the user a question and allow_interactive is false
     class InteractionRequired < RuntimeError; end
+
+    class AlreadyFailedError < RuntimeError; end
 end
 
