@@ -26,6 +26,7 @@ module Autobuild
     end
 
     @progress_display_enabled = true
+    @last_progress_msg = nil
 
     def self.message(*args)
         return if silent?

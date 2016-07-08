@@ -406,6 +406,9 @@ describe Autobuild::Git do
             end
         end
         describe "with a specific commit given" do
+            before do
+                @commits = nil
+            end
             def assert_on_commit(id)
                 assert_equal commits[id], importer.rev_parse(pkg, 'HEAD')
             end

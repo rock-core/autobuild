@@ -33,6 +33,8 @@ module Autobuild
             end
         end
 
+        self.default_alternates = nil
+
         # Returns the git version as a string
         #
         # @return [String]
@@ -102,6 +104,10 @@ module Autobuild
         def initialize(repository, branch = nil, options = {})
             @alternates = Git.default_alternates.dup
             @git_dir_cache = Array.new
+            @local_branch = @remote_branch = nil
+            @tag = @commit = nil
+
+            @merge = false
 
             if branch.respond_to?(:to_hash)
                 branch, options = nil, branch.to_hash
@@ -132,6 +138,7 @@ module Autobuild
 
             @with_submodules = gitopts.delete(:with_submodules)
             @remote_name = 'autobuild'
+            @push_to = nil
             relocate(repository, gitopts)
             @additional_remotes = Array.new
         end
