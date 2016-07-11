@@ -103,10 +103,9 @@ module Autobuild
         # It is used to enable/disable some configuration features based on the
         # orogen version string
         def self.orogen_version
-            if !@orogen_version && root = orogen_root
-                version_file = File.join(root, 'orogen', 'version.rb')
-                version_line = File.readlines(version_file).grep(/VERSION\s*=\s*"/).first
-                if version_line =~ /.*=\s+"(.+)"$/
+            if !@orogen_version
+                version_line = `orogen --version`
+                if version_line =~ /.*v(.*)\n/
                     @orogen_version = $1
                 end
             end
