@@ -288,7 +288,7 @@ module Autobuild
             end
         end
 
-        # Adds a new value to an environment variable
+        # Adds new value(s) at the end of an environment variable
         def add(name, *values)
             values = values.map { |v| expand(v) }
 
@@ -388,6 +388,13 @@ module Autobuild
             add_path(name, *paths)
         end
 
+        # Add a path at the end of an environment variable
+        #
+        # Unlike "normal" variables, entries of path variables that cannot be
+        # found on disk are filtered out at usage points (either #resolve_env or
+        # at the time of envirnonment export)
+        #
+        # @see push_path
         def add_path(name, *paths)
             declare_path_variable(name)
             paths = paths.map { |p| expand(p) }
@@ -412,6 +419,13 @@ module Autobuild
             end
         end
 
+        # Add a path at the beginning of an environment variable
+        #
+        # Unlike "normal" variables, entries of path variables that cannot be
+        # found on disk are filtered out at usage points (either #resolve_env or
+        # at the time of envirnonment export)
+        #
+        # @see push_path
         def push_path(name, *values)
             declare_path_variable(name)
             if current = environment.delete(name)
