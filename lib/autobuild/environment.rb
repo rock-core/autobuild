@@ -90,8 +90,6 @@ module Autobuild
         # If the value is an array, it is joined using the operating system's
         # path separator (File::PATH_SEPARATOR)
         attr_reader :environment
-        attr_reader :source_after
-        attr_reader :source_before
 
         attr_reader :inherited_variables
 
@@ -115,6 +113,11 @@ module Autobuild
 
             @system_env = Hash.new
             @original_env = ORIGINAL_ENV.dup
+            
+            @default_pkgconfig_search_suffixes = nil
+            @arch_names = nil
+            @target_arch = nil
+            @arch_size = nil
         end
 
         # Declares that the given environment variable holds a path
@@ -432,6 +435,7 @@ module Autobuild
         def source_before(file = nil)
             if file
                 @source_before << file
+            else @source_before
             end
         end
 
@@ -447,6 +451,7 @@ module Autobuild
         def source_after(file = nil)
             if file
                 @source_after << file
+            else @source_after
             end
         end
 
@@ -456,7 +461,7 @@ module Autobuild
         #
         # It also sources the files added by source_file
         def export_env_sh(io)
-            @source_before.each do |path|
+            source_before.each do |path|
                 io.puts SHELL_SOURCE_SCRIPT % path
             end
 
@@ -487,7 +492,7 @@ module Autobuild
                     io.puts SHELL_EXPORT_COMMAND % [var]
                 end
             end
-            @source_after.each do |path|
+            source_after.each do |path|
                 io.puts SHELL_SOURCE_SCRIPT % [path]
             end
         end
@@ -562,9 +567,7 @@ module Autobuild
             @arch_size, @arch_names = nil
         end
 
-        def target_arch
-            @target_arch
-        end
+        attr_reader :target_arch
 
         def arch_names
             if @arch_names

@@ -31,6 +31,7 @@ module Autobuild
             attr_reader :prefix_path
             attr_reader :module_path
         end
+        @builddir = nil
         @prefix_path = []
         @module_path = []
         @full_reconfigures = true

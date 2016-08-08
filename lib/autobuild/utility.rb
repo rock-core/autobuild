@@ -13,6 +13,7 @@ module Autobuild
 
         def initialize(name, package)
             @name = name
+            @task = nil
             @package = package
             @available = true
             @enabled   = true

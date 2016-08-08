@@ -26,6 +26,7 @@ module Autobuild
 
         def initialize(spec = Hash.new)
             @source_tree_excludes = Array.new
+            @builddir = nil
             super
         end
 

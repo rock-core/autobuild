@@ -94,7 +94,7 @@ module Autobuild
             if @orogen_root
                 @orogen_root
             elsif orogen_bin = self.orogen_bin(true)
-                @orogen_root = File.expand_path('../lib', File.dirname(@orogen_bin))
+                @orogen_root = File.expand_path('../lib', File.dirname(orogen_bin))
             end
         end
 
@@ -248,8 +248,6 @@ module Autobuild
         end
 
         def add_cmd_to_cmdline(cmd, cmdline)
-            base = nil
-
             if cmd =~ /^([\w-]+)/
                 cmd_filter = $1
             else

@@ -248,10 +248,10 @@ module Autobuild
                     Autobuild.fatal "parallel processing stopped prematurely, but no cycle is present in the remaining tasks"
                     Autobuild.fatal "remaining tasks: #{cycle.map(&:name).join(", ")}"
                     Autobuild.fatal "known dependencies at initialization time that could block the processing of the remaining tasks"
-                    reverse_dependencies.each do |task, parents|
-                        if cycle.include?(task)
+                    reverse_dependencies.each do |parent_task, parents|
+                        if cycle.include?(parent_task)
                             parents.each do |p|
-                                Autobuild.fatal "  #{p}: #{task}"
+                                Autobuild.fatal "  #{p}: #{parent_task}"
                             end
                         end
                     end

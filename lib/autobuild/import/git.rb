@@ -357,9 +357,9 @@ module Autobuild
         # @return [Hash<String,String>] a mapping from a tag name to its commit
         #   ID
         def tags(package, options = Hash.new)
-            only_local = options.fetch(only_local: false)
-
-            run_git_bare(package, 'fetch', '--tags')
+            if !options.fetch(only_local: false)
+                run_git_bare(package, 'fetch', '--tags')
+            end
             tag_list = run_git_bare(package, 'show-ref', '--tags').map(&:strip)
             tags = Hash.new
             tag_list.each do |entry|
@@ -736,7 +736,7 @@ module Autobuild
                 merge_base = run_git_bare(package, 'merge-base', commit, reference).first
                 merge_base == commit
                 
-            rescue Exception => e
+            rescue Exception
                 raise PackageException.new(package, 'import'), "failed to find the merge-base between #{rev} and #{reference}. Are you sure these commits exist ?"
             end
         end

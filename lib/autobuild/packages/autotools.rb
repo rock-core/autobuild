@@ -167,7 +167,6 @@ module Autobuild
             #
             # If it is not the case, remove it to force reconfiguration
 	    configureflags.flatten!
-	    force_reconfigure = false
 	    if File.exist?(configurestamp)
 		output = IO.popen("#{configurestamp} --version").readlines.grep(/with options/).first.chomp
 		raise "invalid output of config.status --version" unless output =~ /with options "(.*)"$/

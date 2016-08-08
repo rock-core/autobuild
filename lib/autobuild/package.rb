@@ -118,7 +118,8 @@ module Autobuild
         def updated?; !!@updated end
 
 	def initialize(spec = Hash.new)
-            @srcdir = @importdir = @logdir = nil
+            @srcdir = @importdir = @logdir = @prefix = nil
+            @updated = false
             @update = nil
             @failed = nil
 	    @dependencies   = Array.new
