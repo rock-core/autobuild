@@ -245,6 +245,8 @@ module Autobuild
 
         class IncompatibleEnvironment < ConfigException; end
 
+        # @api private
+        #
         # Apply this package's environment to the given {Environment} object
         #
         # It does *not* apply the dependencies' environment. Call
@@ -256,17 +258,17 @@ module Autobuild
         #   package sets a variable as to avoid unexpected conflicts.
         # @return [Array<EnvOp>] list of environment-modifying operations
         #   applied so far
-        def apply_env(env, set = Set.new, ops = Array.new)
+        def apply_env(env, set = Hash.new, ops = Array.new)
             self.env.each do |env_op|
                 next if ops.last == env_op
                 if env_op.type == :set
                     if last = set[env_op.name]
                         last_pkg, last_values = *last
                         if last_values != env_op.values
-                            raise IncompatibleEnvironment, "trying to reset #{name} to #{values} which conflicts with #{last_pkg.name} already setting it to #{last_values}"
+                            raise IncompatibleEnvironment, "trying to reset #{env_op.name} to #{env_op.values} which conflicts with #{last_pkg.name} already setting it to #{last_values}"
                         end
                     else
-                        set[name] = [self, values]
+                        set[env_op.name] = [self, env_op.values]
                     end
                 end
                 env.send(env_op.type, env_op.name, *env_op.values)
@@ -275,9 +277,11 @@ module Autobuild
             ops
         end
 
+        # @api private
+        #
         # Updates an {Environment} object with the environment of the package's
         # dependencies
-        def resolve_dependency_env(env, set = Set.new, ops = Array.new)
+        def resolve_dependency_env(env, set, ops)
             all_dependencies.each do |pkg_name|
                 pkg = Autobuild::Package[pkg_name]
                 ops = pkg.apply_env(env, set, ops)
