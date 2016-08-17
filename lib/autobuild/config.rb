@@ -88,7 +88,12 @@ module Autobuild
     @colorizer = Pastel.new
     class << self
         def color=(flag)
-            @colorizer = Pastel.new(enabled: flag)
+            @colorizer =
+                if flag.nil?
+                    Pastel.new
+                else
+                    Pastel.new(enabled: flag)
+                end
         end
 
         def color?
