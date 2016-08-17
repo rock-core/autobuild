@@ -63,6 +63,8 @@ module Autobuild
         def target_dir
             if @target_dir
                 File.expand_path(@target_dir, File.expand_path(Autobuild.send("#{name}_prefix") || name,  package.prefix))
+            else
+                File.join(package.logdir, "#{name}-results", package.name)
             end
         end
 
