@@ -49,8 +49,8 @@ module Autobuild
             utilities.each { |name, (utl, options)| yield(name, utl, options) }
         end
 
-        def register_utility_class(name, klass, options = Hash.new)
-            utilities[name] = [klass, options]
+        def register_utility_class(name, klass, disabled_by_default: false, **options)
+            utilities[name] = [klass, Hash[disabled_by_default: disabled_by_default], options]
             singleton_class.class_eval do
                 attr_accessor "only_#{name}"
                 attr_accessor "do_#{name}"
@@ -64,11 +64,11 @@ module Autobuild
         end
 
         def create_utility(utility_name, package)
-            klass, options = utilities[utility_name]
+            klass, creation_options, options = utilities[utility_name]
             if klass
-                utility = klass.new(utility_name, package)
+                utility = klass.new(utility_name, package, **options)
                 package.utilities[utility_name] = utility
-                utility.enabled = !options[:disabled_by_default]
+                utility.enabled = !creation_options[:disabled_by_default]
                 utility
             else raise ArgumentError, "there is no utility called #{utility_name}, available utilities are #{utilities.keys.sort.join(", ")}"
             end
@@ -83,7 +83,7 @@ module Autobuild
     end
     @utilities = Hash.new
     register_utility_class 'doc', Utility, disabled_by_default: false
-    register_utility_class 'test', Utility, disabled_by_default: true
+    register_utility_class 'test', Utility, disabled_by_default: true, install_on_error: true
 
     @colorizer = Pastel.new
     class << self

@@ -11,7 +11,15 @@ module Autobuild
         #   nil, will use the package's source directory
         attr_accessor :source_ref_dir
 
-        def initialize(name, package)
+        # Whether #install should be called even if the task failed
+        #
+        # The default is false. Set it to true for instance if the utility
+        # results are a report of the success/errors (e.g. test run results)
+        def install_on_error?
+            @install_on_error
+        end
+
+        def initialize(name, package, install_on_error: false)
             @name = name
             @task = nil
             @package = package
@@ -20,6 +28,7 @@ module Autobuild
             @source_ref_dir = nil
             @source_dir = nil
             @target_dir = nil
+            @install_on_error = !!install_on_error
         end
 
         # Directory in which the utility will generate some files The
@@ -95,6 +104,10 @@ module Autobuild
         rescue Interrupt
             raise
         rescue ::Exception => e
+            if install_on_error? && !@installed && target_dir
+                install
+            end
+
             if Autobuild.send("pass_#{name}_errors")
                 raise
             else
