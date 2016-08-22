@@ -9,6 +9,8 @@ module Autobuild
         # The Rake task that is used to run tests. Defaults to "test".
         # Set to nil to disable tests for this package
         attr_accessor :rake_test_task
+        # Options that should be passed to the rake task
+        attr_accessor :rake_test_options
         # The Rake task that is used to run cleanup. Defaults to "clean".
         # Set to nil to disable tests for this package
         attr_accessor :rake_clean_task
@@ -18,6 +20,7 @@ module Autobuild
             self.rake_doc_task   = "redocs"
             self.rake_clean_task   = "clean"
             self.rake_test_task  = "test"
+            self.rake_test_options = []
 
             super
             exclude << /\.so$/
@@ -41,8 +44,8 @@ module Autobuild
             test_utility.task do
                 progress_start "running tests for %s", :done_message => 'tests passed for %s' do
                     run 'test',
-                        Autobuild.tool_in_path('ruby'), '-S', Autobuild.tool('rake'), rake_test_task,
-                        :working_directory => srcdir
+                        Autobuild.tool_in_path('ruby'), '-S', Autobuild.tool('rake'), rake_test_task, *rake_test_options,
+                        working_directory: srcdir
                 end
             end
         end
