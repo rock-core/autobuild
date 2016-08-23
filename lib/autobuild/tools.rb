@@ -21,19 +21,17 @@ module Autobuild
             programs[name.to_sym] || programs[name.to_s] || name.to_s
         end
 
-        def find_in_path(file)
-            path = ENV['PATH'].split(File::PATH_SEPARATOR).
-                find { |dir| File.exist?(File.join(dir, file)) }
-            if path
-                return File.join(path, file)
-            end
+        # Find a file in a given path-like variable
+        def find_in_path(file, envvar = 'PATH')
+            env.find_in_path(file, envvar)
         end
 
         # Resolves the absolute path to a given tool
         def tool_in_path(name)
             path, path_name, path_env = programs_in_path[name]
             current = tool(name)
-            if path_env != ENV['PATH'] || path_name != current
+            env_PATH = env.resolved_env['PATH']
+            if (path_env != env_PATH) || (path_name != current)
                 # Delete the current entry given that it is invalid
                 programs_in_path.delete(name)
                 if current[0, 1] == "/"
@@ -53,7 +51,7 @@ module Autobuild
                 elsif !File.executable?(path)
                     raise ArgumentError, "tool #{name} is set to #{current}, but this resolves to #{path} which is not executable"
                 end
-                programs_in_path[name] = [path, current, ENV['PATH']]
+                programs_in_path[name] = [path, current, env_PATH]
             end
 
             return path

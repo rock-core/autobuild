@@ -289,18 +289,28 @@ module Autobuild
             ops
         end
 
+        # This package's environment
+        def full_env(root = Autobuild.env)
+            set = Hash.new
+            env = root.dup
+            ops = Array.new
+            ops = resolve_dependency_env(env, set, ops)
+            apply_env(env, set, ops)
+            env
+        end
+
+        # Find a file in a path-like environment variable
+        def find_in_path(file, envvar = 'PATH')
+            full_env.find_in_path(file, envvar)
+        end
+
         # Resolves this package's environment into Hash form
         #
         # @param [Environment] root the base environment object to update
         # @return [Hash<String,String>] the full environment
         # @see Autobuild::Environment#resolved_env
         def resolved_env(root = Autobuild.env)
-            set = Hash.new
-            env = root.dup
-            ops = Array.new
-            ops = resolve_dependency_env(env, set, ops)
-            apply_env(env, set, ops)
-            env.resolved_env
+            full_env.resolved_env
         end
 
         # Called before a forced build. It should remove all the timestamp and

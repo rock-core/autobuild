@@ -75,43 +75,8 @@ module Autobuild
 
         attr_reader :orogen_options
 
-        # Path to the orogen tool
-        def self.orogen_bin(full_path = false)
-            if @orogen_bin
-                @orogen_bin
-            else
-                program_name = Autobuild.tool('orogen')
-                if orogen_path = ENV['PATH'].split(':').find { |p| File.file?(File.join(p, program_name)) }
-                    @orogen_bin = File.join(orogen_path, program_name)
-                elsif !full_path
-                    program_name
-                end
-            end
-        end
-
-        # Path to the root of the orogen package
-        def self.orogen_root
-            if @orogen_root
-                @orogen_root
-            elsif orogen_bin = self.orogen_bin(true)
-                @orogen_root = File.expand_path('../lib', File.dirname(orogen_bin))
-            end
-        end
-
-        # The version of orogen, given as a string
-        #
-        # It is used to enable/disable some configuration features based on the
-        # orogen version string
-        def self.orogen_version
-            if !@orogen_version && root = orogen_root
-                version_file = File.join(root, 'orogen', 'version.rb')
-                version_line = File.readlines(version_file).grep(/VERSION\s*=\s*"/).first
-                if version_line =~ /.*=\s+"(.+)"$/
-                    @orogen_version = $1
-                end
-            end
-            @orogen_version
-        end
+        # The path to the orogen tool as resolved from {Package#full_env}
+        attr_reader :orogen_tool_path
 
         # Overrides the global Orocos.orocos_target for this particular package
         attr_writer :orocos_target
@@ -168,6 +133,8 @@ module Autobuild
         def initialize(*args, &config)
             super
 
+            @orogen_tool_path = nil
+            @orogen_version = nil
             @orocos_target = nil
             @orogen_options = []
         end
@@ -183,69 +150,44 @@ module Autobuild
             env_add_path 'TYPELIB_RUBY_PLUGIN_PATH', typelib_plugin
         end
 
+        # The version of orogen, given as a string
+        #
+        # It is used to enable/disable some configuration features based on the
+        # orogen version string
+        def orogen_version
+            if !@orogen_version && (root = orogen_root)
+                version_file = File.join(root, 'lib', 'orogen', 'version.rb')
+                version_line = File.readlines(version_file).grep(/VERSION\s*=\s*"/).first
+                if version_line =~ /.*=\s+"(.+)"$/
+                    @orogen_version = $1
+                end
+            end
+            @orogen_version
+        end
+
+        def orogen_root
+            if orogen_tool_path
+                root = File.expand_path(File.join('..', '..'), orogen_tool_path)
+                if File.directory?(File.join(root, 'lib', 'orogen'))
+                    root
+                end
+            end
+        end
+
         def prepare
-            # Check if someone provides the pkgconfig/orocos-rtt-TARGET package,
-            # and if so add it into our dependency list
-            if rtt = Autobuild::Package["pkgconfig/orocos-rtt-#{orocos_target}"]
-                if Autobuild.verbose
-                    message "orogen: found #{rtt.name} which provides the RTT"
-                end
-                depends_on rtt.name
-            end
-
-            # Find out where orogen is, and make sure the configurestamp depend
-            # on it. Ignore if orogen is too old to have a --base-dir option
-            if orogen_root = self.class.orogen_root
-                orogen_tree = source_tree(orogen_root)
-            end
-
-            # Check if there is an orogen package registered. If it is the case,
-            # simply depend on it. Otherwise, look out for orogen --base-dir
-            if Autobuild::Package['orogen']
-                depends_on "orogen"
-            elsif orogen_tree
-                file genstamp => orogen_tree
-            end
-
             file configurestamp => genstamp
+            stamps = dependencies.map { |pkg| Autobuild::Package[pkg].installstamp }
 
-            # Cache the orogen file name
-            @orogen_file ||= self.orogen_file
-
-            file genstamp => source_tree(srcdir) do
-                needs_regen = true
-                if File.file?(genstamp)
-                    genstamp_mtime = File.stat(genstamp).mtime
-                    dependency_updated = dependencies.any? do |dep|
-                        !File.file?(Package[dep].installstamp) ||
-                            File.stat(Package[dep].installstamp).mtime > genstamp_mtime
-                    end
-                    needs_regen = dependency_updated || !generation_uptodate?
-                end
-
-                if needs_regen
-                    isolate_errors { regen }
-                end
+            file genstamp => [*stamps, source_tree(srcdir)] do
+                isolate_errors { regen }
             end
 
             with_doc
 
             super
-
-            dependencies.each do |p|
-                file genstamp => Package[p].installstamp
-            end
         end
+
         def genstamp; File.join(srcdir, '.orogen', 'orogen-stamp') end
-
-        def guess_ruby_name
-            if Autobuild.programs['ruby']
-                Autobuild.tool('ruby')
-            else
-                ruby_bin = RbConfig::CONFIG['RUBY_INSTALL_NAME']
-                Autobuild.programs['ruby'] = ruby_bin
-            end
-        end
 
         def add_cmd_to_cmdline(cmd, cmdline)
             if cmd =~ /^([\w-]+)/
@@ -276,14 +218,22 @@ module Autobuild
                 end
             end
 
-            if (version = Orogen.orogen_version)
-                if version >= "1.0"
-                    cmdline << "--parallel-build=#{parallel_build_level}"
-                end
-                if version >= "1.1"
-                    cmdline << "--type-export-policy=#{Orogen.default_type_export_policy}"
-                    cmdline << "--transports=#{Orogen.transports.sort.uniq.join(",")}"
-                end
+            @orogen_tool_path = find_in_path 'orogen'
+            if !orogen_tool_path
+                raise ArgumentError, "cannot find 'orogen' in #{resolved_env['PATH']}"
+            end
+
+            version = orogen_version
+            if !version
+                raise ArgumentError, "cannot determine the orogen version"
+            end
+
+            if (version >= "1.0")
+                cmdline << "--parallel-build=#{parallel_build_level}"
+            end
+            if (version >= "1.1")
+                cmdline << "--type-export-policy=#{Orogen.default_type_export_policy}"
+                cmdline << "--transports=#{Orogen.transports.sort.uniq.join(",")}"
             end
 
             # Now, add raw options
@@ -317,13 +267,10 @@ module Autobuild
             # target says
             needs_regen ||= !generation_uptodate?
 
-            # Finally, verify that orogen itself did not change
-            needs_regen ||= (Rake::Task[Orogen.orogen_root].timestamp > Rake::Task[genstamp].timestamp)
-
             if needs_regen
                 progress_start "generating oroGen %s", :done_message => 'generated oroGen %s' do
                     in_dir(srcdir) do
-                        run 'orogen', guess_ruby_name, '-S', self.class.orogen_bin, *cmdline
+                        run 'orogen', Autobuild.tool('ruby'), '-S', orogen_tool_path, *cmdline
                         File.open(genstamp, 'w') do |io|
                             io.print cmdline.join("\n")
                         end
