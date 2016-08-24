@@ -150,6 +150,7 @@ class Importer
         @repository_id = options[:repository_id] || "#{self.class.name}:#{object_id}"
         @interactive = options[:interactive]
         @source_id = options[:source_id] || @repository_id
+        @post_hooks = Array.new
     end
 
     # Returns a string that identifies the remote repository uniquely
@@ -236,6 +237,57 @@ class Importer
         end
     end
 
+    # A list of hooks that are called after a successful checkout or update
+    #
+    # They are added either at the instance level with {#add_post_hook} or
+    # globally for all importers of a given type with {Importer.add_post_hook}
+    attr_reader :post_hooks
+
+    # Define a post-import hook for all instances of this class
+    #
+    # @yieldparam [Importer] importer the importer that finished
+    # @yieldparam [Package] package the package we're acting on
+    # @see Importer#add_post_hook
+    def self.add_post_hook(&hook)
+        @post_hooks ||= Array.new
+        @post_hooks << hook
+    end
+
+    # Enumerate the post-import hooks defined for all instances of this class
+    def self.each_post_hook(&hook)
+        (@post_hooks || Array.new).each(&hook)
+    end
+
+    # @api private
+    #
+    # Call the post-import hooks added with {#add_post_hook}
+    def execute_post_hooks(package)
+        self.class.each_post_hook do |hook|
+            hook.call(self, package)
+        end
+        each_post_hook.each do |block|
+            block.call(self, package)
+        end
+    end
+
+    # Add a block that should be called when the import has successfully
+    # finished
+    #
+    # @yieldparam [Importer] importer the importer that finished
+    # @yieldparam [Package] package the package we're acting on
+    # @see Importer.add_post_hook
+    def add_post_hook(&hook)
+        post_hooks << hook
+    end
+
+    # Enumerate the post-import hooks for this importer
+    def each_post_hook(&hook)
+        return enum_for(__method__) if !block_given?
+
+        self.class.each_post_hook(&hook)
+        post_hooks.each(&hook)
+    end
+
     def perform_update(package,only_local=false)
         cur_patches    = currently_applied_patches(package)
         needed_patches = self.patches
@@ -247,6 +299,7 @@ class Importer
         package.progress_start "updating %s"
         begin
             update(package,only_local)
+            execute_post_hooks(package)
         rescue Interrupt
             raise
         rescue ::Exception => original_error
@@ -292,6 +345,7 @@ class Importer
             retry_count = 0
             begin
                 checkout(package, options)
+                execute_post_hooks(package)
             rescue Interrupt
                 raise
             rescue ::Exception => original_error
