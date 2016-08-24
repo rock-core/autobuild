@@ -402,8 +402,16 @@ module Autobuild::Subprocess
         end
 
         if !status.exitstatus || status.exitstatus > 0
-            raise Failed.new(status.exitstatus, nil),
-                "'#{command.join(' ')}' returned status #{status.exitstatus}"
+            if status.termsig == 2 # SIGINT == 2
+                raise Interrupt, "subcommand #{command.join(' ')} interrupted"
+            end
+            if status.termsig
+                raise Failed.new(status.exitstatus, nil),
+                    "'#{command.join(' ')}' terminated by signal #{status.termsig}"
+            else
+                raise Failed.new(status.exitstatus, nil),
+                    "'#{command.join(' ')}' returned status #{status.exitstatus}"
+            end
         end
 
         duration = Time.now - start_time
