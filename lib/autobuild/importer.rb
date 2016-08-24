@@ -295,14 +295,19 @@ class Importer
             patch(package, [])
         end
 
+        last_error = nil
         retry_count = 0
         package.progress_start "updating %s"
         begin
             update(package,only_local)
             execute_post_hooks(package)
         rescue Interrupt
-            raise
+            if last_error
+                raise last_error
+            else raise
+            end
         rescue ::Exception => original_error
+            last_error = original_error
             # If the package is patched, it might be that the update
             # failed because we needed to unpatch first. Try it out
             #
@@ -341,14 +346,18 @@ class Importer
     end
 
     def perform_checkout(package, options = Hash.new)
+        last_error = nil
         package.progress_start "checking out %s", :done_message => 'checked out %s' do
             retry_count = 0
             begin
                 checkout(package, options)
                 execute_post_hooks(package)
             rescue Interrupt
-                raise
+                if last_error then raise last_error
+                else raise
+                end
             rescue ::Exception => original_error
+                last_error = original_error
                 retry_count = update_retry_count(original_error, retry_count)
                 if !retry_count
                     raise
