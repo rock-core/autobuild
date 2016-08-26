@@ -162,7 +162,7 @@ module Autobuild
             end
 	    task :prepare => "#{name}-prepare"
 
-	    task "#{name}-build" => "#{name}-prepare"
+	    task "#{name}-build"
 	    task :build => "#{name}-build"
 
 	    task(name) do
