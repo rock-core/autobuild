@@ -30,6 +30,23 @@ module Autobuild
 
             attr_reader :prefix_path
             attr_reader :module_path
+
+            # Whether files that are not within CMake's install manifest but are
+            # present in the prefix should be deleted. Note that the contents of
+            # {#log_dir} are unaffected.
+            #
+            # It is false by default. Set to true only if each package has its
+            # own prefix.
+            def delete_obsolete_files_in_prefix?
+                @@delete_obsolete_files_in_prefix
+            end
+
+            # Set {#delete_obsolete_files_in_prefix?}
+            def delete_obsolete_files_in_prefix=(flag)
+                @@delete_obsolete_files_in_prefix = flag
+            end
+
+            @@delete_obsolete_files_in_prefix = false
         end
         @builddir = nil
         @prefix_path = []
@@ -85,6 +102,17 @@ module Autobuild
         def initialize(options)
 	    @defines = Hash.new
             super
+            @delete_obsolete_files_in_prefix = self.class.delete_obsolete_files_in_prefix?
+        end
+
+        # (see CMake.delete_obsolete_files_in_prefix?)
+        def delete_obsolete_files_in_prefix?
+            @delete_obsolete_files_in_prefix
+        end
+
+        # (see CMake.delete_obsolete_files_in_prefix=)
+        def delete_obsolete_files_in_prefix=(flag)
+            @delete_obsolete_files_in_prefix = flag
         end
 
         @@defines = Hash.new
@@ -463,13 +491,40 @@ module Autobuild
         end
 
         # Install the result in prefix
+        #
+        # If {#delete_obsolete_files_in_prefix?} is set, files that are present
+        # in the prefix but not in CMake's install manifest will be removed.
         def install
             in_dir(builddir) do
                 progress_start "installing %s", :done_message => 'installed %s' do
                     run('install', Autobuild.tool(:make), "-j#{parallel_build_level}", 'install')
                 end
+
+                if delete_obsolete_files_in_prefix?
+                    delete_obsolete_files
+                end
             end
             super
+        end
+
+        # @api private
+        #
+        # Delete files in {#prefix} that are not present in CMake's install
+        # manifest
+        #
+        # This is enabled globally by {CMake.delete_obsolete_files=} or
+        # per-package with {#delete_obsolete_files=}. Do NOT enable if packages
+        # share the same prefix.
+        def delete_obsolete_files
+            manifest_contents = File.readlines(File.join(builddir, 'install_manifest.txt')).
+                map(&:chomp).to_set
+            logdir = self.logdir
+            Find.find(prefix) do |path|
+                Find.prune if path == logdir
+                if !manifest_contents.include?(path) && File.file?(path)
+                    FileUtils.rm path
+                end
+            end
         end
     end
 end

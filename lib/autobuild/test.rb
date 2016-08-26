@@ -41,7 +41,9 @@ module Autobuild
     #
     module SelfTest
         def setup
-            @tempdir = File.join(Dir.tmpdir, "/autobuild-test-#{Process.uid}")
+            @temp_dirs = Array.new
+
+            @tempdir = make_tmpdir
             FileUtils.mkdir_p(@tempdir, :mode => 0700)
             Autobuild.logdir = "#{tempdir}/log"
             FileUtils.mkdir_p Autobuild.logdir
@@ -54,10 +56,16 @@ module Autobuild
             super
 
             Autobuild::Package.clear
+            Rake::Task.clear
 
-            if @tempdir
-                FileUtils.rm_rf @tempdir
+            @temp_dirs.each do |dir|
+                FileUtils.rm_rf dir
             end
+        end
+
+        def make_tmpdir
+            @temp_dirs << (dir = Dir.mktmpdir)
+            dir
         end
 
         def data_dir
@@ -85,6 +93,11 @@ module Autobuild
             end
 
             dir
+        end
+
+        def prepare_and_build_package(package)
+            package.prepare
+            Rake::Task["#{package.name}-build"].invoke
         end
     end
 end
