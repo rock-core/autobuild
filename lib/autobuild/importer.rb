@@ -318,7 +318,7 @@ class Importer
             cur_patches = currently_applied_patches(package)
             if !cur_patches.empty?
                 package.progress_done
-                package.message "update failed and some patches are applied, retrying after removing all patches first"
+                package.message "update failed and some patches are applied, removing all patches and retrying"
                 begin
                     patch(package, [])
                     return perform_update(package,only_local)
