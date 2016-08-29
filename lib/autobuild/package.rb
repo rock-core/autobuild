@@ -310,7 +310,7 @@ module Autobuild
         # @return [Hash<String,String>] the full environment
         # @see Autobuild::Environment#resolved_env
         def resolved_env(root = Autobuild.env)
-            full_env.resolved_env
+            full_env(root).resolved_env
         end
 
         # Called before a forced build. It should remove all the timestamp and
