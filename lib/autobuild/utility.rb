@@ -85,7 +85,9 @@ module Autobuild
                 if enabled?
                     @installed = false
                     catch(:disabled) do
-                        package.isolate_errors { call_task_block(&block) }
+                        package.isolate_errors do
+                            call_task_block(&block)
+                        end
                     end
                 end
             end
