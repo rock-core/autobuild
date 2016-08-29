@@ -281,29 +281,32 @@ module Autobuild
         ## Run a block and report known exception
         # If an exception is fatal, the program is terminated using exit()
         def self.report
-            begin
-                yield
+            begin yield
+            rescue Interrupt
+                interrupted = true
+            end
 
-                # If ignore_erorrs is true, check if some packages have failed
-                # on the way. If so, raise an exception to inform the user about
-                # it
-                errors = []
-                Autobuild::Package.each do |name, pkg|
-                    errors.concat(pkg.failures)
-                end
+            # If ignore_erorrs is true, check if some packages have failed
+            # on the way. If so, raise an exception to inform the user about
+            # it
+            errors = []
+            Autobuild::Package.each do |name, pkg|
+                errors.concat(pkg.failures)
+            end
 
-                if !errors.empty?
-                    raise CompositeException.new(errors)
-                end
+            if !errors.empty?
+                raise CompositeException.new(errors)
+            elsif interrupted
+                raise Interrupt
+            end
 
-            rescue Autobuild::Exception => e
-                error(e)
-                if e.fatal?
-                    if Autobuild.debug
-                        raise
-                    else
-                        exit 1
-                    end
+        rescue Autobuild::Exception => e
+            error(e)
+            if e.fatal?
+                if Autobuild.debug
+                    raise
+                else
+                    exit 1
                 end
             end
         end
