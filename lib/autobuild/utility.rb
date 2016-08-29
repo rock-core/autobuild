@@ -161,7 +161,7 @@ module Autobuild
             FileUtils.rm_rf   target_dir
             FileUtils.mkdir_p File.dirname(target_dir)
             FileUtils.cp_r    source_dir, target_dir
-            Autoproj.message "  copied #{name} results for #{package.name} to #{target_dir}"
+            Autoproj.message "  copied #{name} results for #{package.name} from #{source_dir} to #{target_dir}"
 
             @installed = true
         end
