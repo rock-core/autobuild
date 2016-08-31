@@ -27,7 +27,7 @@ module Autobuild
         end
 
         # Resolves the absolute path to a given tool
-        def tool_in_path(name)
+        def tool_in_path(name, env: self.env)
             path, path_name, path_env = programs_in_path[name]
             current = tool(name)
             env_PATH = env.resolved_env['PATH']
