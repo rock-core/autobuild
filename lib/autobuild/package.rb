@@ -180,6 +180,11 @@ module Autobuild
             @spec_dependencies = depends
 	end
 
+        # Whether the package's source directory is present on disk
+        def checked_out?
+            File.directory?(srcdir)
+        end
+
         # @api private
         #
         # Adds a new operation to this package's environment setup. This is a
