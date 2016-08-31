@@ -255,7 +255,7 @@ class Importer
 
     # Enumerate the post-import hooks defined for all instances of this class
     def self.each_post_hook(&hook)
-        (@post_hooks || Array.new).each(&hook)
+        (@post_hooks ||= Array.new).each(&hook)
     end
 
     # @api private
