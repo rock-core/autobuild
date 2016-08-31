@@ -455,8 +455,6 @@ class Importer
         raise error
     end
 
-    private
-
     def patchdir(package)
         File.join(package.importdir, ".autobuild-patches")
     end
