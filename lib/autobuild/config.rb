@@ -83,7 +83,7 @@ module Autobuild
     end
     @utilities = Hash.new
     register_utility_class 'doc', Utility, disabled_by_default: false
-    register_utility_class 'test', Utility, disabled_by_default: true, install_on_error: true
+    register_utility_class 'test', TestUtility, disabled_by_default: true
 
     @colorizer = Pastel.new
     class << self

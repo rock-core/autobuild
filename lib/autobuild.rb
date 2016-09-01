@@ -38,6 +38,7 @@ require 'autobuild/subcommand'
 require 'autobuild/timestamps'
 require 'autobuild/parallel'
 require 'autobuild/utility'
+require 'autobuild/test_utility'
 require 'autobuild/config'
 
 require 'autobuild/importer'
