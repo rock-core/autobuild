@@ -66,6 +66,24 @@ module Autobuild
                 assert File.file?(File.join(package.logdir, 'package-build.log'))
             end
         end
+
+        describe "#defines_changed?" do
+            it "returns true if the cache has no value for an expected define" do
+                assert package.defines_changed?(
+                    Hash['TEST' => 'ON'],
+                    "CMAKE_BUILD_TYPE:STRING=Debug\nOTHER:BOOL=ON")
+            end
+            it "returns true if the cache has a different value than the expected define" do
+                assert package.defines_changed?(
+                    Hash['CMAKE_BUILD_TYPE' => 'Release'],
+                    "CMAKE_BUILD_TYPE:STRING=Debug\nOTHER:BOOL=ON")
+            end
+            it "returns false if the cache has an equivalent value than the expected define" do
+                refute package.defines_changed?(
+                    Hash['CMAKE_BUILD_TYPE' => 'Debug'],
+                    "CMAKE_BUILD_TYPE:STRING=Debug\nOTHER:BOOL=ON")
+            end
+        end
     end
 end
 

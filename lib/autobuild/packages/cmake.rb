@@ -345,6 +345,28 @@ module Autobuild
             end
         end
 
+        def defines_changed?(all_defines, cache_data)
+            all_defines.any? do |name, value|
+                if match = /^#{name}:\w+=(.*)$/.match(cache_data)
+                    old_value = match[1]
+                end
+
+                value = value.to_s
+                if !old_value || !equivalent_option_value?(old_value, value)
+                    if Autobuild.debug
+                        message "%s: option '#{name}' changed value: '#{old_value}' => '#{value}'"
+                    end
+                    if old_value
+                        message "%s: changed value of #{name} from #{old_value} to #{value}"
+                    else
+                        message "%s: setting value of #{name} to #{value}"
+                    end
+
+                    true
+                end
+            end
+        end
+
         def prepare
             # A failed initial CMake configuration leaves a CMakeCache.txt file,
             # but no Makefile.
@@ -357,29 +379,8 @@ module Autobuild
             doc_utility.source_ref_dir = builddir
 
             if File.exist?(cmake_cache)
-                all_defines = self.all_defines
                 cache = File.read(cmake_cache)
-                did_change = all_defines.any? do |name, value|
-                    cache_line = cache.each_line.find do |line|
-                        line =~ /^#{name}:/
-                    end
-
-                    value = value.to_s
-                    old_value = cache_line.partition("=").last.chomp if cache_line
-                    if !old_value || !equivalent_option_value?(old_value, value)
-                        if Autobuild.debug
-                            message "%s: option '#{name}' changed value: '#{old_value}' => '#{value}'"
-                        end
-                        if old_value
-                            message "%s: changed value of #{name} from #{old_value} to #{value}"
-                        else
-                            message "%s: setting value of #{name} to #{value}"
-                        end
-                        
-                        true
-                    end
-                end
-                if did_change
+                if defines_changed?(all_defines, cache)
                     if Autobuild.debug
                         message "%s: CMake configuration changed, forcing a reconfigure"
                     end
