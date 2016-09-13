@@ -513,12 +513,14 @@ module Autobuild
         # Delete files in {#prefix} that are not present in CMake's install
         # manifest
         #
-        # This is enabled globally by {CMake.delete_obsolete_files=} or
-        # per-package with {#delete_obsolete_files=}. Do NOT enable if packages
+        # This is enabled globally by {CMake.delete_obsolete_files_in_prefix=} or
+        # per-package with {#delete_obsolete_files_in_prefix=}. Do NOT enable if packages
         # share the same prefix.
         def delete_obsolete_files
+            # The expand_path is required to sanitize the paths, which can
+            # contain e.g. double //
             manifest_contents = File.readlines(File.join(builddir, 'install_manifest.txt')).
-                map(&:chomp).to_set
+                map { |p| File.expand_path(p.chomp) }.to_set
             logdir = self.logdir
             Find.find(prefix) do |path|
                 Find.prune if path == logdir
