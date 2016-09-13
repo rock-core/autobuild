@@ -185,6 +185,11 @@ module Autobuild
             File.directory?(srcdir)
         end
 
+        def to_s
+            "#<#{self.class} name=#{name}>"
+        end
+        def inspect; to_s end
+
         # @api private
         #
         # Adds a new operation to this package's environment setup. This is a
