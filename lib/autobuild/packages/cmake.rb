@@ -522,11 +522,16 @@ module Autobuild
             manifest_contents = File.readlines(File.join(builddir, 'install_manifest.txt')).
                 map { |p| File.expand_path(p.chomp) }.to_set
             logdir = self.logdir
+            counter = 0
             Find.find(prefix) do |path|
                 Find.prune if path == logdir
                 if !manifest_contents.include?(path) && File.file?(path)
+                    counter += 1
                     FileUtils.rm path
                 end
+            end
+            if counter > 0
+                message "%s: removed #{counter} obsolete files from prefix (cmake)"
             end
         end
     end
