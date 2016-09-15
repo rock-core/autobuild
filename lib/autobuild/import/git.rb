@@ -499,7 +499,8 @@ module Autobuild
             # configuration parameters only if the repository and branch are
             # OK (i.e. we keep old working configuration instead)
             refspec = Array(options[:refspec])
-            run_git_bare(package, 'fetch', repository, *refspec, retry: true)
+            tag_arg = ['--tags'] if tag
+            run_git_bare(package, 'fetch', repository, *tag_arg, *refspec, retry: true)
 
             update_remotes_configuration(package)
 

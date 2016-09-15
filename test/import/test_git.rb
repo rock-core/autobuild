@@ -470,12 +470,12 @@ describe Autobuild::Git do
             end
 
             it "fetches from the remote repository if the commit is not present locally" do
-                untar('gitrepo-with-extra-commit-and-tag.tar')
                 importer.import(pkg)
+                untar('gitrepo-with-extra-commit-and-tag.tar')
                 extra_repo = File.join(tempdir, 'gitrepo-with-extra-commit-and-tag.git')
-                importer.relocate(extra_repo, tag: 'third_commit')
+                importer.relocate(extra_repo, tag: 'extra_tag')
                 importer.import(pkg, reset: false)
-                tag_id = importer.rev_parse(pkg, 'third_commit')
+                tag_id = importer.rev_parse(pkg, 'extra_tag')
                 assert_equal tag_id, importer.rev_parse(pkg, 'HEAD')
             end
 
