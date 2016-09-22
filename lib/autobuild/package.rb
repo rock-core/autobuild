@@ -535,7 +535,8 @@ module Autobuild
             else
                 options = Hash.new
             end
-            options[:env] = (options[:env] || Hash.new).merge(resolved_env)
+            options[:env] = options.delete(:resolved_env) ||
+                (options[:env] || Hash.new).merge(resolved_env)
             Autobuild::Subprocess.run(self, *args, options, &block)
         end
 

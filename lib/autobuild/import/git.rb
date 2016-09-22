@@ -392,7 +392,7 @@ module Autobuild
 
             working_directory = File.dirname(git_dir(package, true))
             package.run(:import, Autobuild.tool(:git), *args,
-                        Hash[working_directory: working_directory].merge(options))
+                        Hash[resolved_env: Hash.new, working_directory: working_directory].merge(options))
         end
 
         # @api private
@@ -408,7 +408,13 @@ module Autobuild
         #
         # (see Git#run_git_bare)
         def self.run_git_bare(package, *args)
-            package.run(:import, Autobuild.tool(:git), '--git-dir', git_dir(package, false), *args)
+            options = Hash.new
+            if args.last.kind_of?(Hash)
+                options = args.pop
+            end
+            package.run(:import, Autobuild.tool(:git),
+                        '--git-dir', git_dir(package, false),
+                        *args, Hash[resolved_env: Hash.new].merge(options))
         end
 
         # @api private
