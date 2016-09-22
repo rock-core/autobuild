@@ -658,7 +658,6 @@ module Autobuild
                     add_path('RUBYLIB', new_rubylib)
                 end
 
-                require 'rbconfig'
                 %w{rubylibdir archdir sitelibdir sitearchdir vendorlibdir vendorarchdir}.
                     map { |key| RbConfig::CONFIG[key] }.
                     map { |path| path.gsub(/.*lib(?:32|64)?\//, '\\1') }.
