@@ -33,6 +33,10 @@ module Autobuild
             end
         end
 
+        def self.default_config
+            @default_config ||= Hash.new
+        end
+
         self.default_alternates = nil
 
         # Returns the git version as a string
@@ -1041,6 +1045,9 @@ module Autobuild
             end
             each_alternate_path(package) do |path|
                 clone_options << '--reference' << path
+            end
+            self.class.default_config.each do |key, value|
+                clone_options << "--config=#{key}=#{value}"
             end
             package.run(:import,
                 Autobuild.tool('git'), 'clone', '-o', remote_name, *clone_options, repository, package.importdir, retry: true)
