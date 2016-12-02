@@ -262,9 +262,6 @@ class Importer
     #
     # Call the post-import hooks added with {#add_post_hook}
     def execute_post_hooks(package)
-        self.class.each_post_hook do |hook|
-            hook.call(self, package)
-        end
         each_post_hook.each do |block|
             block.call(self, package)
         end
