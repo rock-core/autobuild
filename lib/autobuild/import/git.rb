@@ -132,7 +132,8 @@ module Autobuild
                 commit: nil,
                 repository_id: nil,
                 source_id: nil,
-                with_submodules: false
+                with_submodules: false,
+                single_branch: false
             if gitopts[:branch] && branch
                 raise ConfigException, "git branch specified with both the option hash and the explicit parameter"
             end
@@ -140,6 +141,7 @@ module Autobuild
 
             super(common)
 
+            @single_branch = gitopts[:single_branch]
             @with_submodules = gitopts.delete(:with_submodules)
             @remote_name = 'autobuild'
             @push_to = nil
@@ -242,6 +244,10 @@ module Autobuild
 
         # Whether the git checkout should be done with submodules
         def with_submodules?; !!@with_submodules end
+
+        # Whether 'clone' should fetch only the remote branch, or all the
+        # branches
+        attr_predicate :single_branch?, true
 
         # @api private
         #
@@ -1042,6 +1048,9 @@ module Autobuild
             clone_options = Array.new
             if with_submodules?
                 clone_options << '--recurse-submodules'
+            end
+            if single_branch?
+                clone_options << "--branch=#{remote_branch}" << "--single-branch"
             end
             each_alternate_path(package) do |path|
                 clone_options << '--reference' << path
