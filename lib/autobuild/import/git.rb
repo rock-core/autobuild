@@ -247,7 +247,14 @@ module Autobuild
 
         # Whether 'clone' should fetch only the remote branch, or all the
         # branches
-        attr_predicate :single_branch?, true
+        def single_branch?
+            @single_branch
+        end
+
+        # Set the {#single_branch?} predicate
+        def single_branch=(flag)
+            @single_branch = !!flag
+        end
 
         # @api private
         #
