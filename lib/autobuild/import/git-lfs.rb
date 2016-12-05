@@ -1,5 +1,5 @@
 # Disable git-lfs at checkout time, we run install --local and pull later 
-Autobuild::Git.default_config['filter.lfs.smudge'] = ''
+Autobuild::Git.default_config['filter.lfs.smudge'] = 'git-lfs smudge --skip -- %f'
 Autobuild::Git.default_config['filter.lfs.required'] = 'false'
 
 module Autobuild
