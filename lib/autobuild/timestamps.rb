@@ -24,7 +24,6 @@ module Autobuild
 
     def self.tree_timestamp(path, *exclude)
         # Exclude autobuild timestamps
-	exclude.each { |rx| raise unless Regexp === rx }
         exclude << (/#{Regexp.quote(STAMPFILE)}$/)
         exclude << (/\.autobuild-patches$/)
 
@@ -32,14 +31,14 @@ module Autobuild
         latest = Time.at(0)
         latest_file = ""
 
-        Find.find(path) { |p|
+        Find.find(path) do |p|
             Find.prune if File.basename(p) =~ /^\./
-            exclude.each { |pattern| 
-                if p =~ pattern
+            exclude.each do |pattern| 
+                if pattern === p
                     Autobuild.message "  excluding #{p}" if Autobuild.debug
                     Find.prune
                 end
-            }
+            end
             next if !File.file?(p)
 
             p_time = File.mtime(p)
@@ -47,7 +46,7 @@ module Autobuild
                 latest = p_time
                 latest_file = p
             end
-        }
+        end
 
         Autobuild.message "  newest file: #{latest_file} at #{latest}" if Autobuild.debug
         return latest_file, latest
