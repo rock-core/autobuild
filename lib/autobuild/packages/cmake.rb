@@ -259,6 +259,7 @@ module Autobuild
         end
 
         def common_utility_handling(utility, target, start_msg, done_msg)
+            utility.source_dir = srcdir
             utility.task do
                 progress_start start_msg, :done_message => done_msg do
                     if internal_doxygen_mode?
