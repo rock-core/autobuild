@@ -87,8 +87,8 @@ module Autobuild
 
         def prepare
             source_tree srcdir do |pkg|
-                pkg.exclude << Regexp.new("^#{Regexp.quote(builddir)}")
-                pkg.exclude << Regexp.new("^#{Regexp.quote(doc_dir)}") if doc_dir
+                pkg.exclude << Regexp.new("^#{Regexp.quote(builddir)}") if builddir != srcdir
+                pkg.exclude << Regexp.new("^#{Regexp.quote(doc_dir)}") if doc_dir && (doc_dir != srcdir)
                 pkg.exclude.concat(self.source_tree_excludes)
             end
 
