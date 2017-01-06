@@ -35,7 +35,7 @@ module Autobuild
             Find.prune if File.basename(p) =~ /^\./
             exclude.each do |pattern| 
                 if pattern === p
-                    Autobuild.message "  excluding #{p}" if Autobuild.debug
+                    Autobuild.message "  excluding #{p} because of #{pattern}" if Autobuild.debug
                     Find.prune
                 end
             end
