@@ -75,7 +75,7 @@ module Autobuild
 
     # Displays a warning message
     def self.warn(message = "", *style)
-        message("  WARN: #{message}", :magenta, *style, STDERR)
+        message("  WARN: #{message}", :magenta, *style, STDOUT)
     end
 
     # @return [Boolean] true if there is some progress messages for the given
