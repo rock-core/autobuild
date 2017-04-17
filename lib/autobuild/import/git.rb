@@ -337,7 +337,7 @@ module Autobuild
         def self.validate_git_dir(package, require_working_copy, dir, style)
             if !style
                 raise ConfigException.new(package, 'import', retry: false),
-                    "while importing #{package.name}, #{package.importdir} does not point to a git repository"
+                    "while importing #{package.name}, #{package.importdir} does not point to a git repository. It seems the repository type changed, so remove the local directory and try again."
             elsif require_working_copy && (style == :bare)
                 raise ConfigException.new(package, 'import', retry: false),
                     "while importing #{package.name}, #{package.importdir} points to a bare git repository but a working copy was required"
