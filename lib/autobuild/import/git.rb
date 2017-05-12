@@ -612,8 +612,9 @@ module Autobuild
             end
 
             validate_importdir(package)
-            remote_commit = current_remote_commit(package, only_local)
-            status = merge_status(package, remote_commit)
+            pinned_state, target_commit, _ = determine_target_state(package, only_local: only_local)
+
+            status = merge_status(package, target_commit)
             status.uncommitted_code = self.class.has_uncommitted_changes?(package)
             if current_branch = self.current_branch(package)
                 if current_branch != "refs/heads/#{local_branch}"
@@ -957,18 +958,7 @@ module Autobuild
             end
         end
 
-        # @option (see Package#update)
-        def update(package, options = Hash.new)
-            validate_importdir(package)
-            only_local = options.fetch(:only_local, false)
-            reset = options.fetch(:reset, false)
-            
-            # This is really really a hack to workaround how broken the
-            # importdir thing is
-            if package.importdir == package.srcdir
-                update_alternates(package)
-            end
-
+        def determine_target_state(package, only_local: false)
             pinned_state =
                 if commit then commit
                 elsif tag then "refs/tags/#{tag}"
@@ -986,6 +976,25 @@ module Autobuild
                 target_commit = fetch_commit  =
                     current_remote_commit(package, only_local: only_local)
             end
+
+            return pinned_state, target_commit, fetch_commit
+        end
+
+
+        # @option (see Package#update)
+        def update(package, options = Hash.new)
+            validate_importdir(package)
+            only_local = options.fetch(:only_local, false)
+            reset = options.fetch(:reset, false)
+            
+            # This is really really a hack to workaround how broken the
+            # importdir thing is
+            if package.importdir == package.srcdir
+                update_alternates(package)
+            end
+
+            pinned_state, target_commit, fetch_commit =
+                determine_target_state(package, only_local: only_local)
 
             # If we are tracking a commit/tag, just check it out and return
             if !has_local_branch?(package)
