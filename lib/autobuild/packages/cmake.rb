@@ -49,8 +49,17 @@ module Autobuild
             @@delete_obsolete_files_in_prefix = false
         end
         @builddir = nil
-        @prefix_path = []
-        @module_path = []
+
+        if Autobuild.env.inherited_environment.has_key?('CMAKE_PREFIX_PATH')
+            @prefix_path = Autobuild.env.inherited_environment['CMAKE_PREFIX_PATH']
+        else
+            @prefix_path = []
+        end
+        if Autobuild.env.inherited_environment.has_key?('CMAKE_MODULE_PATH')
+            @module_path = Autobuild.env.inherited_environment['CMAKE_MODULE_PATH']
+        else
+            @module_path = []
+        end	
         @full_reconfigures = true
 
         # a key => value association of defines for CMake
