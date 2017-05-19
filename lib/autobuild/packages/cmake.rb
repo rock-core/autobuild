@@ -49,27 +49,22 @@ module Autobuild
             @@delete_obsolete_files_in_prefix = false
         end
         @builddir = nil
-
-        if Autobuild.env.inherited_environment.has_key?('CMAKE_PREFIX_PATH')
-            @prefix_path = Autobuild.env.inherited_environment['CMAKE_PREFIX_PATH']
-        else
-            @prefix_path = []
-        end
-        if Autobuild.env.inherited_environment.has_key?('CMAKE_MODULE_PATH')
-            @module_path = Autobuild.env.inherited_environment['CMAKE_MODULE_PATH']
-        else
-            @module_path = []
-        end	
+        @prefix_path = []
+        @module_path = []
         @full_reconfigures = true
 
         # a key => value association of defines for CMake
         attr_reader :defines
         # The list of all -D options that should be passed on to CMake
         def all_defines
+            #The String() constuctor handles potential nil Object, need to split(':') to change seperator
+            env_prefix_path = String(Autobuild.env.resolved_env['CMAKE_PREFIX_PATH']).split(':')
+            env_module_path = String(Autobuild.env.resolved_env['CMAKE_MODULE_PATH']).split(':')
+	    
             additional_defines = Hash[
                 "CMAKE_INSTALL_PREFIX" => prefix,
-                "CMAKE_MODULE_PATH" => module_path.join(";"),
-                "CMAKE_PREFIX_PATH" => prefix_path.join(";")]
+                "CMAKE_MODULE_PATH" => (module_path + env_module_path).join(";"),
+                "CMAKE_PREFIX_PATH" => (prefix_path + env_prefix_path).join(";")]
             self.class.defines.merge(additional_defines).merge(defines)
         end
 
