@@ -57,15 +57,16 @@ module Autobuild
         attr_reader :defines
         # The list of all -D options that should be passed on to CMake
         def all_defines
-            #The String() constuctor handles potential nil Object, need to split(':') to change seperator
-            env_prefix_path = String(Autobuild.env.resolved_env['CMAKE_PREFIX_PATH']).split(':')
-            env_module_path = String(Autobuild.env.resolved_env['CMAKE_MODULE_PATH']).split(':')
-	    
-            additional_defines = Hash[
-                "CMAKE_INSTALL_PREFIX" => prefix,
-                "CMAKE_MODULE_PATH" => (module_path + env_module_path).join(";"),
-                "CMAKE_PREFIX_PATH" => (prefix_path + env_prefix_path).join(";")]
+            additional_defines = Hash["CMAKE_INSTALL_PREFIX" => prefix]
             self.class.defines.merge(additional_defines).merge(defines)
+        end
+
+        def cmake_env
+            #The String() constuctor handles potential nil Object, need to split(':') to change seperator
+            env_prefix_path = String(resolved_env['CMAKE_PREFIX_PATH']).split(':')
+            env_module_path = String(resolved_env['CMAKE_MODULE_PATH']).split(':')
+            return Hash["CMAKE_MODULE_PATH" => (module_path + env_module_path).join(";"),
+                        "CMAKE_PREFIX_PATH" => (prefix_path + env_prefix_path).join(";")]
         end
 
         # If true, always run cmake before make during the build
@@ -418,12 +419,12 @@ module Autobuild
                         command << "-G#{generator}"
                     end
                     command << srcdir
-                    
+
                     progress_start "configuring CMake for %s", :done_message => "configured CMake for %s" do
                         if full_reconfigures?
                             FileUtils.rm_f cmake_cache
                         end
-                        run('configure', *command)
+                        run('configure', *command, {env: cmake_env})
                     end
                 end
             end
