@@ -374,7 +374,7 @@ module Autobuild
         # @return [Hash<String,String>] a mapping from a tag name to its commit
         #   ID
         def tags(package, options = Hash.new)
-            if !options.fetch(only_local: false)
+            if !options.fetch(:only_local, false)
                 run_git_bare(package, 'fetch', '--tags')
             end
             tag_list = run_git_bare(package, 'show-ref', '--tags').map(&:strip)

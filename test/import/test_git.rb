@@ -268,6 +268,28 @@ describe Autobuild::Git do
             assert importer.commit_present_in?(pkg, 'tag0', 'master')
         end
     end
+    
+    describe "#tags" do
+        before do
+            importer.import(pkg)
+
+        end
+
+        it "lists the tags from the repository and returns their name and commit" do
+            assert_equal Hash["third_commit"=>"1ddb20665622279700770be09f9a291b37c9b631"],
+                importer.tags(pkg)
+        end
+        it "fetches new tags by default" do
+            system "git", "tag", "test", chdir: @gitrepo
+            assert_equal Set["third_commit", 'test'],
+                importer.tags(pkg).keys.to_set
+        end
+        it "does not fetch new tags if only_local: true is given" do
+            system "git", "tag", "test", chdir: @gitrepo
+            assert_equal ["third_commit"],
+                importer.tags(pkg, only_local: true).keys
+        end
+    end
 
     describe "update" do
         def self.common_commit_and_tag_behaviour
