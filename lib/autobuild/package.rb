@@ -275,7 +275,7 @@ module Autobuild
                     if last = set[env_op.name]
                         last_pkg, last_values = *last
                         if last_values != env_op.values
-                            raise IncompatibleEnvironment, "trying to reset #{env_op.name} to #{env_op.values} which conflicts with #{last_pkg.name} already setting it to #{last_values}"
+                            raise IncompatibleEnvironment, "trying to reset #{env_op.name} to #{env_op.values} in #{self.name} but this conflicts with #{last_pkg.name} already setting it to #{last_values}"
                         end
                     else
                         set[env_op.name] = [self, env_op.values]
