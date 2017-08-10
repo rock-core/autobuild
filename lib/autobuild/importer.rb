@@ -179,6 +179,11 @@ class Importer
     # give credentials
     def interactive?; !!@interactive end
 
+    # Changes whether this importer is interactive or not
+    def interactive=(value)
+        @interactive = !!value
+    end
+
     # The number of times update / checkout should be retried before giving up.
     # The default is 0 (do not retry)
     #

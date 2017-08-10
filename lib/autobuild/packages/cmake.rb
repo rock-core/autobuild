@@ -411,7 +411,7 @@ module Autobuild
                         command << "-D#{name}=#{value}"
                     end
                     if generator
-                        command << "-G#{generator}"
+                        command << Array(generator).map { |g| "-G#{g}" }
                     end
                     command << srcdir
                     
