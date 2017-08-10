@@ -617,7 +617,7 @@ module Autobuild
         #
         # It returns ENV as the environment is global on autobuild 1.10
         def resolved_env(_ignored = nil)
-            ENV.dup
+            Hash[ENV]
         end
     end
 
