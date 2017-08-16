@@ -1095,8 +1095,8 @@ module Autobuild
                 @local_branch = local_branch
                 @remote_branch = remote_branch
             end
-            @tag    = options[:tag] || @tag
-            @commit = options[:commit] || @commit
+            @tag    = options.fetch(:tag, @tag)
+            @commit = options.fetch(:commit, @commit)
 
             @repository = repository.to_str
             @repository_id = options[:repository_id] ||
