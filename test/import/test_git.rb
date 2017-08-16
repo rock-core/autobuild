@@ -535,6 +535,12 @@ describe Autobuild::Git do
                 import commit: nil
                 assert_equal "Commit 1\n", checkout_read('child', 'FILE')
             end
+            it "initializes new submodules" do
+                import commit: @master_root_commit
+                FileUtils.rm_rf checkout_path('commit1_submodule')
+                import commit: nil
+                assert_equal "Commit 1\n", checkout_read('commit1_submodule', 'FILE')
+            end
         end
 
         describe "reset" do
@@ -542,6 +548,12 @@ describe Autobuild::Git do
                 import
                 force_reset commit: @master_root_commit
                 assert_equal "Commit 0\n", checkout_read('child', 'FILE')
+            end
+            it "initializes new submodules" do
+                import
+                refute_checkout_file_exist 'commit0_submodule'
+                force_reset commit: @master_root_commit
+                assert_equal "Commit 1\n", checkout_read('commit0_submodule', 'FILE')
             end
         end
     end

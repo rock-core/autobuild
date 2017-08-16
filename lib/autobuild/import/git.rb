@@ -1031,7 +1031,7 @@ module Autobuild
             end
 
             if with_submodules?
-                run_git(package, "submodule", "update")
+                run_git(package, "submodule", "update", '--init')
             end
         end
 
