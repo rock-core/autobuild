@@ -1029,6 +1029,10 @@ module Autobuild
             else
                 merge_if_simple(package, target_commit)
             end
+
+            if with_submodules?
+                run_git(package, "submodule", "update")
+            end
         end
 
         # @api private
