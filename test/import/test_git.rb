@@ -507,6 +507,7 @@ describe Autobuild::Git do
 
     describe "submodule handling" do
         before do
+            @master_root_commit = '8fc7584'
             tempdir = untar 'gitrepo-submodule-master.tar'
             untar 'gitrepo-submodule-child.tar'
             srcdir     = File.join(tempdir, 'gitrepo-submodule-master')
@@ -515,30 +516,60 @@ describe Autobuild::Git do
             @importer  = Autobuild.git("#{srcdir}.git", with_submodules: true)
             pkg.importer = importer
         end
-        it "checks submodules out on checkout" do
-            importer.import(pkg)
-            assert File.exist?(File.join(pkg.srcdir, 'child', '.git'))
-            assert_equal "Commit 1", File.read(File.join(pkg.srcdir, 'child', 'FILE')).strip
+
+        describe "checkout" do
+            it "checkouts submodules" do
+                import
+                assert_checkout_file_exist 'child', '.git'
+                assert_equal "Commit 1\n", checkout_read('child', 'FILE')
+            end
+            it "checkouts submodules at the state of the tag/commit pin" do
+                import commit: @master_root_commit
+                assert_equal "Commit 0\n", checkout_read('child', 'FILE')
+            end
         end
-        it "properly updates submodules if the checkout is pinned to a tag or commit" do
-            importer.relocate(importer.repository, commit: '80910fa21d92b8f387503d366a52c14b1ced4041')
-            importer.import(pkg)
-            assert File.exist?(File.join(pkg.srcdir, 'child', '.git'))
-            assert_equal "Commit 0", File.read(File.join(pkg.srcdir, 'child', 'FILE')).strip
+
+        describe "update" do
+            it "updates submodules" do
+                import commit: @master_root_commit
+                import commit: nil
+                assert_equal "Commit 1\n", checkout_read('child', 'FILE')
+            end
         end
-        it "updates submodules on update" do
-            importer.relocate(importer.repository, commit: '80910fa21d92b8f387503d366a52c14b1ced4041')
-            importer.import(pkg)
-            importer.relocate(importer.repository, commit: nil)
-            importer.import(pkg)
-            assert_equal "Commit 1", File.read(File.join(pkg.srcdir, 'child', 'FILE')).strip
+
+        describe "reset" do
+            it "resets submodules" do
+                import
+                force_reset commit: @master_root_commit
+                assert_equal "Commit 0\n", checkout_read('child', 'FILE')
+            end
         end
-        it "updates submodules on reset" do
-            importer.import(pkg)
-            importer.relocate(importer.repository, commit: '80910fa21d92b8f387503d366a52c14b1ced4041')
-            importer.import(pkg, reset: :force)
-            assert_equal "Commit 0", File.read(File.join(pkg.srcdir, 'child', 'FILE')).strip
+    end
+
+    def assert_checkout_file_exist(*file)
+        assert File.exist?(checkout_path(*file))
+    end
+    def refute_checkout_file_exist(*file)
+        refute File.exist?(checkout_path(*file))
+    end
+    def checkout_path(*file)
+        File.join(pkg.srcdir, *file)
+    end
+    def checkout_read(*file)
+        File.read(checkout_path(*file))
+    end
+    def force_reset(**options)
+        if !options.empty?
+            importer.relocate(importer.repository, **options)
         end
+        importer.import(pkg, reset: :force)
+    end
+
+    def import(**options)
+        if !options.empty?
+            importer.relocate(importer.repository, **options)
+        end
+        importer.import(pkg)
     end
 end
 
