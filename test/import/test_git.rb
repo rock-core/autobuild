@@ -3,7 +3,7 @@ require 'autobuild/test'
 describe Autobuild::Git do
     attr_reader :pkg, :importer, :gitrepo
     before do
-        untar('gitrepo.tar')
+        tempdir = untar('gitrepo.tar')
         @gitrepo = File.join(tempdir, 'gitrepo.git')
         @pkg = Autobuild::Package.new 'test'
         pkg.srcdir = File.join(tempdir, 'git')
@@ -502,6 +502,42 @@ describe Autobuild::Git do
             end
 
             common_commit_and_tag_behaviour
+        end
+    end
+
+    describe "submodule handling" do
+        before do
+            tempdir = untar 'gitrepo-submodule-master.tar'
+            untar 'gitrepo-submodule-child.tar'
+            srcdir     = File.join(tempdir, 'gitrepo-submodule-master')
+            @pkg       = Autobuild::Package.new 'submodule_test'
+            pkg.srcdir = srcdir
+            @importer  = Autobuild.git("#{srcdir}.git", with_submodules: true)
+            pkg.importer = importer
+        end
+        it "checks submodules out on checkout" do
+            importer.import(pkg)
+            assert File.exist?(File.join(pkg.srcdir, 'child', '.git'))
+            assert_equal "Commit 1", File.read(File.join(pkg.srcdir, 'child', 'FILE')).strip
+        end
+        it "properly updates submodules if the checkout is pinned to a tag or commit" do
+            importer.relocate(importer.repository, commit: '80910fa21d92b8f387503d366a52c14b1ced4041')
+            importer.import(pkg)
+            assert File.exist?(File.join(pkg.srcdir, 'child', '.git'))
+            assert_equal "Commit 0", File.read(File.join(pkg.srcdir, 'child', 'FILE')).strip
+        end
+        it "updates submodules on update" do
+            importer.relocate(importer.repository, commit: '80910fa21d92b8f387503d366a52c14b1ced4041')
+            importer.import(pkg)
+            importer.relocate(importer.repository, commit: nil)
+            importer.import(pkg)
+            assert_equal "Commit 1", File.read(File.join(pkg.srcdir, 'child', 'FILE')).strip
+        end
+        it "updates submodules on reset" do
+            importer.import(pkg)
+            importer.relocate(importer.repository, commit: '80910fa21d92b8f387503d366a52c14b1ced4041')
+            importer.import(pkg, reset: :force)
+            assert_equal "Commit 0", File.read(File.join(pkg.srcdir, 'child', 'FILE')).strip
         end
     end
 end
