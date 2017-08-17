@@ -3,7 +3,7 @@ require 'autobuild/test'
 describe Autobuild::Git do
     attr_reader :pkg, :importer, :gitrepo
     before do
-        untar('gitrepo.tar')
+        tempdir = untar('gitrepo.tar')
         @gitrepo = File.join(tempdir, 'gitrepo.git')
         @pkg = Autobuild::Package.new 'test'
         pkg.srcdir = File.join(tempdir, 'git')
@@ -503,6 +503,85 @@ describe Autobuild::Git do
 
             common_commit_and_tag_behaviour
         end
+    end
+
+    describe "submodule handling" do
+        before do
+            @master_root_commit = '8fc7584'
+            tempdir = untar 'gitrepo-submodule-master.tar'
+            untar 'gitrepo-submodule-child.tar'
+            srcdir     = File.join(tempdir, 'gitrepo-submodule-master')
+            @pkg       = Autobuild::Package.new 'submodule_test'
+            pkg.srcdir = srcdir
+            @importer  = Autobuild.git("#{srcdir}.git", with_submodules: true)
+            pkg.importer = importer
+        end
+
+        describe "checkout" do
+            it "checkouts submodules" do
+                import
+                assert_checkout_file_exist 'child', '.git'
+                assert_equal "Commit 1\n", checkout_read('child', 'FILE')
+            end
+            it "checkouts submodules at the state of the tag/commit pin" do
+                import commit: @master_root_commit
+                assert_equal "Commit 0\n", checkout_read('child', 'FILE')
+            end
+        end
+
+        describe "update" do
+            it "updates submodules" do
+                import commit: @master_root_commit
+                import commit: nil
+                assert_equal "Commit 1\n", checkout_read('child', 'FILE')
+            end
+            it "initializes new submodules" do
+                import commit: @master_root_commit
+                FileUtils.rm_rf checkout_path('commit1_submodule')
+                import commit: nil
+                assert_equal "Commit 1\n", checkout_read('commit1_submodule', 'FILE')
+            end
+        end
+
+        describe "reset" do
+            it "resets submodules" do
+                import
+                force_reset commit: @master_root_commit
+                assert_equal "Commit 0\n", checkout_read('child', 'FILE')
+            end
+            it "initializes new submodules" do
+                import
+                refute_checkout_file_exist 'commit0_submodule'
+                force_reset commit: @master_root_commit
+                assert_equal "Commit 1\n", checkout_read('commit0_submodule', 'FILE')
+            end
+        end
+    end
+
+    def assert_checkout_file_exist(*file)
+        assert File.exist?(checkout_path(*file))
+    end
+    def refute_checkout_file_exist(*file)
+        refute File.exist?(checkout_path(*file))
+    end
+    def checkout_path(*file)
+        File.join(pkg.srcdir, *file)
+    end
+    def checkout_read(*file)
+        File.read(checkout_path(*file))
+    end
+    def force_reset(**options)
+        if !options.empty?
+            importer.relocate(importer.repository, **options)
+        end
+        importer.import(pkg, reset: :force)
+    end
+
+    def import(**options)
+        if !options.empty?
+            importer.relocate(importer.repository, **options)
+        end
+        importer.import(pkg)
     end
 end
 

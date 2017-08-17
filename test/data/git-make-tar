@@ -1,0 +1,11 @@
+#! /bin/sh -e
+
+gitrepo=$1
+if ! test -d $gitrepo; then
+    echo "$gitrepo does not exist"
+    exit 1
+fi
+
+rm -rf $gitrepo.git $gitrepo.tar
+git clone --bare $gitrepo $gitrepo.git
+tar cf $gitrepo.tar $gitrepo.git
