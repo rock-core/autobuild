@@ -280,10 +280,12 @@ module Autobuild
 
         ## Run a block and report known exception
         # If an exception is fatal, the program is terminated using exit()
-        def self.report
+        def self.report(on_package_failures: default_report_on_package_failures)
             begin yield
             rescue Interrupt
                 interrupted = true
+            rescue Autobuild::Exception => e
+                return report_finish_on_error([e], on_package_failures: on_package_failures)
             end
 
             # If ignore_erorrs is true, check if some packages have failed
@@ -295,21 +297,45 @@ module Autobuild
             end
 
             if !errors.empty?
-                raise CompositeException.new(errors)
-            elsif interrupted
+		errors = report_finish_on_error(errors, on_package_failures: on_package_failures)
+            end
+            if interrupted
                 raise Interrupt
             end
+	    errors
+        end
 
-        rescue Autobuild::Exception => e
-            error(e)
-            if e.fatal?
-                if Autobuild.debug
-                    raise
+	# @api private
+	#
+	# Helper that returns the default for on_package_failures
+        #
+        # The result depends on the value for Autobuild.debug. It is either
+        # :exit if debug is false, or :raise if it is true
+        def self.default_report_on_package_failures
+            if Autobuild.debug then :raise
+            else :exit
+            end
+        end
+
+	# @api private
+	#
+	# Handle how Reporting.report is meant to finish in case of error(s)
+	def self.report_finish_on_error(errors, on_package_failures: default_report_on_package_failures)
+	    errors.each { |e| error(e) }
+	    fatal = errors.any?(&:fatal?)
+	    if fatal && on_package_failures != :report
+                if on_package_failures == :raise
+		    e = if errors.size == 1 then errors.first
+			else CompositeException.new(errors)
+			end
+                    raise e
                 else
                     exit 1
                 end
+	    else
+		return errors
             end
-        end
+	end
         
         ## Reports a successful build to the user
         def self.success
