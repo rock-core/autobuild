@@ -46,7 +46,9 @@ module Autobuild
             end
 
         if !Autobuild.progress_display_enabled?
-            io.puts msg
+            if !silent?
+                io.puts msg
+            end
             return
         end
 
