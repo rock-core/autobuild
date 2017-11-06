@@ -160,6 +160,14 @@ module Autobuild::Subprocess
     CONTROL_UNEXPECTED = 2
     CONTROL_INTERRUPT = 3
 
+    def self.transparent_mode?
+        @transparent_mode
+    end
+
+    def self.transparent_mode=(flag)
+        @transparent_mode = flag
+    end
+
     # Run a subcommand and return its standard output
     #
     # The command's standard and error outputs, as well as the full command line
@@ -383,15 +391,15 @@ module Autobuild::Subprocess
                 line = line.chomp
                 subcommand_output << line
 
-                if Autobuild.verbose
-                    STDOUT.puts line
-                end
                 logfile.puts line
-                # Do not yield the line if Autobuild.verbose is true, as it
-                # would mix the progress output with the actual command
-                # output. Assume that if the user wants the command output,
-                # the autobuild progress output is unnecessary
-                if !Autobuild.verbose && block_given?
+
+                if Autobuild.verbose || transparent_mode?
+                    STDOUT.puts "#{target_name}:#{phase}: #{line}"
+                elsif block_given?
+                    # Do not yield 
+                    # would mix the progress output with the actual command
+                    # output. Assume that if the user wants the command output,
+                    # the autobuild progress output is unnecessary
                     yield(line)
                 end
             end
