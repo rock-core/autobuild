@@ -323,7 +323,9 @@ module Autobuild
 	#
 	# Handle how Reporting.report is meant to finish in case of error(s)
 	def self.report_finish_on_error(errors, on_package_failures: default_report_on_package_failures)
-	    errors.each { |e| error(e) }
+            if on_package_failures != :report_silent
+                errors.each { |e| error(e) }
+            end
 	    fatal = errors.any?(&:fatal?)
 	    if fatal && on_package_failures != :report
                 if on_package_failures == :raise
