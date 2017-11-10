@@ -272,9 +272,8 @@ module Autobuild
         end
     end
 
-    ## The reporting module provides the framework
-    # to run commands in autobuild and report errors 
-    # to the user
+    ## The reporting module provides the framework # to run commands in
+    # autobuild and report errors # to the user
     #
     # It does not use a logging framework like Log4r, but it should ;-)
     module Reporting
@@ -284,10 +283,10 @@ module Autobuild
         # If an exception is fatal, the program is terminated using exit()
         def self.report(on_package_failures: default_report_on_package_failures)
             begin yield
-            rescue Interrupt
-                interrupted = true
+            rescue Interrupt => e
+                interrupted = e
             rescue Autobuild::Exception => e
-                return report_finish_on_error([e], on_package_failures: on_package_failures)
+                return report_finish_on_error([e], on_package_failures: on_package_failures, interrupted_by: interrupted)
             end
 
             # If ignore_erorrs is true, check if some packages have failed
@@ -299,17 +298,14 @@ module Autobuild
             end
 
             if !errors.empty?
-		errors = report_finish_on_error(errors, on_package_failures: on_package_failures)
+                errors = report_finish_on_error(errors, on_package_failures: on_package_failures, interrupted_by: interrupted)
             end
-            if interrupted
-                raise Interrupt
-            end
-	    errors
+            errors
         end
 
-	# @api private
-	#
-	# Helper that returns the default for on_package_failures
+        # @api private
+        #
+        # Helper that returns the default for on_package_failures
         #
         # The result depends on the value for Autobuild.debug. It is either
         # :exit if debug is false, or :raise if it is true
@@ -319,28 +315,47 @@ module Autobuild
             end
         end
 
-	# @api private
-	#
-	# Handle how Reporting.report is meant to finish in case of error(s)
-	def self.report_finish_on_error(errors, on_package_failures: default_report_on_package_failures)
-            if on_package_failures != :report_silent
+        # @api private
+        #
+        # Handle how Reporting.report is meant to finish in case of error(s)
+        #
+        # @param [Symbol] on_package_failures how does the reporting should behave.
+        #
+        def self.report_finish_on_error(errors, on_package_failures: default_report_on_package_failures, interrupted_by: nil)
+            if ![:raise, :report_silent, :exit_silent].include?(on_package_failures)
                 errors.each { |e| error(e) }
             end
-	    fatal = errors.any?(&:fatal?)
-	    if fatal && on_package_failures != :report
-                if on_package_failures == :raise
-		    e = if errors.size == 1 then errors.first
-			else CompositeException.new(errors)
-			end
-                    raise e
+            fatal = errors.any?(&:fatal?)
+            if !fatal
+                if interrupted_by
+                    raise interrupted_by
                 else
-                    exit 1
+                    return errors
                 end
-	    else
-		return errors
             end
-	end
-        
+
+            if on_package_failures == :raise
+                if interrupted_by
+                    raise interrupted_by
+                end
+
+                e = if errors.size == 1 then errors.first
+                else CompositeException.new(errors)
+                end
+                raise e
+            elsif [:report_silent, :report].include?(on_package_failures)
+                if interrupted_by
+                    raise interrupted_by
+                else
+                    return errors
+                end
+            elsif [:exit, :exit_silent].include?(on_package_failures)
+                exit 1
+            else
+                raise ArgumentError, "unexpected value for on_package_failures: #{on_package_failures}"
+            end
+        end
+
         ## Reports a successful build to the user
         def self.success
             each_reporter { |rep| rep.success }
@@ -364,9 +379,9 @@ module Autobuild
             @@reporters.clear
         end
 
-	def self.each_reporter(&iter)
-	    @@reporters.each(&iter)
-	end
+        def self.each_reporter(&iter)
+            @@reporters.each(&iter)
+        end
 
         ## Iterate on all log files
         def self.each_log(&block)
@@ -393,4 +408,3 @@ module Autobuild
         end
     end
 end
-
