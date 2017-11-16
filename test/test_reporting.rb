@@ -21,12 +21,13 @@ module Autobuild
                         Reporting.report(on_package_failures: :raise) { raise Interrupt }
                     end
                 end
-                it "reports a package fatal error and raises it" do
-                    flexmock(Reporting).should_receive(:error).with(@package_e).once
+                it "raises a package failure" do
+                    flexmock(Reporting).should_receive(:error).never
                     e = assert_raises(@package_e.class) do
                         Reporting.report(on_package_failures: :raise) do
                             pkg = Autobuild::Package.new('test')
                             pkg.failures << @package_e
+                            binding.pry
                         end
                     end
                     assert_equal @package_e, e
@@ -83,7 +84,9 @@ module Autobuild
 
                 it "lets an Interrupt pass through" do
                     assert_raises(Interrupt) do
-                        Reporting.report { raise Interrupt }
+                        Reporting.report(on_package_failures: :exit) do
+                            raise Interrupt
+                        end
                     end
                 end
                 it "reports package fatal errors and exits" do

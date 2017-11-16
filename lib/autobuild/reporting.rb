@@ -297,10 +297,7 @@ module Autobuild
                 errors.concat(pkg.failures)
             end
 
-            if !errors.empty?
-                errors = report_finish_on_error(errors, on_package_failures: on_package_failures, interrupted_by: interrupted)
-            end
-            errors
+            report_finish_on_error(errors, on_package_failures: on_package_failures, interrupted_by: interrupted)
         end
 
         # @api private
