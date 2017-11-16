@@ -699,6 +699,8 @@ module Autobuild
         @env = env
     end
 
+    @env = nil
+
     def self.env
         if !@env
             @env = Environment.new

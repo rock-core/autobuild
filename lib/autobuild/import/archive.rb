@@ -289,6 +289,7 @@ module Autobuild
                 :source_id, :repository_id, :filename, :mode
             super(options)
 
+            @filename = nil
             if !@options.has_key?(:update_cached_file)
                 @options[:update_cached_file] = false
             end

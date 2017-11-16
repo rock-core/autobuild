@@ -53,7 +53,7 @@ class TC_TarImporter < Minitest::Test
     def web_server
         s = HTTPServer.new :Port => 2000, :DocumentRoot => tempdir
         s.mount("/files", HTTPServlet::FileHandler, tempdir)
-        webrick = Thread.new { s.start }
+        Thread.new { s.start }
 
         yield
 

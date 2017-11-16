@@ -160,6 +160,8 @@ module Autobuild::Subprocess
     CONTROL_UNEXPECTED = 2
     CONTROL_INTERRUPT = 3
 
+    @transparent_mode = false
+
     def self.transparent_mode?
         @transparent_mode
     end
