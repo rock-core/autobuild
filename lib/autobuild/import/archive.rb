@@ -333,6 +333,7 @@ module Autobuild
             if needs_update || archive_changed?(package)
                 checkout(package, allow_interactive: options[:allow_interactive])
             end
+            (needs_update || archive_changed?(package))
         rescue OpenURI::HTTPError
             raise Autobuild::Exception.new(package.name, :import)
         end

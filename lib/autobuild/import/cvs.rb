@@ -36,7 +36,7 @@ module Autobuild
         def update(package, options = Hash.new) # :nodoc:
             if options[:only_local]
                 package.warn "%s: the CVS importer does not support local updates, skipping"
-                return
+                return false
             end
 
             if !File.exist?("#{package.srcdir}/CVS/Root")
@@ -59,6 +59,7 @@ module Autobuild
             end
             package.run(:import, Autobuild.tool(:cvs), 'up', *@options_up,
                         retry: true, working_directory: package.importdir)
+            true # no easy way to check if package was updated, keep previous behavior and consider updated
         end
 
         def checkout(package, options = Hash.new) # :nodoc:

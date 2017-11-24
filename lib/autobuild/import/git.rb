@@ -926,7 +926,7 @@ module Autobuild
             status_to_target = head_to_target.status
 
             if status_to_target == Status::UP_TO_DATE
-                return
+                return false
             elsif status_to_target == Status::SIMPLE_UPDATE
                 run_git(package, 'merge', target_commit)
             elsif !options[:force]
@@ -956,6 +956,7 @@ module Autobuild
                 run_git(package, 'checkout', local_branch)
                 raise
             end
+            true
         end
 
         def determine_target_state(package, only_local: false)
@@ -1000,7 +1001,7 @@ module Autobuild
             if !has_local_branch?(package)
                 package.message "%%s: checking out branch %s" % [local_branch]
                 run_git(package, 'checkout', '-b', local_branch, target_commit)
-                return
+                return false
             end
 
             if !on_local_branch?(package)
@@ -1013,26 +1014,29 @@ module Autobuild
                 current_head = rev_parse(package, 'HEAD')
                 if reset
                     if current_head == pinned_state
-                        return
+                        return false
                     end
                 elsif commit_present_in?(package, pinned_state, current_head)
-                    return
+                    return false
                 elsif merge_if_simple(package, pinned_state)
-                    return
+                    return true
                 end
             end
 
+            did_update = false
             fetch_commit ||= current_remote_commit(
                 package, only_local: only_local, refspec: [remote_branch, tag])
             if reset
-                reset_head_to_commit(package, target_commit, fetch_commit, force: (reset == :force))
+                did_update = reset_head_to_commit(package, target_commit, fetch_commit, force: (reset == :force))
             else
-                merge_if_simple(package, target_commit)
+                did_update = merge_if_simple(package, target_commit)
             end
 
             if with_submodules?
                 run_git(package, "submodule", "update", '--init')
+                did_update = true
             end
+            did_update
         end
 
         # @api private
@@ -1043,8 +1047,9 @@ module Autobuild
                     raise PackageException.new(package, 'import'), "the local branch '#{local_branch}' and the remote branch #{branch} of #{package.name} have diverged, and I therefore refuse to update automatically. Go into #{package.importdir} and either reset the local branch or merge the remote changes"
                 end
                 run_git(package, 'merge', target_commit)
-                true
+                return true
             end
+            false
         end
 
         def each_alternate_path(package)

@@ -52,11 +52,12 @@ module Autobuild
         def update(package, options = Hash.new)
             if options[:only_local]
                 package.warn "%s: the Mercurial importer does not support local updates, skipping"
-                return
+                return false
             end
             validate_importdir(package)
             package.run(:import, Autobuild.tool('hg'), 'pull', repository, retry: true, working_directory: package.importdir)
             package.run(:import, Autobuild.tool('hg'), 'update', branch, working_directory: package.importdir)
+            true # no easy to know if package was updated, keep previous behavior
         end
 
         def checkout(package, options = Hash.new)

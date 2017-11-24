@@ -301,7 +301,7 @@ class Importer
         retry_count = 0
         package.progress_start "updating %s"
         begin
-            update(package,only_local)
+            did_update = update(package,only_local)
             execute_post_hooks(package)
         rescue Interrupt
             if last_error
@@ -336,7 +336,10 @@ class Importer
             package.message "update failed in #{package.importdir}, retrying (#{retry_count}/#{self.retry_count})"
             retry
         ensure
-            package.progress_done "updated %s"
+            update_msg = if did_update == false then 'already up-to-date'
+                         else 'updated' end
+
+            package.progress_done "#{update_msg} %s"
         end
 
         patch(package)

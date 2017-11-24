@@ -25,7 +25,7 @@ module Autobuild
         def update(package, options = Hash.new) # :nodoc:
             if options[:only_local]
                 package.warn "%s: the darcs importer does not support local updates, skipping"
-                return
+                return false
             end
 	    if !File.directory?( File.join(package.srcdir, '_darcs') )
 		raise ConfigException.new(package, 'import'),
@@ -34,6 +34,7 @@ module Autobuild
 
 	    package.run(:import, @program, 
 	       'pull', '--all', "--repodir=#{package.srcdir}", '--set-scripts-executable', @source, *@pull, retry: true)
+            true # no easy to know if package was updated, keep previous behavior
         end
 
         def checkout(package, options = Hash.new) # :nodoc:
