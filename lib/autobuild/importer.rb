@@ -303,12 +303,20 @@ class Importer
         begin
             did_update = update(package,only_local)
             execute_post_hooks(package)
+            message = if did_update == false
+                          Autobuild.color('already up-to-date', :green)
+                      else
+                          Autobuild.color('updated', :yellow)
+                      end
+
         rescue Interrupt
+            message = Autobuild.color('interrupted', :red)
             if last_error
                 raise last_error
             else raise
             end
         rescue ::Exception => original_error
+            message = Autobuild.color('update failed', :red)
             last_error = original_error
             # If the package is patched, it might be that the update
             # failed because we needed to unpatch first. Try it out
@@ -336,16 +344,11 @@ class Importer
             package.message "update failed in #{package.importdir}, retrying (#{retry_count}/#{self.retry_count})"
             retry
         ensure
-            update_msg = if did_update == false then 'already up-to-date'
-                         else 'updated' end
-
-            package.progress_done "#{update_msg} %s"
+            package.progress_done "#{message} %s"
         end
 
         patch(package)
         package.updated = true
-    rescue Interrupt
-        raise
     rescue Autobuild::Exception => e
         fallback(e, package, :import, package)
     end
