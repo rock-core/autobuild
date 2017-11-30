@@ -197,7 +197,7 @@ module Autobuild
         def update(package, options = Hash.new) # :nodoc:
             if options[:only_local]
                 package.warn "%s: the svn importer does not support local updates, skipping"
-                return
+                return false
             end
 
             url = svn_url(package)
@@ -212,11 +212,12 @@ module Autobuild
                 elsif revision
                     # Don't update if the current revision is greater-or-equal
                     # than the target revision
-                    return
+                    return false
                 end
             end
 
             run_svn(package, 'up', "--non-interactive", *options_up)
+            true
         end
 
         def checkout(package, options = Hash.new) # :nodoc:
