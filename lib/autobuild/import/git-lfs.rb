@@ -3,7 +3,7 @@ Autobuild::Git.default_config['filter.lfs.smudge'] = 'git-lfs smudge --skip -- %
 Autobuild::Git.default_config['filter.lfs.required'] = 'false'
 
 module Autobuild
-    Git.add_post_hook do |importer, package|
+    Git.add_post_hook(always: true) do |importer, package|
         lfs_dir = File.join(package.srcdir, '.git', 'lfs')
         if File.directory?(lfs_dir)
             importer.run_git(package, 'lfs', 'install', '--force', '--local', '--skip-smudge')
