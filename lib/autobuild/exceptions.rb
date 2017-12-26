@@ -100,18 +100,14 @@ module Autobuild
             # launching process. More importantly, it means we already have a
             # proper explanation for it. Don't display the logfile at all.
             if status 
-                if File.file?(logfile)
-                    lines = File.readlines(logfile)
-                    logsize = Autobuild.displayed_error_line_count
-                    if logsize != Float::INFINITY && lines.size > logsize
-                        lines = lines[-logsize, logsize]
-                    end
-                    msg << "\n    last #{lines.size} lines are:\n\n"
-                    lines.each do |l|
-                        msg << "    #{l}"
-                    end
-                else
-                    msg << "\n    the log file does not seem to be present on disk anymore"
+                lines = @output
+                logsize = Autobuild.displayed_error_line_count
+                if logsize != Float::INFINITY && lines.size > logsize
+                    lines = lines[-logsize, logsize]
+                end
+                msg << "\n    last #{lines.size} lines are:\n\n"
+                lines.each do |l|
+                    msg << "    #{l}\n"
                 end
             end
             msg
