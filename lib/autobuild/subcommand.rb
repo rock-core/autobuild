@@ -341,10 +341,7 @@ module Autobuild::Subprocess
                         $stdin.reopen(pread)
                     end
                    
-                    if RUBY_VERSION >= "1.9"
-                        command << Hash[:close_others => false]
-                    end
-                    exec(env, *command)
+                    exec(env, *command, close_others: false)
                 rescue Errno::ENOENT
                     cwrite.write([CONTROL_COMMAND_NOT_FOUND].pack('I'))
                     exit(100)
