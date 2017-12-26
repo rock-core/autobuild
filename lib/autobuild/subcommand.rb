@@ -416,6 +416,7 @@ module Autobuild::Subprocess
             outread.close
 
             _, childstatus = Process.wait2(pid)
+            logfile.puts "Exit: #{childstatus}"
             childstatus
         end
 
