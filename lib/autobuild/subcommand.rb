@@ -327,14 +327,9 @@ module Autobuild::Subprocess
                         Process.setpriority(Process::PRIO_PROCESS, 0, Autobuild.nice)
                     end
 
-                    if outwrite
-                        outread.close
-                        $stderr.reopen(outwrite.dup)
-                        $stdout.reopen(outwrite.dup)
-                    else
-                        $stderr.reopen(logfile.dup)
-                        $stdout.reopen(logfile.dup)
-                    end
+                    outread.close
+                    $stderr.reopen(outwrite.dup)
+                    $stdout.reopen(outwrite.dup)
 
                     if !input_streams.empty?
                         pwrite.close
