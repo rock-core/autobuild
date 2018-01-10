@@ -669,12 +669,28 @@ module Autobuild
             end
         end
 
-        def find_in_path(file, path_var = 'PATH')
-            path = (value(path_var) || Array.new).
-                find { |dir| File.exist?(File.join(dir, file)) }
-            if path
-                return File.join(path, file)
+        def find_executable_in_path(file, path_var = 'PATH')
+            (value(path_var) || Array.new).each do |dir|
+                full = File.join(dir, file)
+                begin
+                    stat = File.stat(full)
+                    if stat.file? && stat.executable?
+                        return full
+                    end
+                rescue ::Exception
+                end
             end
+            nil
+        end
+
+        def find_in_path(file, path_var = 'PATH')
+            (value(path_var) || Array.new).each do |dir|
+                full = File.join(dir, file)
+                if File.file?(full)
+                    return full
+                end
+            end
+            nil
         end
 
         def isolate
