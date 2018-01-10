@@ -38,19 +38,13 @@ module Autobuild
                     # This is already a full path
                     path = current
                 else
-                    path = find_in_path(current)
+                    path = env.find_executable_in_path(current)
                 end
 
                 if !path
-                    raise ArgumentError, "tool #{name}, set to #{current}, can not be found in PATH=#{path_env}"
+                    raise ArgumentError, "tool #{name}, set to #{current}, can not be found in PATH=#{env_PATH}"
                 end
 
-                # Verify that the new value is a file and is executable
-                if !File.file?(path)
-                    raise ArgumentError, "tool #{name} is set to #{current}, but this resolves to #{path} which is not a file"
-                elsif !File.executable?(path)
-                    raise ArgumentError, "tool #{name} is set to #{current}, but this resolves to #{path} which is not executable"
-                end
                 programs_in_path[name] = [path, current, env_PATH]
             end
 

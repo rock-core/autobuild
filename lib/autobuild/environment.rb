@@ -281,10 +281,10 @@ module Autobuild
         def push(name, *values)
             if current = environment[name]
                 current = current.dup
-                env_set(name, *values)
-                env_add(name, *current)
+                set(name, *values)
+                add(name, *current)
             else
-                env_add(name, *values)
+                add(name, *values)
             end
         end
 

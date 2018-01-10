@@ -5,7 +5,7 @@ module Autobuild
         describe "#apply_env" do
             attr_reader :package, :env
             before do
-                @package = Package.new
+                @package = Package.new("pkg")
                 @env = flexmock(base: Environment)
             end
             it "applies stored environment operations to the given environment object" do
@@ -33,7 +33,7 @@ module Autobuild
                 e = assert_raises(Package::IncompatibleEnvironment) do
                     package.apply_env(env, Hash['KEY'=> [flexmock(name: 'test'), 'VALUE']])
                 end
-                assert_equal "trying to reset KEY to [\"OTHER_VALUE\"] which conflicts with test already setting it to VALUE: Autobuild::Package::IncompatibleEnvironment", e.message
+                assert_equal "trying to reset KEY to [\"OTHER_VALUE\"] in pkg but this conflicts with test already setting it to VALUE: Autobuild::Package::IncompatibleEnvironment", e.message
             end
             it "registers the set operations on the given 'set' Hash" do
                 package.env_set 'KEY', 'VALUE'
