@@ -58,7 +58,9 @@ class TC_TarImporter < Minitest::Test
         yield
 
     ensure
-        s.shutdown
+        if s
+            s.shutdown
+        end
     end
 
     def test_tar_remote

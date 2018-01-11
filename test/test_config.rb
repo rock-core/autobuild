@@ -1,9 +1,8 @@
 require 'autobuild/test'
+require 'autobuild/environment'
 require 'fakefs/safe'
-require 'flexmock'
 
 describe Autobuild do
-
     describe "tool" do
         after do
             Autobuild.programs.delete('test')
@@ -27,51 +26,55 @@ describe Autobuild do
 
     describe "tool_in_path" do
         before do
-            FakeFS.activate!
             flexmock(Autobuild).should_receive(:tool).with('bla').and_return('a_test_name').by_default
-            flexmock(ENV).should_receive('[]').with('PATH').and_return('/a/path')
-            flexmock(ENV).should_receive('[]').with(any).pass_thru
-            FileUtils.mkdir_p('/a/path')
+            @env = Autobuild::Environment.new
+            @env.set 'PATH', @tempdir
         end
         after do
-            FakeFS.deactivate!
-            FakeFS::FileSystem.clear
             Autobuild.programs_in_path.delete('bla')
         end
 
+        def full_tool_path
+            File.join(@tempdir, 'a_test_name')
+        end
+
+        def create_test_file
+            FileUtils.touch(full_tool_path)
+        end
+
+        def create_test_executable
+            create_test_file
+            FileUtils.chmod 0o755, full_tool_path
+        end
+
         it "should raise ArgumentError if the tool is not present in path" do
-            assert_raises(ArgumentError) { Autobuild.tool_in_path('bla') }
+            assert_raises(ArgumentError) { Autobuild.tool_in_path('bla', env: @env) }
         end
         it "should raise ArgumentError if the tool is present in path but is not a file" do
-            FileUtils.mkdir_p('/a/path/a_test_name')
-            assert_raises(ArgumentError) { Autobuild.tool_in_path('bla') }
+            FileUtils.mkdir_p(full_tool_path)
+            assert_raises(ArgumentError) { Autobuild.tool_in_path('bla', env: @env) }
         end
         it "should raise ArgumentError if the tool is present in path but is not executable" do
-            FileUtils.touch('/a/path/a_test_name')
-            FileUtils.chmod(0, '/a/path/a_test_name')
-            assert_raises(ArgumentError) { Autobuild.tool_in_path('bla') }
+            create_test_file
+            assert_raises(ArgumentError) { Autobuild.tool_in_path('bla', env: @env) }
         end
-        it "should return the full path to the resolved tool  ArgumentError if the tool is present in path but is not executable" do
-            FileUtils.touch('/a/path/a_test_name')
-            FileUtils.chmod(0755, '/a/path/a_test_name')
-            assert_equal '/a/path/a_test_name', Autobuild.tool_in_path('bla')
+        it "should return the full path to the resolved tool if the tool is present in path and is executable" do
+            create_test_executable
+            assert_equal full_tool_path, Autobuild.tool_in_path('bla', env: @env)
         end
         it "should update the cache to the resolved value" do
-            FileUtils.touch('/a/path/a_test_name')
-            FileUtils.chmod(0755, '/a/path/a_test_name')
-            Autobuild.tool_in_path('bla')
-            assert_equal ['/a/path/a_test_name', 'a_test_name', ENV['PATH']], Autobuild.programs_in_path['bla'], "cached value mismatch"
+            create_test_executable
+            Autobuild.tool_in_path('bla', env: @env)
+            assert_equal [full_tool_path, 'a_test_name', @tempdir], Autobuild.programs_in_path['bla'], "cached value mismatch"
         end
         it "should not re-hit the filesystem if the cache is up to date" do
-            Autobuild.programs_in_path['bla'] = ['bla', 'a_test_name', ENV['PATH']]
-            assert_equal 'bla', Autobuild.tool_in_path('bla')
+            Autobuild.programs_in_path['bla'] = ['bla', 'a_test_name', @tempdir]
+            assert_equal 'bla', Autobuild.tool_in_path('bla', env: @env)
         end
         it "should work fine if the tool is set to a full path" do
-            flexmock(Autobuild).should_receive(:tool).with('bla').and_return('/another/path/a_test_name')
-            FileUtils.mkdir_p('/another/path')
-            FileUtils.touch('/another/path/a_test_name')
-            FileUtils.chmod(0755, '/another/path/a_test_name')
-            assert_equal '/another/path/a_test_name', Autobuild.tool_in_path('bla')
+            flexmock(Autobuild).should_receive(:tool).with('bla').and_return(full_tool_path)
+            create_test_executable
+            assert_equal full_tool_path, Autobuild.tool_in_path('bla', env: @env)
         end
     end
 end

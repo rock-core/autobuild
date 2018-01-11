@@ -231,10 +231,13 @@ module Autobuild::Subprocess
         command.reject!  { |o| o.nil? || (o.respond_to?(:empty?) && o.empty?) }
         command.collect! { |o| o.to_s }
 
-        target_name = if target.respond_to?(:name)
-                          target.name
-                      else target.to_str
-                      end
+        if target.respond_to?(:name)
+            target_name = target.name
+            target_type = target.class
+        else
+            target_name = target.to_str
+            target_type = nil
+        end
         logdir = if target.respond_to?(:logdir)
                      target.logdir
                  else Autobuild.logdir
@@ -324,24 +327,16 @@ module Autobuild::Subprocess
                         Process.setpriority(Process::PRIO_PROCESS, 0, Autobuild.nice)
                     end
 
-                    if outwrite
-                        outread.close
-                        $stderr.reopen(outwrite.dup)
-                        $stdout.reopen(outwrite.dup)
-                    else
-                        $stderr.reopen(logfile.dup)
-                        $stdout.reopen(logfile.dup)
-                    end
+                    outread.close
+                    $stderr.reopen(outwrite.dup)
+                    $stdout.reopen(outwrite.dup)
 
                     if !input_streams.empty?
                         pwrite.close
                         $stdin.reopen(pread)
                     end
                    
-                    if RUBY_VERSION >= "1.9"
-                        command << Hash[:close_others => false]
-                    end
-                    exec(env, *command)
+                    exec(env, *command, close_others: false)
                 rescue Errno::ENOENT
                     cwrite.write([CONTROL_COMMAND_NOT_FOUND].pack('I'))
                     exit(100)
@@ -385,6 +380,11 @@ module Autobuild::Subprocess
                 end
             end
 
+            transparent_prefix = "#{target_name}:#{phase}: "
+            if target_type
+                transparent_prefix = "#{target_type}:#{transparent_prefix}"
+            end
+
             # If the caller asked for process output, provide it to him
             # line-by-line.
             outwrite.close
@@ -396,7 +396,7 @@ module Autobuild::Subprocess
                 logfile.puts line
 
                 if Autobuild.verbose || transparent_mode?
-                    STDOUT.puts "#{target_name}:#{phase}: #{line}"
+                    STDOUT.puts "#{transparent_prefix}#{line}"
                 elsif block_given?
                     # Do not yield 
                     # would mix the progress output with the actual command
@@ -408,6 +408,7 @@ module Autobuild::Subprocess
             outread.close
 
             _, childstatus = Process.wait2(pid)
+            logfile.puts "Exit: #{childstatus}"
             childstatus
         end
 

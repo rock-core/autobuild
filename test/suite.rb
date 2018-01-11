@@ -1,7 +1,0 @@
-require 'autobuild/test'
-require 'test/test_reporting'
-require 'test/test_subcommand'
-require 'test/import/test_cvs'
-require 'test/import/test_git'
-require 'test/import/test_svn'
-require 'test/import/test_tar'

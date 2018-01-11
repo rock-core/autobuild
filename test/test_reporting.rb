@@ -27,46 +27,37 @@ module Autobuild
                         Reporting.report(on_package_failures: :raise) do
                             pkg = Autobuild::Package.new('test')
                             pkg.failures << @package_e
-                            binding.pry
                         end
                     end
                     assert_equal @package_e, e
                 end
-                it "reports a package fatal error and raises it, even if an Interrupt has been raised" do
-                    flexmock(Reporting).should_receive(:error).with(@package_e).once
-                    e = assert_raises(@package_e.class) do
+                it "raises an Interrupt if it was interrupted" do
+                    assert_raises(Interrupt) do
                         Reporting.report(on_package_failures: :raise) do
                             pkg = Autobuild::Package.new('test')
                             pkg.failures << @package_e
                             raise Interrupt
                         end
                     end
-                    assert_same @package_e, e
                 end
                 it "combines multiple failures into a CompositeException error before raising it" do
                     other_package_e = Class.new(Autobuild::Exception).exception('test')
-                    flexmock(Reporting).should_receive(:error).with(@package_e).once
-                    flexmock(Reporting).should_receive(:error).with(other_package_e).once
                     e = assert_raises(CompositeException) do
                         Reporting.report(on_package_failures: :raise) do
                             pkg = Autobuild::Package.new('test')
                             pkg.failures << @package_e << other_package_e
-                            raise Interrupt
                         end
                     end
                     assert_equal [@package_e, other_package_e], e.original_errors
                 end
-                it "reports package non-fatal errors and returns them" do
+                it "returns packages non-fatal errors" do
                     flexmock(@package_e, fatal?: false)
-                    flexmock(Reporting).should_receive(:error).with(@package_e).once
                     assert_equal [@package_e], Reporting.report(on_package_failures: :raise) {
                             pkg = Autobuild::Package.new('test')
-                            pkg.failures << @package_e
-                            raise Interrupt }
+                            pkg.failures << @package_e }
                 end
-                it "reports package non-fatal errors and raises Interrupt if an Interrupt has been raised" do
+                it "raises Interrupt if an Interrupt has been raised" do
                     flexmock(@package_e, fatal?: false)
-                    flexmock(Reporting).should_receive(:error).with(@package_e).once
                     assert_raises(Interrupt) do
                         Reporting.report(on_package_failures: :raise) {
                             pkg = Autobuild::Package.new('test')
@@ -113,8 +104,7 @@ module Autobuild
                     flexmock(Reporting).should_receive(:error).with(@package_e).once
                     assert_equal [@package_e], Reporting.report {
                             pkg = Autobuild::Package.new('test')
-                            pkg.failures << @package_e
-                            raise Interrupt }
+                            pkg.failures << @package_e }
                 end
                 it "reports package non-fatal errors and raises Interrupt if an Interrupt has been raised" do
                     flexmock(@package_e, fatal?: false)
