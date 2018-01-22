@@ -168,8 +168,11 @@ module Autobuild
             # If it is not the case, remove it to force reconfiguration
 	    configureflags.flatten!
 	    if File.exist?(configurestamp)
-		output = IO.popen("#{configurestamp} --version").readlines.grep(/with options/).first.chomp
-		raise "invalid output of config.status --version" unless output =~ /with options "(.*)"$/
+		output = run('prepare', configurestamp, '--version').
+                    grep(/with options/).first.chomp
+                if !output
+                    raise "invalid output of config.status --version, expected a line starting with `with options`"
+                end
 		options = Shellwords.shellwords($1)
 
 		# Add the --prefix option to the configureflags array

@@ -32,6 +32,9 @@ module Autobuild
             flexmock(Autobuild).should_receive(:make_subcommand).
                 with(package, 'build', Proc).once.pass_thru
             flexmock(package).should_receive(:run).
+                with('prepare', any, any).
+                once.pass_thru
+            flexmock(package).should_receive(:run).
                 with('configure', any, any, any, any, package.srcdir).
                 once.pass_thru
             flexmock(package).should_receive(:run).

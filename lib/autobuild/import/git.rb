@@ -1130,7 +1130,7 @@ module Autobuild
             end
 
             Dir.chdir(path) do
-                vars = `git config -l`.
+                vars = `#{Autobuild.tool(:git)} config -l`.
                     split("\n").
                     inject(Hash.new) do |h, line|
                         k, v = line.strip.split('=', 2)
