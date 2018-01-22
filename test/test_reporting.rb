@@ -162,6 +162,10 @@ class TC_Reporting < Minitest::Test
         assert_equal "X a, b | c",
             Autobuild.format_progress_message(["X a", "X b", "c"])
     end
+    def test_format_progress_message_joins_identical_messages
+        assert_equal "X a",
+            Autobuild.format_progress_message(["X a", "X a"])
+    end
     def test_format_progress_message_picks_up_bigger_prefix
         assert_equal "X a | X y b, c | d",
             Autobuild.format_progress_message(["X a", "X y b", "X y c", "d"])

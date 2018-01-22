@@ -172,7 +172,7 @@ module Autobuild
                 return prefix
             end
         end
-        return msg
+        return msg.join(" ")
     end
 
     def self.format_progress_message(messages)
@@ -217,7 +217,7 @@ module Autobuild
                     grouped_messages << messages[index][(prefix.size)..-1]
                 end
                 if !grouped_messages.empty?
-                    result << "#{prefix}#{grouped_messages.join(", ")}"
+                    result << "#{prefix}#{grouped_messages.uniq.join(", ")}"
                 end
             end
         end
