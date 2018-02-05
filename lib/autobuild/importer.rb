@@ -564,7 +564,7 @@ class Importer
             patches.to_a.each do |new_patch, new_patch_level, content|
                 apply(package, new_patch, new_patch_level)
                 cur_patches << [new_patch, new_patch_level, content]
-	    end
+            end
         ensure
             save_patch_state(package, cur_patches)
         end

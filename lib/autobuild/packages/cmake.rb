@@ -100,7 +100,7 @@ module Autobuild
         def configurestamp; cmake_cache end
 
         def initialize(options)
-	    @defines = Hash.new
+            @defines = Hash.new
             super
             @delete_obsolete_files_in_prefix = self.class.delete_obsolete_files_in_prefix?
         end

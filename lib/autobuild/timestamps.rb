@@ -58,11 +58,11 @@ module Autobuild
         attr_reader :newest_file
         attr_reader :newest_time
 
-	def initialize(*args, &block)
-	    @exclude = Autobuild.ignored_files.dup
-	    super
-	end
-	    
+        def initialize(*args, &block)
+            @exclude = Autobuild.ignored_files.dup
+            super
+        end
+            
         def timestamp
             if @newest_time
                 return @newest_time

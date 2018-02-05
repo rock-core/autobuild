@@ -81,7 +81,7 @@ module Autobuild
         if @processor_count
             return @processor_count
         end
-		
+                
         if File.file?('/proc/cpuinfo')
             cpuinfo = File.readlines('/proc/cpuinfo')
             physical_ids, core_count, processor_ids = [], [], []
@@ -252,9 +252,9 @@ module Autobuild::Subprocess
             FileUtils.mkdir_p File.dirname(logname)
         end
 
-	if Autobuild.verbose
-	    Autobuild.message "#{target_name}: running #{command.join(" ")}\n    (output goes to #{logname})"
-	end
+        if Autobuild.verbose
+            Autobuild.message "#{target_name}: running #{command.join(" ")}\n    (output goes to #{logname})"
+        end
 
         open_flag = if Autobuild.keep_oldlogs then 'a'
                     elsif Autobuild.registered_logfile?(logname) then 'a'
@@ -281,7 +281,7 @@ module Autobuild::Subprocess
             logfile.puts
             logfile.puts "#{Time.now}: running"
             logfile.puts "    #{command.join(" ")}"
-	    logfile.puts "with environment:"
+            logfile.puts "with environment:"
             env.keys.sort.each do |key|
                 if value = env[key]
                     logfile.puts "  '#{key}'='#{value}'"
@@ -290,7 +290,7 @@ module Autobuild::Subprocess
             logfile.puts
             logfile.puts "#{Time.now}: running"
             logfile.puts "    #{command.join(" ")}"
-	    logfile.flush
+            logfile.flush
             logfile.sync = true
 
             if !input_streams.empty?

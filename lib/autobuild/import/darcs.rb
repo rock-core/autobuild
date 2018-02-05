@@ -4,20 +4,20 @@ require 'autobuild/importer'
 
 module Autobuild
     class DarcsImporter < Importer
-	# Creates a new importer which gets the source from the Darcs repository
-	# +source+ # The following values are allowed in +options+:
-	# [:get] options to give to 'darcs get'.
-	# [:pull] options to give to 'darcs pull'.
-	#
-	# This importer uses the 'darcs' tool to perform the import. It defaults
-	# to 'darcs' and can be configured by doing 
-	#   Autobuild.programs['darcs'] = 'my_darcs_tool'
+        # Creates a new importer which gets the source from the Darcs repository
+        # +source+ # The following values are allowed in +options+:
+        # [:get] options to give to 'darcs get'.
+        # [:pull] options to give to 'darcs pull'.
+        #
+        # This importer uses the 'darcs' tool to perform the import. It defaults
+        # to 'darcs' and can be configured by doing 
+        #   Autobuild.programs['darcs'] = 'my_darcs_tool'
         def initialize(source, options = {})
             @source   = source
             @program  = Autobuild.tool('darcs')
             super(options.merge(repository_id: source))
-	    @pull = [*options[:pull]]
-	    @get  = [*options[:get]]
+            @pull = [*options[:pull]]
+            @get  = [*options[:get]]
         end
         
         private
@@ -27,24 +27,24 @@ module Autobuild
                 package.warn "%s: the darcs importer does not support local updates, skipping"
                 return false
             end
-	    if !File.directory?( File.join(package.srcdir, '_darcs') )
-		raise ConfigException.new(package, 'import'),
+            if !File.directory?( File.join(package.srcdir, '_darcs') )
+                raise ConfigException.new(package, 'import'),
                     "#{package.srcdir} is not a Darcs repository"
-	    end
+            end
 
-	    package.run(:import, @program, 
-	       'pull', '--all', "--repodir=#{package.srcdir}", '--set-scripts-executable', @source, *@pull, retry: true)
+            package.run(:import, @program, 
+               'pull', '--all', "--repodir=#{package.srcdir}", '--set-scripts-executable', @source, *@pull, retry: true)
             true # no easy to know if package was updated, keep previous behavior
         end
 
         def checkout(package, options = Hash.new) # :nodoc:
-	    basedir = File.dirname(package.srcdir)
-	    unless File.directory?(basedir)
-		FileUtils.mkdir_p(basedir)
-	    end
+            basedir = File.dirname(package.srcdir)
+            unless File.directory?(basedir)
+                FileUtils.mkdir_p(basedir)
+            end
 
-	    package.run(:import, @program, 
-	       'get', '--set-scripts-executable', @source, package.srcdir, *@get, retry: true)
+            package.run(:import, @program, 
+               'get', '--set-scripts-executable', @source, package.srcdir, *@get, retry: true)
         end
     end
 

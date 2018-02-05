@@ -14,27 +14,27 @@ module Autobuild
             @genomflags = []
             super
 
-	    use :autogen => 'autogen'
+            use :autogen => 'autogen'
         end
 
         def import(options = Hash.new)
-	    super
-	    get_provides
-	end
+            super
+            get_provides
+        end
 
         # Called before running the rake tasks and
         # after all imports have been made
         def prepare
-	    genomflags.flatten!
-	    get_requires
+            genomflags.flatten!
+            get_requires
 
             super
 
-	    file genomstamp => dependencies.map { |p| Package[p].installstamp }
+            file genomstamp => dependencies.map { |p| Package[p].installstamp }
         end
 
         # The file touched by genom on successful generation
-	def genomstamp; File.join(srcdir, '.genom', 'genom-stamp') end
+        def genomstamp; File.join(srcdir, '.genom', 'genom-stamp') end
 
         # Extract the cpp options from the genom options
         def cpp_options
@@ -43,7 +43,7 @@ module Autobuild
 
         # Extracts dependencies using the requires: field in the .gen file
         def get_requires
-	    apionly = genomflags.find { |f| f == '-a' }
+            apionly = genomflags.find { |f| f == '-a' }
             cpp = Autobuild.tool(:cpp)
             currentBuffer = nil
             Open3.popen3("#{cpp} #{cpp_options.join(" ")} #{srcdir}/#{name}.gen") do |cin, out, err|
@@ -77,8 +77,8 @@ module Autobuild
         # Alias this package to the ones defined in the EXTRA_PKGCONFIG 
         # flag in configure.ac.user
         def get_provides
-	    configure_ac_user = File.join(srcdir, 'configure.ac.user')
-	    return unless File.readable?(configure_ac_user)
+            configure_ac_user = File.join(srcdir, 'configure.ac.user')
+            return unless File.readable?(configure_ac_user)
             File.open(configure_ac_user) do |f|
                 f.each_line { |line|
                     if line =~ /^\s*EXTRA_PKGCONFIG\s*=\s*"?([\w\-]+(?:\s+[\w\-]+)*)"?/
@@ -88,48 +88,48 @@ module Autobuild
             end
         end
 
-	# Make the genom-stamp file depend on
-	#   * genom includes
-	#   * genom canvas
-	#   * the genom binary itself
-	def genom_dependencies
-	    # Get the genom pkg-config
-	    if Package['genom']
-		'genom'
-	    else
-		genom_pkg = PkgConfig.new('genom')
+        # Make the genom-stamp file depend on
+        #   * genom includes
+        #   * genom canvas
+        #   * the genom binary itself
+        def genom_dependencies
+            # Get the genom pkg-config
+            if Package['genom']
+                'genom'
+            else
+                genom_pkg = PkgConfig.new('genom')
 
-		includedir = File.join(genom_pkg.includedir, 'genom')
-		source_tree includedir
+                includedir = File.join(genom_pkg.includedir, 'genom')
+                source_tree includedir
 
-		canvasdir = File.join(genom_pkg.prefix, "share", "genom", genom_pkg.version);;
-		source_tree canvasdir
+                canvasdir = File.join(genom_pkg.prefix, "share", "genom", genom_pkg.version);;
+                source_tree canvasdir
 
-		binary = File.join(genom_pkg.exec_prefix, "bin", "genom")
-		file binary
+                binary = File.join(genom_pkg.exec_prefix, "bin", "genom")
+                file binary
 
-		[binary, includedir, canvasdir]
-	    end
-	end
+                [binary, includedir, canvasdir]
+            end
+        end
 
         def regen
             cmdline = [ 'genom', "#{name}.gen", *genomflags ]
 
-	    # Check that the module has been generated with the same flags
-	    genom_mk = "#{srcdir}/autoconf/genom.mk"
-	    if File.exist?(genom_mk)
-		contents = File.open(genom_mk).readlines
-		old_file = contents.find { |l| l =~ /^GENFILE/ }.gsub('GENFILE=', '').strip
-		old_flags = Shellwords.shellwords(
-			    contents.find { |l| l =~ /^GENFLAGS/ }.gsub('GENFLAGS=', ''))
+            # Check that the module has been generated with the same flags
+            genom_mk = "#{srcdir}/autoconf/genom.mk"
+            if File.exist?(genom_mk)
+                contents = File.open(genom_mk).readlines
+                old_file = contents.find { |l| l =~ /^GENFILE/ }.gsub('GENFILE=', '').strip
+                old_flags = Shellwords.shellwords(
+                            contents.find { |l| l =~ /^GENFLAGS/ }.gsub('GENFLAGS=', ''))
 
-		if old_file != "#{name}.gen" || !(old_flags - genomflags).empty? || !(genomflags - old_flags).empty?
-		    FileUtils.rm_f genomstamp
-		end
-	    end
+                if old_file != "#{name}.gen" || !(old_flags - genomflags).empty? || !(genomflags - old_flags).empty?
+                    FileUtils.rm_f genomstamp
+                end
+            end
 
             file buildstamp => genomstamp
-	    file genomstamp => genom_dependencies
+            file genomstamp => genom_dependencies
             file genomstamp => srcdir do
                 isolate_errors do
                     in_dir(srcdir) do
@@ -152,7 +152,7 @@ module Autobuild
                 end
             end
 
-	    super("#{srcdir}/autoconf/configure.ac")
+            super("#{srcdir}/autoconf/configure.ac")
         end
     end
 end

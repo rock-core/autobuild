@@ -282,14 +282,14 @@ module Autobuild
             end
         end
 
-	def generation_uptodate?
-	    if !File.file?(genstamp)
-		true
-	    elsif File.file?(File.join(builddir, 'Makefile'))
+        def generation_uptodate?
+            if !File.file?(genstamp)
+                true
+            elsif File.file?(File.join(builddir, 'Makefile'))
                 system("#{Autobuild.tool('make')} -C #{builddir} check-uptodate > /dev/null 2>&1")
-	    else
-	        true
-	    end
+            else
+                true
+            end
         end
     end
 end

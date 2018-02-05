@@ -7,7 +7,7 @@ module Autobuild
         def installstamp
             "#{srcdir}/#{STAMPFILE}"
         end
-	
+        
         def initialize(*args)
             super
         end

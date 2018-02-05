@@ -39,7 +39,7 @@ module Autobuild
 
         def initialize(options)
             @using = Hash.new
-	    @configureflags = []
+            @configureflags = []
             @aclocal_flags    = Array.new
             @autoheader_flags = Array.new
             @autoconf_flags   = Array.new
@@ -70,29 +70,29 @@ module Autobuild
             common_utility_handling(test_utility, target, &block)
         end
 
-	# Overrides the default behaviour w.r.t. autotools script generation
-	#
-	# Use it like that:
-	# * to force a generation step (skipping autodetection), do
-	#     pkg.use <program> => true
-	#   For instance, for aclocal
-	#     pkg.use :aclocal => true
-	#
-	# * to force a generation step, overriding the program defined on Autobuild
-	#     pkg.use <program> => true
-	#   For instance, for autoconf
-	#     pkg.use :autoconf => 'my_autoconf_program'
-	#
-	# * to disable a generation step, do
-	#     pkg.use <program> => false
-	#   For instance, for automake
-	#     pkg.use :automake => false
-	#
-	# * to restore autodetection, do
-	#     pkg.use <program> => nil
-	#   For instance, for automake
-	#     pkg.use :automake => nil
-	#
+        # Overrides the default behaviour w.r.t. autotools script generation
+        #
+        # Use it like that:
+        # * to force a generation step (skipping autodetection), do
+        #     pkg.use <program> => true
+        #   For instance, for aclocal
+        #     pkg.use :aclocal => true
+        #
+        # * to force a generation step, overriding the program defined on Autobuild
+        #     pkg.use <program> => true
+        #   For instance, for autoconf
+        #     pkg.use :autoconf => 'my_autoconf_program'
+        #
+        # * to disable a generation step, do
+        #     pkg.use <program> => false
+        #   For instance, for automake
+        #     pkg.use :automake => false
+        #
+        # * to restore autodetection, do
+        #     pkg.use <program> => nil
+        #   For instance, for automake
+        #     pkg.use :automake => nil
+        #
         def use(*programs)
             programs =
                 if programs.size == 1
@@ -162,22 +162,21 @@ module Autobuild
                 FileUtils.rm_f fresh_checkout_mark
             end
 
-	    # Check if config.status has been generated with the
-	    # same options than the ones in configureflags
+            # Check if config.status has been generated with the
+            # same options than the ones in configureflags
             #
             # If it is not the case, remove it to force reconfiguration
-	    configureflags.flatten!
-	    if File.exist?(configurestamp)
-		output = run('prepare', configurestamp, '--version').
+            if File.exist?(configurestamp)
+                output = run('prepare', configurestamp, '--version').
                     grep(/with options/).first.chomp
                 if !output
-                    raise "invalid output of config.status --version, expected a line starting with `with options`"
+                    raise "invalid output of config.status --version, expected a line with `with options`"
                 end
-		options = Shellwords.shellwords($1)
+                options = Shellwords.shellwords($1)
 
-		# Add the --prefix option to the configureflags array
-		testflags = ["--prefix=#{prefix}"] + Array[*configureflags]
-		old_opt = options.find do |o|
+                # Add the --prefix option to the configureflags array
+                testflags = ["--prefix=#{prefix}"] + configureflags.flatten
+                old_opt = options.find do |o|
                     if testflags.include?(o)
                         false
                     elsif o =~ /^-/
@@ -194,14 +193,14 @@ module Autobuild
                         end
                     end
                 end
-		new_opt = testflags.find { |o| !options.include?(o) }
-		if old_opt || new_opt
+                new_opt = testflags.find { |o| !options.include?(o) }
+                if old_opt || new_opt
                     if Autobuild.verbose
                         Autobuild.message "forcing reconfiguration of #{name} (#{old_opt} != #{new_opt})"
                     end
-		    FileUtils.rm_f configurestamp # to force reconfiguration
-		end
-	    end
+                    FileUtils.rm_f configurestamp # to force reconfiguration
+                end
+            end
 
             regen_target = create_regen_target
             file configurestamp => regen_target
@@ -236,44 +235,44 @@ module Autobuild
 
         # Adds a target to rebuild the autotools environment
         def create_regen_target(confsource = nil)
-	    conffile = "#{srcdir}/configure"
-	    if confsource
-		file conffile => confsource
-	    elsif confext = %w{.ac .in}.find { |ext| File.exist?("#{conffile}#{ext}") }
-		file conffile => "#{conffile}#{confext}"
-	    else
-		raise PackageException.new(self, 'prepare'), "neither configure.ac nor configure.in present in #{srcdir}"
-	    end
+            conffile = "#{srcdir}/configure"
+            if confsource
+                file conffile => confsource
+            elsif confext = %w{.ac .in}.find { |ext| File.exist?("#{conffile}#{ext}") }
+                file conffile => "#{conffile}#{confext}"
+            else
+                raise PackageException.new(self, 'prepare'), "neither configure.ac nor configure.in present in #{srcdir}"
+            end
 
             file conffile do
                 isolate_errors do
-                in_dir(srcdir) do
-                    if using[:autogen].nil?
-                        using[:autogen] = %w{autogen autogen.sh}.find { |f| File.exist?(File.join(srcdir, f)) }
-                    end
-
-                    autodetect_needed_stages
-
-                    progress_start "generating autotools for %s", :done_message => 'generated autotools for %s' do
-                        if using[:libtool]
-                            run('configure', Autobuild.tool('libtoolize'), '--copy')
+                    in_dir(srcdir) do
+                        if using[:autogen].nil?
+                            using[:autogen] = %w{autogen autogen.sh}.find { |f| File.exist?(File.join(srcdir, f)) }
                         end
-                        if using[:autogen]
-                            run('configure', File.expand_path(using[:autogen], srcdir))
-                        else
-                            [ :aclocal, :autoconf, :autoheader, :automake ].each do |tool|
-                                if tool_flag = using[tool]
-                                    tool_program = if tool_flag.respond_to?(:to_str)
-                                                       tool_flag.to_str
-                                                   else; Autobuild.tool(tool)
-                                                   end
 
-                                    run('configure', tool_program, *send("#{tool}_flags"))
+                        autodetect_needed_stages
+
+                        progress_start "generating autotools for %s", :done_message => 'generated autotools for %s' do
+                            if using[:libtool]
+                                run('configure', Autobuild.tool('libtoolize'), '--copy')
+                            end
+                            if using[:autogen]
+                                run('configure', File.expand_path(using[:autogen], srcdir))
+                            else
+                                [ :aclocal, :autoconf, :autoheader, :automake ].each do |tool|
+                                    if tool_flag = using[tool]
+                                        tool_program = if tool_flag.respond_to?(:to_str)
+                                                        tool_flag.to_str
+                                                    else; Autobuild.tool(tool)
+                                                    end
+
+                                        run('configure', tool_program, *send("#{tool}_flags"))
+                                    end
                                 end
                             end
                         end
                     end
-                end
                 end
             end
 
@@ -289,7 +288,7 @@ module Autobuild
                         command << "--no-create"
                     end
                     command << "--prefix=#{prefix}"
-                    command += Array[*configureflags]
+                    command += configureflags.flatten
 
                     progress_start "configuring autotools for %s", :done_message => 'configured autotools for %s' do
                         run('configure', *command)

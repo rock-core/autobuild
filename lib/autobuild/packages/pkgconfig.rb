@@ -2,25 +2,25 @@ require 'autobuild/pkgconfig'
 
 module Autobuild
     class InstalledPkgConfig < Package
-	attr_reader :pkgconfig
-	attr_reader :prefix
+        attr_reader :pkgconfig
+        attr_reader :prefix
 
-	def initialize(name)
-	    @pkgconfig = PkgConfig.new(name)
-	    @prefix    = @pkgconfig.prefix
-	    super
-	end
+        def initialize(name)
+            @pkgconfig = PkgConfig.new(name)
+            @prefix    = @pkgconfig.prefix
+            super
+        end
 
-	def installstamp
-	    std_stamp = super
-	    return std_stamp if File.file?(std_stamp)
+        def installstamp
+            std_stamp = super
+            return std_stamp if File.file?(std_stamp)
 
-	    pcfile = File.join(pkgconfig.prefix, "lib", "pkgconfig", "#{name}.pc")
-	    if !File.file?(pcfile)
-		raise "cannot find the .pc file for #{name}, tried #{pcfile}"
-	    end
-	    pcfile
-	end
+            pcfile = File.join(pkgconfig.prefix, "lib", "pkgconfig", "#{name}.pc")
+            if !File.file?(pcfile)
+                raise "cannot find the .pc file for #{name}, tried #{pcfile}"
+            end
+            pcfile
+        end
     end
     def self.installed_pkgconfig(name, &block)
         InstalledPkgConfig.new(name, &block)

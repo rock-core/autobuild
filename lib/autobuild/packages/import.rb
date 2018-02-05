@@ -7,10 +7,10 @@ module Autobuild
     end
     
     class ImporterPackage < Package
-	attr_reader :exclude
+        attr_reader :exclude
 
         def initialize(*args)
-	    @exclude = []
+            @exclude = []
             super
         end
 
@@ -18,15 +18,15 @@ module Autobuild
             super
 
             exclude = self.exclude.dup
-	    exclude << Regexp.new("^#{Regexp.quote(installstamp)}")
+            exclude << Regexp.new("^#{Regexp.quote(installstamp)}")
             if doc_dir
                 exclude << Regexp.new("^#{Regexp.quote(doc_dir)}")
             end
 
             source_tree(srcdir) do |pkg|
-		pkg.exclude.concat exclude
-		exclude.freeze
-	    end
+                pkg.exclude.concat exclude
+                exclude.freeze
+            end
 
             file installstamp => srcdir
         end

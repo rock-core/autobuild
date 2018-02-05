@@ -22,21 +22,21 @@ module Autobuild
     # Finally, the build stage actually calls the package's build targets (of
     # the form "package_name-build", which will trigger the build if needed.
     class Package
-	@@packages = {}
-	@@provides = {}
+        @@packages = {}
+        @@provides = {}
 
-	# the package name
-	attr_reader     :name
-	# set the source directory. If a relative path is given,
-	# it is relative to Autobuild.srcdir. Defaults to #name
-	attr_writer     :srcdir
+        # the package name
+        attr_reader     :name
+        # set the source directory. If a relative path is given,
+        # it is relative to Autobuild.srcdir. Defaults to #name
+        attr_writer     :srcdir
         # set the importdir, this can be different than the sourcedir
         # if the source-root is in an subfolder of the package itself
         # then the importdir will be the root
         attr_writer     :importdir
-	# set the installation directory. If a relative path is given,
-	# it is relative to Autobuild.prefix. Defaults to ''
-	attr_writer :prefix
+        # set the installation directory. If a relative path is given,
+        # it is relative to Autobuild.prefix. Defaults to ''
+        attr_writer :prefix
         # Sets the log directory. If no value is set, the package will use
         # Autobuild.logdir
         attr_writer :logdir
@@ -45,17 +45,17 @@ module Autobuild
         attr_reader :utilities
         # Whether {#apply_post_install} has been called
         def applied_post_install?; !!@applied_post_install end
-	
-	# Sets importer object for this package. Defined for backwards compatibility.
-	# Use the #importer attribute instead
-	def import=(value)
-	    @importer = value
-	end
-	# Sets an importer object for this package
-	attr_accessor :importer
+        
+        # Sets importer object for this package. Defined for backwards compatibility.
+        # Use the #importer attribute instead
+        def import=(value)
+            @importer = value
+        end
+        # Sets an importer object for this package
+        attr_accessor :importer
 
-	# The list of packages this one depends upon
-	attr_reader :dependencies
+        # The list of packages this one depends upon
+        attr_reader :dependencies
 
         # Some statistics about the commands that have been run
         attr_reader :statistics
@@ -73,12 +73,12 @@ module Autobuild
             @statistics[phase] += duration
         end
 
-	# Absolute path to the source directory. See #srcdir=
-	def srcdir; File.expand_path(@srcdir || name, Autobuild.srcdir) end
-	# Absolute path to the import directory. See #importdir=
-	def importdir; File.expand_path(@importdir || srcdir, Autobuild.srcdir) end
-	# Absolute path to the installation directory. See #prefix=
-	def prefix; File.expand_path(@prefix || '', Autobuild.prefix) end
+        # Absolute path to the source directory. See #srcdir=
+        def srcdir; File.expand_path(@srcdir || name, Autobuild.srcdir) end
+        # Absolute path to the import directory. See #importdir=
+        def importdir; File.expand_path(@importdir || srcdir, Autobuild.srcdir) end
+        # Absolute path to the installation directory. See #prefix=
+        def prefix; File.expand_path(@prefix || '', Autobuild.prefix) end
         # Absolute path to the log directory for this package. See #logdir=
         def logdir
             if @logdir
@@ -88,11 +88,11 @@ module Autobuild
             end
         end
 
-	# The file which marks when the last sucessful install
-	# has finished. The path is absolute
-	#
-	# A package is sucessfully built when it is installed
-	def installstamp
+        # The file which marks when the last sucessful install
+        # has finished. The path is absolute
+        #
+        # A package is sucessfully built when it is installed
+        def installstamp
             File.join(logdir, "#{name}-#{STAMPFILE}")
         end
 
@@ -117,13 +117,13 @@ module Autobuild
         # false.
         def updated?; !!@updated end
 
-	def initialize(spec = Hash.new)
+        def initialize(spec = Hash.new)
             @srcdir = @importdir = @logdir = @prefix = nil
             @updated = false
             @update = nil
             @failed = nil
-	    @dependencies   = Array.new
-	    @provides       = Array.new
+            @dependencies   = Array.new
+            @provides       = Array.new
             @parallel_build_level = nil
             @statistics     = Hash.new
             @failures = Array.new
@@ -133,52 +133,52 @@ module Autobuild
             @utilities = Hash.new
             @env = Array.new
 
-	    if Hash === spec
-		name, depends = spec.to_a.first
-	    else
-		name, depends = spec, nil
-	    end
+            if Hash === spec
+                name, depends = spec.to_a.first
+            else
+                name, depends = spec, nil
+            end
 
-	    name = name.to_s
-	    @name = name
-	    raise ConfigException, "package #{name} is already defined" if Autobuild::Package[name]
-	    @@packages[name] = self
+            name = name.to_s
+            @name = name
+            raise ConfigException, "package #{name} is already defined" if Autobuild::Package[name]
+            @@packages[name] = self
 
-	    # Call the config block (if any)
-	    yield(self) if block_given?
+            # Call the config block (if any)
+            yield(self) if block_given?
 
             self.doc_utility.source_dir ||= 'doc'
             self.doc_utility.target_dir ||= name
 
-	    # Define the default tasks
-	    task "#{name}-import" do
+            # Define the default tasks
+            task "#{name}-import" do
                 isolate_errors { import }
             end
-	    task :import => "#{name}-import"
+            task :import => "#{name}-import"
 
-	    # Define the prepare task
-	    task "#{name}-prepare" => "#{name}-import" do
+            # Define the prepare task
+            task "#{name}-prepare" => "#{name}-import" do
                 isolate_errors { prepare }
             end
-	    task :prepare => "#{name}-prepare"
+            task :prepare => "#{name}-prepare"
 
-	    task "#{name}-build"
-	    task :build => "#{name}-build"
+            task "#{name}-build"
+            task :build => "#{name}-build"
 
-	    task(name) do
-		Rake::Task["#{name}-import"].invoke
-		Rake::Task["#{name}-prepare"].invoke
-		Rake::Task["#{name}-build"].invoke
+            task(name) do
+                Rake::Task["#{name}-import"].invoke
+                Rake::Task["#{name}-prepare"].invoke
+                Rake::Task["#{name}-build"].invoke
                 if has_doc? && Autobuild.do_doc
                     Rake::Task["#{name}-doc"].invoke
                 end
-	    end
-	    task :default => name
-	    
+            end
+            task :default => name
+            
             # The dependencies will be declared in the import phase,  so save
             # them there for now
             @spec_dependencies = depends
-	end
+        end
 
         # Whether the package's source directory is present on disk
         def checked_out?
@@ -415,7 +415,7 @@ module Autobuild
         # be done there as well.
         #
         # (see Importer#import)
-	def import(options = Hash.new)
+        def import(options = Hash.new)
             if !options.respond_to?(:to_hash)
                 options = Hash[only_local: options]
             end
@@ -433,7 +433,7 @@ module Autobuild
         # Create all the dependencies required to reconfigure and/or rebuild the
         # package when required. The package's build target is called
         # "package_name-build".
-	def prepare
+        def prepare
             super if defined? super
 
             stamps = dependencies.map { |p| Package[p].installstamp }
@@ -579,15 +579,15 @@ module Autobuild
         def doc_disabled; doc_utility.disabled end
         def has_doc?; doc_utility.has_task? end
 
-	def post_install(*args, &block)
-	    if args.empty?
-		@post_install_blocks << block
-	    elsif !block
-		@post_install_blocks << args
-	    else
-		raise ArgumentError, "cannot set both arguments and block"
-	    end
-	end
+        def post_install(*args, &block)
+            if args.empty?
+                @post_install_blocks << block
+            elsif !block
+                @post_install_blocks << args
+            else
+                raise ArgumentError, "cannot set both arguments and block"
+            end
+        end
 
         # Returns the name of all the packages +self+ depends on
         def all_dependencies(result = Set.new)
@@ -607,18 +607,18 @@ module Autobuild
             @dependencies.include?(package_name)
         end
 
-	# This package depends on +packages+. It means that its build will
+        # This package depends on +packages+. It means that its build will
         # always be triggered after the packages listed in +packages+ are built
         # and installed.
-	def depends_on(*packages)
-	    packages.each do |p|
+        def depends_on(*packages)
+            packages.each do |p|
                 p = p.name if p.respond_to?(:name)
                 raise ArgumentError, "#{p.inspect} should be a string" if !p.respond_to? :to_str
-		p = p.to_str
-		next if p == name
-		unless pkg = Package[p]
-		    raise ConfigException.new(self), "package #{p}, listed as a dependency of #{self.name}, is not defined"
-		end
+                p = p.to_str
+                next if p == name
+                unless pkg = Package[p]
+                    raise ConfigException.new(self), "package #{p}, listed as a dependency of #{self.name}, is not defined"
+                end
 
                 next if @dependencies.include?(pkg.name)
 
@@ -626,52 +626,52 @@ module Autobuild
                     Autobuild.message "#{name} depends on #{pkg.name}"
                 end
 
-		task "#{name}-import"  => "#{pkg.name}-import"
-		task "#{name}-prepare" => "#{pkg.name}-prepare"
-		task "#{name}-build"   => "#{pkg.name}-build"
-		@dependencies << pkg.name
-	    end
-	end
+                task "#{name}-import"  => "#{pkg.name}-import"
+                task "#{name}-prepare" => "#{pkg.name}-prepare"
+                task "#{name}-build"   => "#{pkg.name}-build"
+                @dependencies << pkg.name
+            end
+        end
 
-	# Declare that this package provides +packages+. In effect, the names
+        # Declare that this package provides +packages+. In effect, the names
         # listed in +packages+ are aliases for this package.
-	def provides(*packages)
-	    packages.each do |p|
+        def provides(*packages)
+            packages.each do |p|
                 raise ArgumentError, "#{p.inspect} should be a string" if !p.respond_to? :to_str
-		p = p.to_str
-		next if p == name
+                p = p.to_str
+                next if p == name
                 next if @provides.include?(name)
 
-		@@provides[p] = self 
+                @@provides[p] = self 
 
                 if Autobuild.verbose
                     Autobuild.message "#{name} provides #{p}"
                 end
 
-		task p => name
-		task "#{p}-import" => "#{name}-import"
-		task "#{p}-prepare" => "#{name}-prepare"
-		task "#{p}-build" => "#{name}-build"
-		@provides << p
-	    end
-	end
+                task p => name
+                task "#{p}-import" => "#{name}-import"
+                task "#{p}-prepare" => "#{name}-prepare"
+                task "#{p}-build" => "#{name}-build"
+                @provides << p
+            end
+        end
 
-	# Iterates on all available packages
-	# if with_provides is true, includes the list
-	# of package aliases
-	def self.each(with_provides = false, &p)
+        # Iterates on all available packages
+        # if with_provides is true, includes the list
+        # of package aliases
+        def self.each(with_provides = false, &p)
             if !p
                 return enum_for(:each, with_provides)
             end
 
-	    @@packages.each(&p) 
-	    @@provides.each(&p) if with_provides
-	end
+            @@packages.each(&p) 
+            @@provides.each(&p) if with_provides
+        end
 
-	# Gets a package from its name
-	def self.[](name)
-	    @@packages[name.to_s] || @@provides[name.to_s]
-	end
+        # Gets a package from its name
+        def self.[](name)
+            @@packages[name.to_s] || @@provides[name.to_s]
+        end
 
         # Removes all package definitions
         def self.clear
@@ -761,11 +761,11 @@ module Autobuild
     end
 
     def self.package_set(spec)
-	spec.each do |name, packages|
-	    Autobuild::TARGETS.each do |target|
-		task "#{name}-#{target}" => packages.map { |dep| "#{dep}-#{target}" }
-	    end
-	end
+        spec.each do |name, packages|
+            Autobuild::TARGETS.each do |target|
+                task "#{name}-#{target}" => packages.map { |dep| "#{dep}-#{target}" }
+            end
+        end
     end
 end
 

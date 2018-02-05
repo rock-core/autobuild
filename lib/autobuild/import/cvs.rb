@@ -1,13 +1,13 @@
 module Autobuild
     class CVSImporter < Importer
-	# Creates a new importer which gets the module +name+ from the
-	# repository in +root+. The following values are allowed in +options+:
-	# [:cvsup] options to give to 'cvs up'. Default: -dP.
-	# [:cvsco] options to give to 'cvs co'. Default: -P.
-	#
-	# This importer uses the 'cvs' tool to perform the import. It defaults
-	# to 'cvs' and can be configured by doing 
-	#   Autobuild.programs['cvs'] = 'my_cvs_tool'
+        # Creates a new importer which gets the module +name+ from the
+        # repository in +root+. The following values are allowed in +options+:
+        # [:cvsup] options to give to 'cvs up'. Default: -dP.
+        # [:cvsco] options to give to 'cvs co'. Default: -P.
+        #
+        # This importer uses the 'cvs' tool to perform the import. It defaults
+        # to 'cvs' and can be configured by doing 
+        #   Autobuild.programs['cvs'] = 'my_cvs_tool'
         def initialize(root_name, options = {})
             cvsopts, common = Kernel.filter_options options, :module => nil, :cvsup => '-dP', :cvsco => '-P'
             @root   = root_name
@@ -23,12 +23,12 @@ module Autobuild
             super(common.merge(repository_id: "cvs:#{@root}:#{@module}"))
         end
 
-	# Array of options to give to 'cvs checkout'
-	attr_reader :options_co
-	# Array of options to give to 'cvs update'
-	attr_reader :options_up
+        # Array of options to give to 'cvs checkout'
+        attr_reader :options_co
+        # Array of options to give to 'cvs update'
+        attr_reader :options_up
         
-	# Returns the module to get
+        # Returns the module to get
         def modulename; @module end
 
         private

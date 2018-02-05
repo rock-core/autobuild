@@ -84,7 +84,7 @@ module Autobuild
         # This importer uses the 'git' tool to perform the import. It defaults
         # to 'git' and can be configured by doing 
         #
-	#   Autobuild.programs['git'] = 'my_git_tool'
+        #   Autobuild.programs['git'] = 'my_git_tool'
         #
         # @param [String] branch deprecated, use the 'branch' named option
         #   instead
