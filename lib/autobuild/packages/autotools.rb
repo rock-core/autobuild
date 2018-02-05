@@ -152,6 +152,8 @@ module Autobuild
             end
         end
 
+        class UnexpectedConfigStatusOutput < RuntimeError; end
+
         def prepare
             super
             autodetect_needed_stages
@@ -168,11 +170,12 @@ module Autobuild
             # If it is not the case, remove it to force reconfiguration
             if File.exist?(configurestamp)
                 output = run('prepare', configurestamp, '--version').
-                    grep(/with options/).first.chomp
-                if !output
-                    raise "invalid output of config.status --version, expected a line with `with options`"
+                    grep(/with options/).first
+                if output && (match = /with options "(.*)"/.match(output))
+                    options = Shellwords.shellwords(match[1])
+                else
+                    raise UnexpectedConfigStatusOutput, "invalid output of config.status --version, expected a line with `with options \"OPTIONS\"`"
                 end
-                options = Shellwords.shellwords($1)
 
                 # Add the --prefix option to the configureflags array
                 testflags = ["--prefix=#{prefix}"] + configureflags.flatten
@@ -188,7 +191,7 @@ module Autobuild
                         # explicitely given in configureflags
                         varname, value = o.split("=").first
                         if current_flag = testflags.find { |fl| fl =~ /^#{varname}=/ }
-                            current_flag != value
+                            current_flag != o
                         else false
                         end
                     end
@@ -231,6 +234,10 @@ module Autobuild
             if using[:libtool].nil?
                 using[:libtool] = File.exist?(File.join(srcdir, 'ltmain.sh'))
             end
+
+            if using[:autogen].nil?
+                using[:autogen] = %w{autogen autogen.sh}.find { |f| File.exist?(File.join(srcdir, f)) }
+            end
         end
 
         # Adds a target to rebuild the autotools environment
@@ -240,38 +247,14 @@ module Autobuild
                 file conffile => confsource
             elsif confext = %w{.ac .in}.find { |ext| File.exist?("#{conffile}#{ext}") }
                 file conffile => "#{conffile}#{confext}"
-            else
+            elsif using[:autoconf]
                 raise PackageException.new(self, 'prepare'), "neither configure.ac nor configure.in present in #{srcdir}"
             end
 
             file conffile do
                 isolate_errors do
-                    in_dir(srcdir) do
-                        if using[:autogen].nil?
-                            using[:autogen] = %w{autogen autogen.sh}.find { |f| File.exist?(File.join(srcdir, f)) }
-                        end
-
-                        autodetect_needed_stages
-
-                        progress_start "generating autotools for %s", :done_message => 'generated autotools for %s' do
-                            if using[:libtool]
-                                run('configure', Autobuild.tool('libtoolize'), '--copy')
-                            end
-                            if using[:autogen]
-                                run('configure', File.expand_path(using[:autogen], srcdir))
-                            else
-                                [ :aclocal, :autoconf, :autoheader, :automake ].each do |tool|
-                                    if tool_flag = using[tool]
-                                        tool_program = if tool_flag.respond_to?(:to_str)
-                                                        tool_flag.to_str
-                                                    else; Autobuild.tool(tool)
-                                                    end
-
-                                        run('configure', tool_program, *send("#{tool}_flags"))
-                                    end
-                                end
-                            end
-                        end
+                    progress_start "generating autotools for %s", :done_message => 'generated autotools for %s' do
+                        regen
                     end
                 end
             end
@@ -279,20 +262,41 @@ module Autobuild
             return conffile
         end
 
+        def regen
+            if using[:libtool]
+                run 'configure', Autobuild.tool('libtoolize'), '--copy',
+                    working_directory: srcdir
+            end
+            if using[:autogen]
+                run 'configure', File.expand_path(using[:autogen], srcdir),
+                    working_directory: srcdir
+            else
+                [ :aclocal, :autoconf, :autoheader, :automake ].each do |tool|
+                    if tool_flag = using[tool]
+                        tool_program = if tool_flag.respond_to?(:to_str)
+                                        tool_flag.to_str
+                                    else; Autobuild.tool(tool)
+                                    end
+
+                        run 'configure', tool_program, *send("#{tool}_flags"),
+                            working_directory: srcdir
+                    end
+                end
+            end
+        end
+
         # Configure the builddir directory before starting make
         def configure
             super do
-                in_dir(builddir) do
-                    command = [ "#{srcdir}/configure"]
-                    if force_config_status
-                        command << "--no-create"
-                    end
-                    command << "--prefix=#{prefix}"
-                    command += configureflags.flatten
+                command = [ "#{srcdir}/configure"]
+                if force_config_status
+                    command << "--no-create"
+                end
+                command << "--prefix=#{prefix}"
+                command += configureflags.flatten
 
-                    progress_start "configuring autotools for %s", :done_message => 'configured autotools for %s' do
-                        run('configure', *command)
-                    end
+                progress_start "configuring autotools for %s", done_message: 'configured autotools for %s' do
+                    run('configure', *command, working_directory: builddir)
                 end
             end
         end
@@ -322,4 +326,3 @@ module Autobuild
         end
     end
 end
-
