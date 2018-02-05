@@ -11,7 +11,7 @@ module Autobuild
         # This importer uses the 'hg' tool to perform the
         # import. It defaults to 'hg' and can be configured by
         # doing 
-	#   Autobuild.programs['hg'] = 'my_git_tool'
+        #   Autobuild.programs['hg'] = 'my_git_tool'
         #
         # @param [String] repository the repository URL
         # @option options [String] :branch (default) the branch to track

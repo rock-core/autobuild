@@ -5,20 +5,20 @@ require 'fileutils'
 
 WINDOWS = RbConfig::CONFIG["host_os"] =~%r!(msdos|mswin|djgpp|mingw|[Ww]indows)! 
 if WINDOWS 
-	require 'net/http' 
-	require 'net/https'
-	require 'rubygems/package'
-	require 'zlib'
+        require 'net/http' 
+        require 'net/https'
+        require 'rubygems/package'
+        require 'zlib'
 end
 
 
 module Autobuild
     class ArchiveImporter < Importer
-	# The tarball is not compressed
+        # The tarball is not compressed
         Plain = 0
-	# The tarball is compressed with gzip
+        # The tarball is compressed with gzip
         Gzip  = 1
-	# The tarball is compressed using bzip
+        # The tarball is compressed using bzip
         Bzip  = 2
         # Not a tarball but a zip
         Zip   = 3
@@ -29,7 +29,7 @@ module Autobuild
             Bzip => 'j'
         }
 
-	# Known URI schemes for +url+
+        # Known URI schemes for +url+
         VALID_URI_SCHEMES = [ 'file', 'http', 'https', 'ftp' ]
 
         class << self
@@ -67,7 +67,7 @@ module Autobuild
         @timeout = 10
         @cachedir = nil
 
-	# Returns the unpack mode from the file name
+        # Returns the unpack mode from the file name
         #
         # @return [Integer,nil] either one of the pack constants (Zip, Plain,
         #   ...) or nil if it cannot be inferred
@@ -81,7 +81,7 @@ module Autobuild
             end
         end
 
-	# Returns the unpack mode from the file name
+        # Returns the unpack mode from the file name
         def self.filename_to_mode(filename)
             if mode = find_mode_from_filename(filename)
                 mode
@@ -104,9 +104,9 @@ module Autobuild
 
         def update_cached_file?; @options[:update_cached_file] end
 
-		
-	def get_url_on_windows(url, filename)
-            uri = URI(url)		
+                
+        def get_url_on_windows(url, filename)
+            uri = URI(url)              
 
             http = Net::HTTP.new(uri.host,uri.port)
             http.use_ssl = true if uri.port == 443
@@ -123,8 +123,8 @@ module Autobuild
                     file.write(resp.body)
                 end
             end
-	end
-	
+        end
+        
         def extract_tar_on_windows(filename,target)
             Gem::Package::TarReader.new(Zlib::GzipReader.open(filename)).each do |entry|
                 newname = File.join(target,entry.full_name.slice(entry.full_name.index('/'),entry.full_name.size))
@@ -142,8 +142,8 @@ module Autobuild
                 end
             end
         end
-	
-	# Updates the downloaded file in cache only if it is needed
+        
+        # Updates the downloaded file in cache only if it is needed
         def update_cache(package)
             do_update = false
 
@@ -206,18 +206,18 @@ module Autobuild
             do_update
         end
 
-	# The source URL
+        # The source URL
         attr_reader :url
-	# The local file (either a downloaded file if +url+ is not local, or +url+ itself)
-	attr_reader :cachefile
+        # The local file (either a downloaded file if +url+ is not local, or +url+ itself)
+        attr_reader :cachefile
         # The SHA1 digest of the current cachefile. It is updated only once the
         # cachefile has been downloaded
         #
         # @return [String] hexadecimal SHA1 digest of the file
         attr_reader :cachefile_digest
-	# The unpack mode. One of Zip, Bzip, Gzip or Plain
-	attr_reader :mode
-	# The directory in which remote files are cached
+        # The unpack mode. One of Zip, Bzip, Gzip or Plain
+        attr_reader :mode
+        # The directory in which remote files are cached
         #
         # Defaults to ArchiveImporter.cachedir
         attr_reader :cachedir
@@ -228,10 +228,10 @@ module Autobuild
             relocate(@url.to_s)
         end
 
-	# The directory contained in the tar file
+        # The directory contained in the tar file
         #
         # DEPRECATED use #archive_dir instead
-	def tardir; @options[:tardir] end
+        def tardir; @options[:tardir] end
         # The directory contained in the archive. If not set, we assume that it
         # is the same than the source dir
         def archive_dir; @options[:archive_dir] || tardir end
@@ -270,9 +270,9 @@ module Autobuild
             !@options[:no_subdirectory]
         end
 
-	# Creates a new importer which downloads +url+ in +cachedir+ and unpacks it. The following options
-	# are allowed:
-	# [:cachedir] the cache directory. Defaults to "#{Autobuild.prefix}/cache"
+        # Creates a new importer which downloads +url+ in +cachedir+ and unpacks it. The following options
+        # are allowed:
+        # [:cachedir] the cache directory. Defaults to "#{Autobuild.prefix}/cache"
         # [:archive_dir] the directory contained in the archive file. If set,
         #       the importer will rename that directory to make it match
         #       Package#srcdir
@@ -414,7 +414,7 @@ module Autobuild
                 if !@options[:no_subdirectory]
                     cmd << '--strip-components=1'
                 end
-				
+                                
                 if(WINDOWS)
                     extract_tar_on_windows(cachefile,package.srcdir)
                 else
@@ -439,12 +439,12 @@ module Autobuild
     # Creates an importer which downloads a tarball from +source+ and unpacks
     # it. The allowed values in +options+ are described in ArchiveImporter.new.
     def self.archive(source, options = {})
-	ArchiveImporter.new(source, options)
+        ArchiveImporter.new(source, options)
     end
 
     # DEPRECATED. Use Autobuild.archive instead.
     def self.tar(source, options = {})
-	ArchiveImporter.new(source, options)
+        ArchiveImporter.new(source, options)
     end
 end
 

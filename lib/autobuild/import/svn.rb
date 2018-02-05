@@ -4,14 +4,14 @@ require 'rexml/document'
 
 module Autobuild
     class SVN < Importer
-	# Creates an importer which gets the source for the Subversion URL +source+.
-	# The following options are allowed:
-	# [:svnup] options to give to 'svn up'
-	# [:svnco] options to give to 'svn co'
-	#
-	# This importer uses the 'svn' tool to perform the import. It defaults
-	# to 'svn' and can be configured by doing 
-	#   Autobuild.programs['svn'] = 'my_svn_tool'
+        # Creates an importer which gets the source for the Subversion URL +source+.
+        # The following options are allowed:
+        # [:svnup] options to give to 'svn up'
+        # [:svnco] options to give to 'svn co'
+        #
+        # This importer uses the 'svn' tool to perform the import. It defaults
+        # to 'svn' and can be configured by doing 
+        #   Autobuild.programs['svn'] = 'my_svn_tool'
         def initialize(svnroot, options = {})
             svnroot = [*svnroot].join("/")
             svnopts, common = Kernel.filter_options options,

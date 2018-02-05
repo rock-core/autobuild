@@ -73,7 +73,7 @@ module Autobuild
             else raise ArgumentError, "there is no utility called #{utility_name}, available utilities are #{utilities.keys.sort.join(", ")}"
             end
         end
-	# The directory in which logs are saved. Defaults to PREFIX/log.
+        # The directory in which logs are saved. Defaults to PREFIX/log.
         attr_writer :logdir
 
         # True if we build and if the build is applied on all packages
@@ -116,45 +116,45 @@ module Autobuild
 
     @post_install_handlers = Array.new
     def self.post_install(*args, &block)
-	if args.empty?
-	    @post_install_handlers << block
-	elsif !block
-	    @post_install_handlers << args
-	else
-	    raise ArgumentError, "cannot set both arguments and block"
-	end
+        if args.empty?
+            @post_install_handlers << block
+        elsif !block
+            @post_install_handlers << args
+        else
+            raise ArgumentError, "cannot set both arguments and block"
+        end
     end
     class << self
         attr_reader :post_install_handlers
     end
 
     def self.apply_post_install(pkg, info)
-	return unless info
+        return unless info
 
-	case info
-	when Array
-	    args = info.dup
-	    tool = Autobuild.tool(args.shift)
-	    pkg.run 'post-install', tool, *args
-	when Proc
+        case info
+        when Array
+            args = info.dup
+            tool = Autobuild.tool(args.shift)
+            pkg.run 'post-install', tool, *args
+        when Proc
             if info.arity == 1
                 info.call(pkg)
             else
                 info.call
             end
-	end
+        end
     end
 
     @mail = Hash.new
     class << self
-	# Mailing configuration. It is a hash with the following keys (as symbols)
-	# [:to] the mail destination. Defaults to USER@HOSTNAME, where USER is the username
-	#       of autobuild's caller, and HOSTNAME the hostname of the current machine.
-	# [:from] the mail origin. Defaults to the same value than +:to+
-	# [:smtp] the hostname of the SMTP server, defaults to localhost
-	# [:port] the port of the SMTP server, defauts to 22
-	# [:only_errors] mail only on errors. Defaults to false.
-	attr_reader :mail
+        # Mailing configuration. It is a hash with the following keys (as symbols)
+        # [:to] the mail destination. Defaults to USER@HOSTNAME, where USER is the username
+        #       of autobuild's caller, and HOSTNAME the hostname of the current machine.
+        # [:from] the mail origin. Defaults to the same value than +:to+
+        # [:smtp] the hostname of the SMTP server, defaults to localhost
+        # [:port] the port of the SMTP server, defauts to 22
+        # [:only_errors] mail only on errors. Defaults to false.
+        attr_reader :mail
         
         # call-seq:
         #   post_success_message => string
@@ -178,18 +178,18 @@ module Autobuild
             end
         end
 
-	# The directory in which logs are saved
+        # The directory in which logs are saved
         def logdir; @logdir || "#{prefix}/log" end
 
-	# Removes all log files
+        # Removes all log files
         def clean_log!
             Reporting.each_log do |file|
                 FileUtils.rm_f file
             end
         end
 
-	# Gets autobuild options from the command line and returns the
-	# remaining elements
+        # Gets autobuild options from the command line and returns the
+        # remaining elements
         def commandline(args)
             parser = OptionParser.new do |opts|
                 opts.separator "Path specification"
@@ -204,9 +204,9 @@ module Autobuild
                     puts opts
                     exit
                 end
-		if defined? Daemons
-		    opts.on("--[no-]daemon", "go into daemon mode") do |v| Autobuild.daemonize = v end
-		end
+                if defined? Daemons
+                    opts.on("--[no-]daemon", "go into daemon mode") do |v| Autobuild.daemonize = v end
+                end
                 opts.on("--no-update", "update already checked-out sources") do |v|  Autobuild.do_update = v end
                 opts.on("--no-build",  "only prepare packages, do not build them") do |v| Autobuild.do_build = v end 
                 opts.on("--forced-build",  "force the trigger of all the build commands") do |v| Autobuild.do_forced_build = v end 
@@ -226,25 +226,25 @@ module Autobuild
                 end
 
                 opts.separator ""
-		opts.separator "Mail reports"
-		opts.on("--mail-from EMAIL", String, "From: field of the sent mails") do |from_email|
-		    mail[:from] = from_email
-		end
-		opts.on("--mail-to EMAILS", String, "comma-separated list of emails to which the reports should be sent") do |emails| 
-		    mail[:to] ||= []
-		    mail[:to] += emails.split(',')
-		end
-		opts.on("--mail-subject SUBJECT", String, "Subject: field of the sent mails") do |subject_email|
-		    mail[:subject] = subject_email
-		end
-		opts.on("--mail-smtp HOSTNAME", String, " address of the mail server written as hostname[:port]") do |smtp|
-		    raise "invalid SMTP specification #{smtp}" unless smtp =~ /^([^:]+)(?::(\d+))?$/
-		    mail[:smtp] = $1
-		    mail[:port] = Integer($2) if $2 && !$2.empty?
-		end
-		opts.on("--mail-only-errors", "send mail only on errors") do
-		    mail[:only_errors] = true
-		end
+                opts.separator "Mail reports"
+                opts.on("--mail-from EMAIL", String, "From: field of the sent mails") do |from_email|
+                    mail[:from] = from_email
+                end
+                opts.on("--mail-to EMAILS", String, "comma-separated list of emails to which the reports should be sent") do |emails| 
+                    mail[:to] ||= []
+                    mail[:to] += emails.split(',')
+                end
+                opts.on("--mail-subject SUBJECT", String, "Subject: field of the sent mails") do |subject_email|
+                    mail[:subject] = subject_email
+                end
+                opts.on("--mail-smtp HOSTNAME", String, " address of the mail server written as hostname[:port]") do |smtp|
+                    raise "invalid SMTP specification #{smtp}" unless smtp =~ /^([^:]+)(?::(\d+))?$/
+                    mail[:smtp] = $1
+                    mail[:port] = Integer($2) if $2 && !$2.empty?
+                end
+                opts.on("--mail-only-errors", "send mail only on errors") do
+                    mail[:only_errors] = true
+                end
 
             end
 
