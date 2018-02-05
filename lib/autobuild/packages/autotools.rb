@@ -173,7 +173,7 @@ module Autobuild
                 if !output
                     raise "invalid output of config.status --version, expected a line starting with `with options`"
                 end
-		options = Shellwords.shellwords($1)
+                options = Shellwords.shellwords(output.scan(/with options "(.*)"$/).join(" "))
 
 		# Add the --prefix option to the configureflags array
 		testflags = ["--prefix=#{prefix}"] + Array[*configureflags]
