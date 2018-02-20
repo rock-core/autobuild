@@ -122,5 +122,26 @@ module Autobuild
     class InteractionRequired < RuntimeError; end
 
     class AlreadyFailedError < RuntimeError; end
-end
 
+    # The exception type that is used to report multiple errors that occured
+    # when ignore_errors is set
+    class CompositeException < Autobuild::Exception
+        # The array of exception objects representing all the errors that
+        # occured during the build
+        attr_reader :original_errors
+
+        def initialize(original_errors)
+            @original_errors = original_errors
+        end
+
+        def mail?; true end
+
+        def to_s
+            result = ["#{original_errors.size} errors occured"]
+            original_errors.each_with_index do |e, i|
+                result << "(#{i}) #{e.to_s}"
+            end
+            result.join("\n")
+        end
+    end
+end

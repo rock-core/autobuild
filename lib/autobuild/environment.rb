@@ -469,20 +469,15 @@ module Autobuild
             end
         end
 
-        # Generates a shell script that sets the environment variable listed in
-        # Autobuild.environment, following the inheritance setting listed in
-        # Autobuild.inherited_environment.
-        #
-        # It also sources the files added by source_file
-        def export_env_sh(io)
-            source_before.each do |path|
-                io.puts SHELL_SOURCE_SCRIPT % path
-            end
+        ExportedEnvironment = Struct.new :set, :unset, :update
 
-            unset_variables = Set.new
-            variables = []
+        # Computes the set of environment modification operations that should
+        # be applied to load this environment
+        #
+        # This is for instance used to generate the env.sh
+        def exported_environment
+            export = ExportedEnvironment.new(Hash.new, Array.new, Hash.new)
             environment.each_key do |name|
-                variables << name
                 value_with_inheritance    = value(name, inheritance_mode: :keep)
                 value_without_inheritance = value(name, inheritance_mode: :ignore)
                 if path_variable?(name)
@@ -492,23 +487,72 @@ module Autobuild
                 end
 
                 if !value_with_inheritance
-                    unset_variables << name
-                    shell_line = SHELL_UNSET_COMMAND % [name]
+                    export.unset << name
                 elsif value_with_inheritance == value_without_inheritance # no inheritance
-                    shell_line = SHELL_SET_COMMAND % [name, value_with_inheritance.join(File::PATH_SEPARATOR)]
+                    export.set[name] = value_with_inheritance
                 else
-                    shell_line = SHELL_CONDITIONAL_SET_COMMAND % [name, value_with_inheritance.join(File::PATH_SEPARATOR), value_without_inheritance.join(File::PATH_SEPARATOR)]
+                    export.update[name] = [value_with_inheritance, value_without_inheritance]
                 end
-                io.puts shell_line
             end
-            variables.each do |var|
-                if !unset_variables.include?(var)
-                    io.puts SHELL_EXPORT_COMMAND % [var]
-                end
+            export
+        end
+
+        # Generates a shell script that sets the environment variable listed in
+        # Autobuild.environment, following the inheritance setting listed in
+        # Autobuild.inherited_environment.
+        #
+        # It also sources the files added by source_file
+        def export_env_sh(io)
+            export = exported_environment
+            source_before.each do |path|
+                io.puts SHELL_SOURCE_SCRIPT % path
+            end
+            export.unset.each do |name|
+                io.puts SHELL_UNSET_COMMAND % [name]
+            end
+            export.set.each do |name, value|
+                io.puts SHELL_SET_COMMAND % [name, value.join(File::PATH_SEPARATOR)]
+                io.puts SHELL_EXPORT_COMMAND % [name]
+            end
+            export.update.each do |name, (with_inheritance, without_inheritance)|
+                io.puts SHELL_CONDITIONAL_SET_COMMAND % [name, with_inheritance.join(File::PATH_SEPARATOR), without_inheritance.join(File::PATH_SEPARATOR)]
+                io.puts SHELL_EXPORT_COMMAND % [name]
             end
             source_after.each do |path|
                 io.puts SHELL_SOURCE_SCRIPT % [path]
             end
+        end
+
+        # Build an environment hash from an environment export and some initial state
+        #
+        # This is basically the programmatic version of what {#export_env_sh}
+        # instructs the shell to do
+        def self.environment_from_export(export, base_env = ENV)
+            result = Hash.new
+            export.set.each do |name, value|
+                result[name] = value.join(File::PATH_SEPARATOR)
+            end
+            base_env.each do |name, value|
+                result[name] ||= value
+            end
+            export.unset.each do |name|
+                result.delete(name)
+            end
+            export.update.each do |name, (with_inheritance, without_inheritance)|
+                if result[name]
+                    variable_expansion = "$#{name}"
+                    with_inheritance = with_inheritance.map do |value|
+                        if value == variable_expansion
+                            base_env[name]
+                        else value
+                        end
+                    end
+                    result[name] = with_inheritance.join(File::PATH_SEPARATOR)
+                else
+                    result[name] = without_inheritance.join(File::PATH_SEPARATOR)
+                end
+            end
+            result
         end
 
         # DEPRECATED: use add_path instead
@@ -670,7 +714,11 @@ module Autobuild
         end
 
         def find_executable_in_path(file, path_var = 'PATH')
-            (value(path_var) || Array.new).each do |dir|
+            self.class.find_executable_in_path(file, value(path_var) || Array.new)
+        end
+
+        def self.find_executable_in_path(file, entries)
+            entries.each do |dir|
                 full = File.join(dir, file)
                 begin
                     stat = File.stat(full)
@@ -684,7 +732,11 @@ module Autobuild
         end
 
         def find_in_path(file, path_var = 'PATH')
-            (value(path_var) || Array.new).each do |dir|
+            self.class.find_in_path(file, value(path_var) || Array.new)
+        end
+
+        def self.find_in_path(file, entries)
+            entries.each do |dir|
                 full = File.join(dir, file)
                 if File.file?(full)
                     return full

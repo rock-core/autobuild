@@ -150,5 +150,41 @@ module Autobuild
                 assert_equal path, @env.find_executable_in_path('test')
             end
         end
+
+        describe "environment_from_export" do
+            before do
+                @export = Environment::ExportedEnvironment.new(
+                    Hash.new, [], Hash.new)
+            end
+
+            it "imports unset values from the base environment" do
+                assert_equal Hash['BLA' => '1'], Environment.
+                    environment_from_export(@export, 'BLA' => '1')
+            end
+
+            it "gets overriden by 'set' values" do
+                @export.set['BLA'] = ['2']
+                assert_equal Hash['BLA' => '2'], Environment.
+                    environment_from_export(@export, 'BLA' => '1')
+            end
+
+            it "gets deleted by 'unset' values" do
+                @export.unset << 'BLA'
+                assert_equal Hash.new, Environment.
+                    environment_from_export(@export, 'BLA' => '1')
+            end
+
+            it "injects the current value in the placeholder for 'update' values" do
+                @export.update['BLA'] = [['a', 'b', '$BLA', 'c'], []]
+                assert_equal Hash['BLA' => 'a:b:1:c'], Environment.
+                    environment_from_export(@export, 'BLA' => '1')
+            end
+
+            it "returns the without-inheritance value if the current env entry is unset" do
+                @export.update['BLA'] = [['a', 'b', '$BLA', 'c'], ['d', 'e', 'f']]
+                assert_equal Hash['BLA' => 'd:e:f'], Environment.
+                    environment_from_export(@export, Hash.new)
+            end
+        end
     end
 end
