@@ -19,9 +19,9 @@ Gem::Specification.new do |s|
     s.extensions = []
     s.files         = `git ls-files -z`.split("\x0").reject { |f| f.match(%r{^(test|spec|features)/}) }
 
-    s.add_runtime_dependency "rake", "~> 12.0", ">= 12.0.0", '< 12.1.0'
+    s.add_runtime_dependency "rake", "~> 12.0", ">= 12.3.0"
     s.add_runtime_dependency "utilrb", "~> 3.0", ">= 3.0"
-    s.add_runtime_dependency 'tty-prompt', '~> 0.12.0', '>= 0.12.0'
+    s.add_runtime_dependency 'tty-prompt', '~> 0.15.0'
     s.add_runtime_dependency 'pastel', '~> 0.7.0', '>= 0.7.0'
     s.add_development_dependency "flexmock", '~> 2.0', ">= 2.0.0"
     s.add_development_dependency "minitest", "~> 5.0", ">= 5.0"
