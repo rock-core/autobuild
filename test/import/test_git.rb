@@ -377,6 +377,29 @@ describe Autobuild::Git do
                 end
             end
 
+            it "updates the remote ref" do
+                importer.import(pkg)
+                importer.run_git(pkg, 'push', '--force', gitrepo, 'master~1:master')
+                importer.import(pkg)
+                expected = importer.rev_parse(pkg, 'master~1')
+                assert_equal expected, importer.rev_parse(pkg, 'refs/remotes/autobuild/master')
+            end
+
+            it "updates the remote ref even if the update fails" do
+                importer.import(pkg)
+                importer.run_git(pkg, 'push', '--force', gitrepo, 'master~1:master')
+                expected = importer.rev_parse(pkg, 'master~1')
+                importer.run_git(pkg, 'reset', '--hard', 'master~2')
+                File.open(File.join(tempdir, 'git', 'test'), 'a') do |io|
+                    io.puts "test"
+                end
+                importer.run_git(pkg, 'commit', '-a', '-m', 'a fork commit')
+                assert_raises(Autobuild::PackageException) do
+                    importer.import(pkg)
+                end
+                assert_equal expected, importer.rev_parse(pkg, 'refs/remotes/autobuild/master')
+            end
+
             it "switches to the local branch regardless of the presence of the tag or commit" do
                 importer.import(pkg)
                 head = importer.rev_parse(pkg, 'HEAD')

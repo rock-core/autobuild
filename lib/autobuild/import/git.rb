@@ -529,20 +529,18 @@ module Autobuild
 
             # Now get the actual commit ID from the FETCH_HEAD file, and
             # return it
-            commit_id = if File.readable?( File.join(git_dir, 'FETCH_HEAD') )
-                fetch_commit = File.readlines( File.join(git_dir, 'FETCH_HEAD') ).
-                    delete_if { |l| l =~ /not-for-merge/ }
-                if !fetch_commit.empty?
-                    fetch_commit.first.split(/\s+/).first
+            if File.readable?( File.join(git_dir, 'FETCH_HEAD') )
+                fetched_commits = File.readlines( File.join(git_dir, 'FETCH_HEAD') ).
+                    find_all { |l| l !~ /not-for-merge/ }.
+                    map { |line| line.split(/\s+/).first }
+                refspec.zip(fetched_commits).each do |refspec, commit_id|
+                    if refspec =~ /^refs\/heads\/(.*)$/
+                        run_git_bare(package, 'update-ref', "-m", "updated by autobuild", "refs/remotes/#{remote_name}/#{$1}", commit_id)
+                    end
                 end
-            end
 
-            # Update the remote tag if needs be
-            if (options[:refspec] == tag) && commit_id
-                run_git_bare(package, 'update-ref', "-m", "updated by autobuild", "refs/remotes/#{remote_name}/#{remote_branch}", commit_id)
+                fetched_commits.first
             end
-
-            commit_id
         end
 
         # @api private
