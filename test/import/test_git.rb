@@ -300,14 +300,14 @@ describe Autobuild::Git do
                 # does not try to access it
                 importer.relocate('/does/not/exist')
                 pin_importer('tip~1')
-                importer.import(pkg, reset: false)
+                assert_equal false, importer.import(pkg, reset: false)
                 assert_on_commit "tip"
             end
             it "does not access the repository if the target is already HEAD and reset is true" do
                 importer.import(pkg)
                 pin_importer('tip')
                 importer.relocate('/does/not/exist')
-                importer.import(pkg, reset: true)
+                assert_equal false, importer.import(pkg, reset: true)
                 assert_on_commit "tip"
             end
             it "does not access the remote repository if the commit is present locally" do
@@ -315,20 +315,20 @@ describe Autobuild::Git do
                 importer.import(pkg)
                 pin_importer('tip')
                 importer.relocate('/does/not/exist')
-                importer.import(pkg, reset: false)
+                assert importer.import(pkg, reset: false)
                 assert_on_commit "tip"
             end
             it "attempts to merge the target commit if it is not present in HEAD" do
                 pin_importer('tip~1')
                 importer.import(pkg)
                 pin_importer('tip')
-                importer.import(pkg, reset: false)
+                assert importer.import(pkg, reset: false)
                 assert_on_commit "tip"
             end
             it "resets if reset is true" do
                 importer.import(pkg)
                 pin_importer('tip~1')
-                importer.import(pkg, reset: true)
+                assert importer.import(pkg, reset: true)
                 assert_on_commit "tip~1"
             end
             it "refuses to reset if some commits are present locally but not in the remote branch" do
@@ -349,7 +349,7 @@ describe Autobuild::Git do
                 importer.import(pkg)
                 head = importer.rev_parse(pkg, 'HEAD')
                 importer.local_branch = 'local'
-                importer.import(pkg)
+                assert importer.import(pkg)
                 assert_equal 'refs/heads/local', importer.current_branch(pkg)
                 assert_equal head, importer.rev_parse(pkg, 'HEAD')
             end
@@ -360,7 +360,7 @@ describe Autobuild::Git do
                 importer.run_git(pkg, 'reset', '--hard', 'master~1')
                 importer.run_git(pkg, 'branch', 'local')
                 importer.local_branch = 'local'
-                importer.import(pkg)
+                assert importer.import(pkg)
                 assert_equal 'refs/heads/local', importer.current_branch(pkg)
                 assert_equal head, importer.rev_parse(pkg, 'refs/remotes/autobuild/master')
             end
@@ -407,7 +407,7 @@ describe Autobuild::Git do
                 importer.run_git(pkg, 'branch', 'local')
                 importer.local_branch = 'local'
                 importer.relocate(importer.repository, tag: 'third_commit')
-                importer.update(pkg)
+                assert importer.update(pkg)
                 assert_equal 'refs/heads/local', importer.current_branch(pkg)
                 assert_equal head, importer.rev_parse(pkg, 'refs/remotes/autobuild/master')
             end
@@ -415,13 +415,13 @@ describe Autobuild::Git do
             describe "the reset behaviour" do
                 it "checks out the local branch even if its original state was diverged from the current commit" do
                     pin_importer 'fork'
-                    importer.import(pkg)
+                    assert importer.import(pkg)
                     assert_on_commit 'fork'
                 end
                 it "resets the local branch even if it diverged from the current commit" do
                     importer.import(pkg)
                     pin_importer 'fork'
-                    importer.import(pkg, reset: true)
+                    assert importer.import(pkg, reset: true)
                     assert_on_commit 'fork'
                 end
                 it "refuses to reset the local branch if HEAD is not present remotely" do
@@ -481,7 +481,7 @@ describe Autobuild::Git do
                 importer.import(pkg)
                 extra_repo = File.join(tempdir, 'gitrepo-with-extra-commit-and-tag.git')
                 importer.relocate(extra_repo, commit: '1ddb20665622279700770be09f9a291b37c9b631')
-                importer.import(pkg, reset: false)
+                assert importer.import(pkg, reset: false)
                 assert_equal  '1ddb20665622279700770be09f9a291b37c9b631', importer.rev_parse(pkg, 'HEAD')
             end
 
@@ -519,7 +519,7 @@ describe Autobuild::Git do
                 untar('gitrepo-with-extra-commit-and-tag.tar')
                 extra_repo = File.join(tempdir, 'gitrepo-with-extra-commit-and-tag.git')
                 importer.relocate(extra_repo, tag: 'extra_tag')
-                importer.import(pkg, reset: false)
+                assert importer.import(pkg, reset: false)
                 tag_id = importer.rev_parse(pkg, 'extra_tag')
                 assert_equal tag_id, importer.rev_parse(pkg, 'HEAD')
             end

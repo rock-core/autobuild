@@ -421,13 +421,14 @@ module Autobuild
             end
 
             if @importer
-                @importer.import(self, options)
+                result = @importer.import(self, options)
             elsif update?
                 message "%s: no importer defined, doing nothing"
             end
 
             # Add the dependencies declared in spec
             depends_on(*@spec_dependencies) if @spec_dependencies
+            result
         end
 
         # Create all the dependencies required to reconfigure and/or rebuild the

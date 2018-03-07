@@ -328,6 +328,7 @@ class Importer
                           Autobuild.color('updated', :yellow)
                       end
 
+            did_update
         rescue Interrupt
             message = Autobuild.color('interrupted', :red)
             if last_error
@@ -368,6 +369,7 @@ class Importer
 
         patch(package)
         package.updated = true
+        did_update
     rescue Autobuild::Exception => e
         fallback(e, package, :import, package)
     end
@@ -454,7 +456,6 @@ class Importer
                     if Autobuild.verbose
                         package.message "%s: not updating"
                     end
-                    return
                 end
             end
 
@@ -463,6 +464,7 @@ class Importer
         else
             package.isolate_errors(mark_as_failed: true, ignore_errors: ignore_errors) do
                 perform_checkout(package, allow_interactive: options[:allow_interactive])
+                true
             end
         end
     end

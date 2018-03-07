@@ -1032,6 +1032,8 @@ module Autobuild
                 package.message "%%s: switching to branch %s" % [local_branch]
                 run_git(package, 'checkout', local_branch)
                 true
+            else
+                false
             end
         end
 
@@ -1051,9 +1053,9 @@ module Autobuild
         private def handle_pinned_state(package, pinned_state, reset: false)
             current_head = rev_parse(package, 'HEAD')
             if reset
-                current_head == pinned_state
+                [current_head == pinned_state, false]
             elsif commit_present_in?(package, pinned_state, current_head)
-                true
+                [true, false]
             elsif merge_if_simple(package, pinned_state)
                 [true, true]
             end
