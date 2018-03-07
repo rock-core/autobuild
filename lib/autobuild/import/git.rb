@@ -995,46 +995,44 @@ module Autobuild
             pinned_state, target_commit, fetch_commit =
                 determine_target_state(package, only_local: only_local)
 
-            # If we are tracking a commit/tag, just check it out and return
-            if !has_local_branch?(package)
-                package.message "%%s: checking out branch %s" % [local_branch]
-                run_git(package, 'checkout', '-b', local_branch, target_commit)
-                return false
-            end
-
-            if !on_local_branch?(package)
-                package.message "%%s: switching to branch %s" % [local_branch]
-                run_git(package, 'checkout', local_branch)
-            end
+            did_change_branch = ensure_on_local_branch(package, target_commit)
 
             # Check whether we are already at the requested state
-            if pinned_state
-                current_head = rev_parse(package, 'HEAD')
-                if reset
-                    if current_head == pinned_state
-                        return false
-                    end
-                elsif commit_present_in?(package, pinned_state, current_head)
-                    return false
-                elsif merge_if_simple(package, pinned_state)
-                    return true
+            pin_is_uptodate, pin_did_merge =
+                if pinned_state
+                    handle_pinned_state(package, pinned_state, reset: reset)
                 end
+
+            unless pin_is_uptodate
+                fetch_commit ||= current_remote_commit(
+                    package, only_local: only_local, refspec: [remote_branch, tag])
+                did_update =
+                    if reset
+                        reset_head_to_commit(package, target_commit, fetch_commit,
+                             force: (reset == :force))
+                    else
+                        merge_if_simple(package, target_commit)
+                    end
             end
 
-            did_update = false
-            fetch_commit ||= current_remote_commit(
-                package, only_local: only_local, refspec: [remote_branch, tag])
-            if reset
-                did_update = reset_head_to_commit(package, target_commit, fetch_commit, force: (reset == :force))
-            else
-                did_update = merge_if_simple(package, target_commit)
-            end
-
-            if with_submodules?
+            if !only_local && with_submodules?
                 run_git(package, "submodule", "update", '--init')
                 did_update = true
             end
-            did_update
+
+            did_update || pin_did_merge || did_change_branch
+        end
+
+        private def ensure_on_local_branch(package, target_commit)
+            if !has_local_branch?(package)
+                package.message "%%s: checking out branch %s" % [local_branch]
+                run_git(package, 'checkout', '-b', local_branch, target_commit)
+                true
+            elsif !on_local_branch?(package)
+                package.message "%%s: switching to branch %s" % [local_branch]
+                run_git(package, 'checkout', local_branch)
+                true
+            end
         end
 
         # @api private
@@ -1048,6 +1046,17 @@ module Autobuild
                 return true
             end
             false
+        end
+
+        private def handle_pinned_state(package, pinned_state, reset: false)
+            current_head = rev_parse(package, 'HEAD')
+            if reset
+                current_head == pinned_state
+            elsif commit_present_in?(package, pinned_state, current_head)
+                true
+            elsif merge_if_simple(package, pinned_state)
+                [true, true]
+            end
         end
 
         def each_alternate_path(package)
@@ -1086,6 +1095,9 @@ module Autobuild
 
             update_remotes_configuration(package)
             update(package, only_local: true, reset: true)
+            if with_submodules?
+                run_git(package, "submodule", "update", '--init')
+            end
         end
 
         # Changes the repository this importer is pointing to
