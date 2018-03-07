@@ -31,9 +31,10 @@ module Autobuild
                 once.pass_thru
             flexmock(Autobuild).should_receive(:make_subcommand).
                 with(package, 'build', Proc).once.pass_thru
+            # prepare is for the gnumake detection, which is cached
             flexmock(package).should_receive(:run).
                 with('prepare', any, any).
-                once.pass_thru
+                at_most.once.pass_thru
             flexmock(package).should_receive(:run).
                 with('configure', any, any, any, any, package.srcdir).
                 once.pass_thru
