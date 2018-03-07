@@ -550,12 +550,33 @@ describe Autobuild::Git do
                 import commit: @master_root_commit
                 assert_equal "Commit 0\n", checkout_read('child', 'FILE')
             end
+            it "checkouts the submodule of the local branch" do
+                import branch: 'a_branch'
+                assert_equal "Commit 0\n", checkout_read('child', 'FILE')
+            end
         end
 
         describe "update" do
             it "updates submodules" do
                 import commit: @master_root_commit
                 import commit: nil
+                assert_equal "Commit 1\n", checkout_read('child', 'FILE')
+            end
+            it "does not update submodules in local-only mode" do
+                import commit: @master_root_commit
+                import commit: nil, local_only: true
+                assert_equal "Commit 1\n", checkout_read('child', 'FILE')
+            end
+            it "updates submodules when checking out new branches" do
+                import
+                assert_equal "Commit 1\n", checkout_read('child', 'FILE')
+                import branch: 'a_branch'
+                assert_equal "Commit 0\n", checkout_read('child', 'FILE')
+            end
+            it "updates submodules when checking out existing branches" do
+                import
+                import branch: 'a_branch'
+                import branch: 'master'
                 assert_equal "Commit 1\n", checkout_read('child', 'FILE')
             end
             it "initializes new submodules" do
