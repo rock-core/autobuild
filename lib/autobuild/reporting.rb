@@ -52,13 +52,9 @@ module Autobuild
             return
         end
 
-        size =
-            if @last_progress_msg then @last_progress_msg.size
-            else 0
-            end
-
         if !silent?
-            io.puts "\r#{msg}#{" " * [size - msg.size, 0].max}"
+            clear_line
+            io.puts "#{msg}"
             if @last_progress_msg
                 print "#{@last_progress_msg}"
             end
@@ -84,6 +80,10 @@ module Autobuild
     #   key
     def self.has_progress_for?(key)
         progress_messages.any? { |msg_key, _| msg_key == key }
+    end
+
+    def self.clear_line
+        print "\e[2K\e[1G"
     end
 
     def self.progress_start(key, *args)
@@ -226,24 +226,20 @@ module Autobuild
 
     def self.display_progress
         msg = format_progress_message(progress_messages.map(&:last))
-        last_msg_length =
-            if @last_progress_msg then @last_progress_msg.length
-            else 0
-            end
 
         if msg.empty?
-            blank = " " * last_msg_length
+            clear_line
             @last_progress_msg = nil
         else
+            clear_line
             msg = "  #{msg}"
-            blank = " " * [last_msg_length - msg.length, 0].max
             @last_progress_msg = msg
         end
 
         if !silent?
             if Autobuild.progress_display_enabled?
-                print "\r#{msg}#{blank}"
-                print "\r#{msg}"
+                clear_line
+                print "#{msg}"
             elsif @last_progress_msg
                 puts msg
             end
