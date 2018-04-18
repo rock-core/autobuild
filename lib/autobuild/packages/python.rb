@@ -1,4 +1,5 @@
 require 'autobuild/configurable'
+require 'open3'
 
 # Main Autobuild module
 module Autobuild
@@ -19,6 +20,11 @@ module Autobuild
             @buildflags = []
             @installflags = []
             super
+        end
+
+        def prepare
+            super
+            @install_mode = File.file?(File.join(srcdir, 'setup.py'))
         end
 
         def prepare_for_forced_build
@@ -42,13 +48,21 @@ module Autobuild
             command
         end
 
-        # Do the build in builddir
-        def build
-            unless File.file?(File.join(srcdir, 'setup.py'))
-                raise ConfigException.new(self, 'build'),
-                      "#{srcdir} contains no setup.py file"
+        def python_path
+            begin
+                _, output, _, ret = Open3.popen3({ 'PYTHONUSERBASE' => prefix },
+                                                 'python -m site --user-site')
+            rescue Exception => e
+                raise "Unable to set PYTHONPATH: #{e.message}"
             end
 
+            return output.read.chomp if ret.value.success?
+            raise 'Unable to set PYTHONPATH: user site directory disabled?'
+        end
+
+        # Do the build in builddir
+        def build
+            return unless @install_mode
             command = generate_build_command
             command << '--force' if @forced
             progress_start 'building %s [progress not available]',
@@ -60,6 +74,7 @@ module Autobuild
 
         # Install the result in prefix
         def install
+            return unless @install_mode
             command = generate_install_command
             command << '--force' if @forced
             progress_start 'installing %s',
@@ -67,6 +82,12 @@ module Autobuild
                 run 'install', *command, working_directory: srcdir
             end
             super
+        end
+
+        def update_environment
+            super
+            path = @install_mode ? python_path : srcdir
+            env_add_path 'PYTHONPATH', path
         end
     end
 end
