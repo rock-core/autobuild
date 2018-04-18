@@ -27,11 +27,6 @@ module Autobuild
             @forced = true
         end
 
-        # There is nothing to configure
-        def configure
-            super {}
-        end
-
         def generate_build_command
             command = ['python', 'setup.py', 'build']
             command << "--build-base=#{builddir}"
