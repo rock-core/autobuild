@@ -1,6 +1,8 @@
 require 'set'
 require 'rbconfig'
 require 'utilrb/hash/map_value'
+require 'shellwords'
+require 'pathname'
 
 module Autobuild
     @windows = RbConfig::CONFIG["host_os"] =~%r!(msdos|mswin|djgpp|mingw|[Ww]indows)!
@@ -706,6 +708,80 @@ module Autobuild
             return @default_pkgconfig_search_suffixes
         end
 
+        def parse_flags(flags, sanitize: true)
+            include_dirs = []
+            lib_dirs = []
+
+            words = Shellwords.shellwords(flags)
+            while word = words.shift
+                if word == '-I'
+                    include_dirs << words.shift
+                elsif word == '-L'
+                    lib_dirs << words.shift
+                elsif word =~ /(-I)(.*)/
+                    include_dirs << $2
+                elsif word =~ /(-L)(.*)/
+                    lib_dirs << $2
+                end
+            end
+
+            include_dirs.compact!
+            lib_dirs.compact!
+
+            if sanitize
+                include_dirs = sanitize_paths(include_dirs)
+                lib_dirs = sanitize_paths(lib_dirs)
+            end
+
+            return include_dirs, lib_dirs
+        end
+
+        def flags_for_paths(flag, *paths)
+            flags = []
+            paths.each { |path| flags << "#{flag}#{path}" }
+            flags.join(' ')
+        end
+
+        def sanitize_paths(paths)
+            sanitized_paths = []
+            paths.each { |path| sanitized_paths << Pathname.new(path).cleanpath }
+            sanitized_paths.uniq
+        end
+
+        def path_for_prefix(prefix, sub_dir, current_paths = [])
+            path_candidate = Pathname.new(File.join(prefix, sub_dir)).cleanpath
+            new_path = path_candidate unless current_paths.include?(path_candidate)
+            new_path
+        end
+
+        def compute_compilation_flags(new_prefix,
+                                      current_flags: nil,
+                                      append_include: true,
+                                      lib_sub_dir: 'lib',
+                                      include_sub_dir: 'include')
+            new_flags = []
+            include_dirs, lib_dirs = parse_flags(current_flags || '')
+
+            new_lib_dir = path_for_prefix(new_prefix, lib_sub_dir, lib_dirs)
+            new_include_dir = path_for_prefix(new_prefix, include_sub_dir, include_dirs)
+
+            new_flags << flags_for_paths('-L', new_lib_dir) if new_lib_dir
+            new_flags << flags_for_paths('-I', new_include_dir) if new_include_dir && append_include
+            new_flags.compact
+        end
+
+        def append_compilation_flags(prefix, flag,
+                                     append_include: true,
+                                     lib_sub_dir: 'lib')
+            current_flags = [*@environment[flag]].join(' ')
+            new_flags = compute_compilation_flags(prefix,
+                                                  current_flags: current_flags,
+                                                  append_include: append_include,
+                                                  lib_sub_dir: lib_sub_dir)
+
+            append(flag, *new_flags) unless new_flags.empty?
+        end
+
         # Updates the environment when a new prefix has been added
         def add_prefix(newprefix, includes = nil)
             if !includes || includes.include?('PATH')
@@ -729,6 +805,28 @@ module Autobuild
                         add_path(LIBRARY_PATH, path)
                     end
                 end
+            end
+
+            arch_names = self.arch_names
+            arch_size  = self.arch_size
+
+            lib_sub_dirs = ['lib', "lib#{arch_size}"]
+            arch_names.each { |arch| lib_sub_dirs << File.join('lib', arch) }
+
+            # Add CFLAGS, CXXFLAGS and LDFLAGS
+            lib_sub_dirs.each do |dir|
+                # TODO: Make sure there are actual .so/.a/.dll/.lib/.dylib files before appending -L flags
+                # TODO: Make sure there are actual headers before appending -I flags
+                # TODO: This should avoid adding i.e ruby package paths to compilation flags
+                append_compilation_flags(newprefix, 'CFLAGS',
+                                         lib_sub_dir: dir)
+
+                append_compilation_flags(newprefix, 'CXXFLAGS',
+                                         lib_sub_dir: dir)
+
+                append_compilation_flags(newprefix, 'LDFLAGS',
+                                         lib_sub_dir: dir,
+                                         append_include: false)
             end
 
             # Validate the new rubylib path
