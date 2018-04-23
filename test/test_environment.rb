@@ -154,7 +154,7 @@ module Autobuild
         describe "environment_from_export" do
             before do
                 @export = Environment::ExportedEnvironment.new(
-                    Hash.new, [], Hash.new)
+                    Hash.new, [], Hash.new, Set.new)
             end
 
             it "imports unset values from the base environment" do
