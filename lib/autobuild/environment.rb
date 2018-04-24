@@ -1,6 +1,8 @@
 require 'set'
 require 'rbconfig'
 require 'utilrb/hash/map_value'
+require 'shellwords'
+require 'pathname'
 
 module Autobuild
     @windows = RbConfig::CONFIG["host_os"] =~%r!(msdos|mswin|djgpp|mingw|[Ww]indows)!
@@ -13,7 +15,7 @@ module Autobuild
         @macos
     end
 
-    @freebsd = RbConfig::CONFIG["host_os"].include?('freebsd') 
+    @freebsd = RbConfig::CONFIG["host_os"].include?('freebsd')
     def self.freebsd?
         @freebsd
     end
@@ -77,7 +79,7 @@ module Autobuild
         #
         # If inherited_environment[varname] is true, the generated shell script
         # will contain
-        #   
+        #
         #   export VARNAME=new_value:new_value:$VARNAME
         #
         # otherwise
@@ -102,6 +104,11 @@ module Autobuild
         # @see declare_path_variable
         attr_reader :path_variables
 
+        # The set of environment variables that are known to be appended
+        #
+        # @see declare_appended_variable
+        attr_reader :appended_variables
+
         def initialize
             @inherited_environment = Hash.new
             @environment = Hash.new
@@ -110,10 +117,11 @@ module Autobuild
             @inherit = true
             @inherited_variables = Set.new
             @path_variables = Set.new
+            @appended_variables = Set.new
 
             @system_env = Hash.new
             @original_env = ORIGINAL_ENV.dup
-            
+
             @default_pkgconfig_search_suffixes = nil
             @arch_names = nil
             @target_arch = nil
@@ -134,6 +142,18 @@ module Autobuild
         # Whether the given environment variable contains path(s)
         def path_variable?(name)
             path_variables.include?(name)
+        end
+
+        # Declares that the given environment variable will have values appended
+        #
+        # @param [String] name
+        def declare_appended_variable(name)
+            appended_variables << name
+        end
+
+        # Whether the given environment variable will be appended
+        def appended_variable?(name)
+            appended_variables.include?(name)
         end
 
         def initialize_copy(old)
@@ -157,7 +177,7 @@ module Autobuild
         end
 
         # Resets the value of +name+ to its original value. If it is inherited from
-        # the 
+        # the
         def reset(name = nil)
             if name
                 environment.delete(name)
@@ -174,7 +194,7 @@ module Autobuild
         # value.
         #
         # In a bourne shell, this would be equivalent to doing
-        #   
+        #
         #   unset name
         #
         def clear(name = nil)
@@ -212,7 +232,7 @@ module Autobuild
         # @see env_inherit env_inherit=
         def inherit?(name = nil)
             if @inherit
-                if name 
+                if name
                     @inherited_variables.include?(name)
                 else true
                 end
@@ -248,7 +268,7 @@ module Autobuild
                     names.pop
                 else true
                 end
-            
+
             if flag
                 @inherited_variables |= names
                 names.each do |env_name|
@@ -310,6 +330,12 @@ module Autobuild
             @environment[name] = values
         end
 
+        # Appends new value(s) at the end of an environment variable
+        def append(name, *values)
+            declare_appended_variable(name)
+            add(name, *values)
+        end
+
         # Returns an environment variable value
         #
         # @param [String] name the environment variable name
@@ -367,6 +393,11 @@ module Autobuild
             environment.has_key?(name)
         end
 
+        # Separator to be used for the given variable
+        def variable_separator(name)
+            separator = appended_variable?(name) ? ' ' : File::PATH_SEPARATOR
+        end
+
         def resolved_env
             resolved_env = Hash.new
             environment.each_key do |name|
@@ -374,7 +405,8 @@ module Autobuild
                     if path_variable?(name)
                         value = value.find_all { |p| File.exist?(p) }
                     end
-                    resolved_env[name] = value.join(File::PATH_SEPARATOR)
+                    separator = variable_separator(name)
+                    resolved_env[name] = value.join(separator)
                 else
                     resolved_env[name] = nil
                 end
@@ -469,14 +501,14 @@ module Autobuild
             end
         end
 
-        ExportedEnvironment = Struct.new :set, :unset, :update
+        ExportedEnvironment = Struct.new :set, :unset, :update, :appended
 
         # Computes the set of environment modification operations that should
         # be applied to load this environment
         #
         # This is for instance used to generate the env.sh
         def exported_environment
-            export = ExportedEnvironment.new(Hash.new, Array.new, Hash.new)
+            export = ExportedEnvironment.new(Hash.new, Array.new, Hash.new, Set.new)
             environment.each_key do |name|
                 value_with_inheritance    = value(name, inheritance_mode: :keep)
                 value_without_inheritance = value(name, inheritance_mode: :ignore)
@@ -489,8 +521,10 @@ module Autobuild
                 if !value_with_inheritance
                     export.unset << name
                 elsif value_with_inheritance == value_without_inheritance # no inheritance
+                    export.appended << name if appended_variable?(name)
                     export.set[name] = value_with_inheritance
                 else
+                    export.appended << name if appended_variable?(name)
                     export.update[name] = [value_with_inheritance, value_without_inheritance]
                 end
             end
@@ -511,11 +545,13 @@ module Autobuild
                 io.puts SHELL_UNSET_COMMAND % [name]
             end
             export.set.each do |name, value|
-                io.puts SHELL_SET_COMMAND % [name, value.join(File::PATH_SEPARATOR)]
+                separator = export.appended.include?(name) ? ' ' : File::PATH_SEPARATOR
+                io.puts SHELL_SET_COMMAND % [name, value.join(separator)]
                 io.puts SHELL_EXPORT_COMMAND % [name]
             end
             export.update.each do |name, (with_inheritance, without_inheritance)|
-                io.puts SHELL_CONDITIONAL_SET_COMMAND % [name, with_inheritance.join(File::PATH_SEPARATOR), without_inheritance.join(File::PATH_SEPARATOR)]
+                separator = export.appended.include?(name) ? ' ' : File::PATH_SEPARATOR
+                io.puts SHELL_CONDITIONAL_SET_COMMAND % [name, with_inheritance.join(separator), without_inheritance.join(separator)]
                 io.puts SHELL_EXPORT_COMMAND % [name]
             end
             source_after.each do |path|
@@ -530,7 +566,8 @@ module Autobuild
         def self.environment_from_export(export, base_env = ENV)
             result = Hash.new
             export.set.each do |name, value|
-                result[name] = value.join(File::PATH_SEPARATOR)
+                separator = export.appended.include?(name) ? ' ' : File::PATH_SEPARATOR
+                result[name] = value.join(separator)
             end
             base_env.each do |name, value|
                 result[name] ||= value
@@ -539,6 +576,7 @@ module Autobuild
                 result.delete(name)
             end
             export.update.each do |name, (with_inheritance, without_inheritance)|
+                separator = export.appended.include?(name) ? ' ' : File::PATH_SEPARATOR
                 if result[name]
                     variable_expansion = "$#{name}"
                     with_inheritance = with_inheritance.map do |value|
@@ -547,9 +585,9 @@ module Autobuild
                         else value
                         end
                     end
-                    result[name] = with_inheritance.join(File::PATH_SEPARATOR)
+                    result[name] = with_inheritance.join(separator)
                 else
-                    result[name] = without_inheritance.join(File::PATH_SEPARATOR)
+                    result[name] = without_inheritance.join(separator)
                 end
             end
             result
@@ -568,7 +606,7 @@ module Autobuild
         def each_env_search_path(prefix, patterns)
             arch_names = self.arch_names
             arch_size  = self.arch_size
-            
+
             seen = Set.new
             patterns.each do |base_path|
                 paths = []
@@ -670,6 +708,80 @@ module Autobuild
             return @default_pkgconfig_search_suffixes
         end
 
+        def parse_flags(flags, sanitize: true)
+            include_dirs = []
+            lib_dirs = []
+
+            words = Shellwords.shellwords(flags)
+            while word = words.shift
+                if word == '-I'
+                    include_dirs << words.shift
+                elsif word == '-L'
+                    lib_dirs << words.shift
+                elsif word =~ /(-I)(.*)/
+                    include_dirs << $2
+                elsif word =~ /(-L)(.*)/
+                    lib_dirs << $2
+                end
+            end
+
+            include_dirs.compact!
+            lib_dirs.compact!
+
+            if sanitize
+                include_dirs = sanitize_paths(include_dirs)
+                lib_dirs = sanitize_paths(lib_dirs)
+            end
+
+            return include_dirs, lib_dirs
+        end
+
+        def flags_for_paths(flag, *paths)
+            flags = []
+            paths.each { |path| flags << "#{flag}#{path}" }
+            flags.join(' ')
+        end
+
+        def sanitize_paths(paths)
+            sanitized_paths = []
+            paths.each { |path| sanitized_paths << Pathname.new(path).cleanpath }
+            sanitized_paths.uniq
+        end
+
+        def path_for_prefix(prefix, sub_dir, current_paths = [])
+            path_candidate = Pathname.new(File.join(prefix, sub_dir)).cleanpath
+            new_path = path_candidate unless current_paths.include?(path_candidate)
+            new_path
+        end
+
+        def compute_compilation_flags(new_prefix,
+                                      current_flags: nil,
+                                      append_include: true,
+                                      lib_sub_dir: 'lib',
+                                      include_sub_dir: 'include')
+            new_flags = []
+            include_dirs, lib_dirs = parse_flags(current_flags || '')
+
+            new_lib_dir = path_for_prefix(new_prefix, lib_sub_dir, lib_dirs)
+            new_include_dir = path_for_prefix(new_prefix, include_sub_dir, include_dirs)
+
+            new_flags << flags_for_paths('-L', new_lib_dir) if new_lib_dir
+            new_flags << flags_for_paths('-I', new_include_dir) if new_include_dir && append_include
+            new_flags.compact
+        end
+
+        def append_compilation_flags(prefix, flag,
+                                     append_include: true,
+                                     lib_sub_dir: 'lib')
+            current_flags = [*@environment[flag]].join(' ')
+            new_flags = compute_compilation_flags(prefix,
+                                                  current_flags: current_flags,
+                                                  append_include: append_include,
+                                                  lib_sub_dir: lib_sub_dir)
+
+            append(flag, *new_flags) unless new_flags.empty?
+        end
+
         # Updates the environment when a new prefix has been added
         def add_prefix(newprefix, includes = nil)
             if !includes || includes.include?('PATH')
@@ -693,6 +805,28 @@ module Autobuild
                         add_path(LIBRARY_PATH, path)
                     end
                 end
+            end
+
+            arch_names = self.arch_names
+            arch_size  = self.arch_size
+
+            lib_sub_dirs = ['lib', "lib#{arch_size}"]
+            arch_names.each { |arch| lib_sub_dirs << File.join('lib', arch) }
+
+            # Add CFLAGS, CXXFLAGS and LDFLAGS
+            lib_sub_dirs.each do |dir|
+                # TODO: Make sure there are actual .so/.a/.dll/.lib/.dylib files before appending -L flags
+                # TODO: Make sure there are actual headers before appending -I flags
+                # TODO: This should avoid adding i.e ruby package paths to compilation flags
+                append_compilation_flags(newprefix, 'CFLAGS',
+                                         lib_sub_dir: dir)
+
+                append_compilation_flags(newprefix, 'CXXFLAGS',
+                                         lib_sub_dir: dir)
+
+                append_compilation_flags(newprefix, 'LDFLAGS',
+                                         lib_sub_dir: dir,
+                                         append_include: false)
             end
 
             # Validate the new rubylib path
