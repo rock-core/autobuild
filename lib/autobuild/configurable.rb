@@ -12,7 +12,7 @@ module Autobuild
     #   source files have been updated. The #buildstamp stampfile represents when
     #   the last build has been done. The build must be done in the #builddir directory.
     # * +install+ is ran after +build+.
-    #   
+    #
     class Configurable < Package
         # Set of regexp matching paths that should not be considered as source
         # files
@@ -51,7 +51,7 @@ module Autobuild
             end
         end
         @builddir = 'build'
-        
+
         def builddir=(new)
             raise ConfigException.new(self), "builddir must be non-empty" if new.empty?
             @builddir = new
@@ -122,7 +122,7 @@ module Autobuild
             end
             FileUtils.mkdir_p builddir if !File.directory?(builddir)
 
-            yield
+            yield if block_given?
 
             Autobuild.touch_stamp(configurestamp)
         end
