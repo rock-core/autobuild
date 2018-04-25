@@ -53,13 +53,14 @@ class TC_TarImporter < Minitest::Test
     def web_server
         s = HTTPServer.new :Port => 2000, :DocumentRoot => tempdir
         s.mount("/files", HTTPServlet::FileHandler, tempdir)
-        Thread.new { s.start }
+        t = Thread.new { s.start }
 
         yield
 
     ensure
         if s
             s.shutdown
+            t.join
         end
     end
 
