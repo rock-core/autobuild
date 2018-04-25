@@ -228,10 +228,8 @@ module Autobuild
         msg = format_progress_message(progress_messages.map(&:last))
 
         if msg.empty?
-            clear_line
             @last_progress_msg = nil
         else
-            clear_line
             msg = "  #{msg}"
             @last_progress_msg = msg
         end
@@ -239,7 +237,7 @@ module Autobuild
         if !silent?
             if Autobuild.progress_display_enabled?
                 clear_line
-                print "#{msg}"
+                print msg
             elsif @last_progress_msg
                 puts msg
             end
