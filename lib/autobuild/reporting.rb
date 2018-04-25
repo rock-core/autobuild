@@ -53,10 +53,9 @@ module Autobuild
         end
 
         if !silent?
-            clear_line
-            io.puts "#{msg}"
+            io.puts "#{clear_line}#{msg}"
             if @last_progress_msg
-                print "#{@last_progress_msg}"
+                io.print @last_progress_msg
             end
         end
     end
@@ -83,7 +82,7 @@ module Autobuild
     end
 
     def self.clear_line
-        print "\e[2K\e[1G"
+        "\e[2K\e[1G"
     end
 
     def self.progress_start(key, *args)
@@ -236,8 +235,7 @@ module Autobuild
 
         if !silent?
             if Autobuild.progress_display_enabled?
-                clear_line
-                print msg
+                print "#{clear_line}#{msg}"
             elsif @last_progress_msg
                 puts msg
             end
