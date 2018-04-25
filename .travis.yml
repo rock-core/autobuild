@@ -1,4 +1,4 @@
-sudo: false
+sudo: true
 language: ruby
 rvm:
   - '2.1'
@@ -11,6 +11,10 @@ matrix:
     allow_failures:
         - rvm: 'jruby-9.1.15.0'
 
+install:
+  - gem install bundler
+  - bundle install --path vendor/bundle
+
 script:
-  - bundle install --path vendor
+  - bundle exec rake
   - bundle exec rake test
