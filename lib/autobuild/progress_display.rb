@@ -108,7 +108,9 @@ module Autobuild
                     message("  #{message}")
                     # Note: message calls display_progress already
                 else
-                    display_progress
+                    @display_lock.synchronize do
+                        display_progress
+                    end
                 end
                 true
             end
