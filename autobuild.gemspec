@@ -22,6 +22,8 @@ Gem::Specification.new do |s|
     s.add_runtime_dependency "rake", "~> 12.0", ">= 12.3.0"
     s.add_runtime_dependency "utilrb", "~> 3.0", ">= 3.0"
     s.add_runtime_dependency 'tty-prompt', '~> 0.15.0'
+    s.add_runtime_dependency 'tty-cursor', '~> 0.5.0'
+    s.add_runtime_dependency 'tty-screen', '~> 0.6.4'
     s.add_runtime_dependency 'pastel', '~> 0.7.0', '>= 0.7.0'
     s.add_development_dependency "flexmock", '~> 2.0', ">= 2.0.0"
     s.add_development_dependency "minitest", "~> 5.0", ">= 5.0"

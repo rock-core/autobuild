@@ -485,17 +485,13 @@ module Autobuild
             Autobuild.message(*args)
         end
 
-        def progress_start(*args, &block)
+        def progress_start(*args, done_message: nil, **raw_options, &block)
             args[0] = process_formatting_string(args[0], :bold)
-            if args.last.kind_of?(Hash)
-                options, raw_options = Kernel.filter_options args.last, :done_message
-                if options[:done_message]
-                    options[:done_message] = process_formatting_string(options[:done_message])
-                end
-                args[-1] = options.merge(raw_options)
+            if done_message
+                done_message = process_formatting_string(done_message)
             end
-                
-            Autobuild.progress_start(self, *args, &block)
+            Autobuild.progress_start(self, *args,
+                done_message: done_message, **raw_options, &block)
         end
 
         def progress(*args)
@@ -504,10 +500,8 @@ module Autobuild
         end
 
         def progress_done(done_message = nil)
-            if done_message && Autobuild.has_progress_for?(self)
-                progress(process_formatting_string(done_message))
-            end
-            Autobuild.progress_done(self)
+            done_message = process_formatting_string(done_message) if done_message
+            Autobuild.progress_done(self, message: done_message)
         end
 
         def apply_post_install

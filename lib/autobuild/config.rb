@@ -85,26 +85,6 @@ module Autobuild
     register_utility_class 'doc', Utility, disabled_by_default: false
     register_utility_class 'test', TestUtility, disabled_by_default: true
 
-    @colorizer = Pastel.new
-    class << self
-        def color=(flag)
-            @colorizer =
-                if flag.nil?
-                    Pastel.new
-                else
-                    Pastel.new(enabled: flag)
-                end
-        end
-
-        def color?
-            @colorizer.enabled?
-        end
-    end
-
-    def self.color(message, *style)
-        @colorizer.decorate(message, *style)
-    end
-
     DEFAULT_OPTIONS = { :nice => nil,
         :srcdir => Dir.pwd, :prefix => Dir.pwd, :logdir => nil,
         :verbose => false, :debug => false, :do_build => true, :do_forced_build => false, :do_rebuild => false, :do_update => true, 
