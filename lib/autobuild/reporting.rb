@@ -1,245 +1,78 @@
 require 'autobuild/exceptions'
+require 'pastel'
+
+module Autobuild
+    @colorizer = Pastel.new
+    class << self
+        def color=(flag)
+            @colorizer =
+                if flag.nil?
+                    Pastel.new
+                else
+                    Pastel.new(enabled: flag)
+                end
+        end
+
+        def color?
+            @colorizer.enabled?
+        end
+        def color(message, *style)
+            @colorizer.decorate(message, *style)
+        end
+    end
+end
+
+require 'tty/cursor'
+require 'tty/screen'
+require 'autobuild/progress_display'
+
 module Autobuild
     class << self
-        attr_reader :display_lock
         def silent?
-            @silent
+            @display.silent?
         end
-        attr_writer :silent
+        def silent=(flag)
+            @display.silent = flag
+        end
     end
-    @display_lock = Mutex.new
-    @silent = false
+    @display = ProgressDisplay.new(STDOUT)
 
-    def self.silent
-        Autobuild.silent, silent = true, Autobuild.silent?
-        yield
-    ensure
-        Autobuild.silent = silent
+    def self.silent(&block)
+        @display.silent(&block)
     end
 
     def self.progress_display_enabled?
-        @progress_display_enabled
+        @display.progress_enabled?
     end
 
     def self.progress_display_enabled=(value)
-        @progress_display_enabled = value
+        @display.progress_enabled = value
     end
 
-    @progress_display_enabled = true
-    @last_progress_msg = nil
-
-    def self.message(*args)
-        return if silent?
-        display_lock.synchronize do
-            display_message(*args)
-        end
+    def self.message(*args, **options)
+        @display.message(*args, **options)
     end
-
-    def self.display_message(*args)
-        io = STDOUT
-        if args.last.kind_of?(IO)
-            io = args.pop
-        end
-        msg =
-            if args.empty? then ""
-            else "#{color(*args)}"
-            end
-
-        if !Autobuild.progress_display_enabled?
-            if !silent?
-                io.puts msg
-            end
-            return
-        end
-
-        if !silent?
-            io.puts "#{clear_line}#{msg}"
-            if @last_progress_msg
-                io.print @last_progress_msg
-            end
-        end
-    end
-
-    class << self
-        attr_reader :progress_messages
-    end
-    @progress_messages = Array.new
 
     # Displays an error message
     def self.error(message = "")
-        message("  ERROR: #{message}", :red, :bold, STDERR)
+        message("  ERROR: #{message}", :red, :bold, io: STDERR)
     end
 
     # Displays a warning message
     def self.warn(message = "", *style)
-        message("  WARN: #{message}", :magenta, *style, STDERR)
+        message("  WARN: #{message}", :magenta, *style, io: STDERR)
     end
 
-    # @return [Boolean] true if there is some progress messages for the given
-    #   key
-    def self.has_progress_for?(key)
-        progress_messages.any? { |msg_key, _| msg_key == key }
+    def self.progress_start(key, *args, **options, &block)
+        @display.progress_start(key, *args, **options, &block)
     end
 
-    def self.clear_line
-        "\e[2K\e[1G"
-    end
-
-    def self.progress_start(key, *args)
-        if args.last.kind_of?(Hash)
-            options = Kernel.validate_options args.pop, :done_message => nil
-        else
-            options = Hash.new
-        end
-
-        progress_done(key)
-        display_lock.synchronize do
-            progress_messages << [key, color(*args)]
-            if Autobuild.progress_display_enabled?
-                display_progress
-            else
-                display_message("  " + color(*args))
-            end
-        end
-
-        if block_given?
-            begin
-                result = yield
-                if options[:done_message] && has_progress_for?(key)
-                    progress(key, *options[:done_message])
-                end
-                progress_done(key, true)
-                result
-            rescue Exception
-                progress_done(key, false)
-                raise
-            end
-        end
-    end
     def self.progress(key, *args)
-        found = false
-        display_lock.synchronize do
-            progress_messages.map! do |msg_key, msg|
-                if msg_key == key
-                    found = true
-                    [msg_key, color(*args)]
-                else
-                    [msg_key, msg]
-                end
-            end
-            if !found
-                progress_messages << [key, color(*args)]
-            end
-
-            return if !Autobuild.progress_display_enabled?
-
-            display_progress
-        end
+        @display.progress(key, *args)
     end
 
-    def self.progress_done(key, display_last = true)
-        found = false
-        display_lock.synchronize do
-            last_msg = nil
-            progress_messages.delete_if do |msg_key, msg|
-                if msg_key == key
-                    found = true
-                    last_msg = msg
-                end
-            end
-            if found
-                if display_last
-                    display_message("  #{last_msg}")
-                end
-                if @last_progress_msg
-                    display_progress
-                end
-            end
-        end
-        found
-    end
-
-    def self.find_common_prefix(msg, other_msg)
-        msg = msg.split(" ")
-        other_msg = other_msg.split(" ")
-        msg.each_with_index do |token, idx|
-            if other_msg[idx] != token
-                prefix = msg[0..(idx - 1)].join(" ")
-                if !prefix.empty?
-                    prefix << " "
-                end
-                return prefix
-            end
-        end
-        return msg.join(" ")
-    end
-
-    def self.format_progress_message(messages)
-        messages = messages.sort
-
-        groups = Array.new
-        groups << ["", (0...messages.size)]
-        messages.each_with_index do |msg, idx|
-            prefix, grouping = nil, false
-            messages[(idx + 1)..-1].each_with_index do |other_msg, other_idx|
-                other_idx += idx + 1
-                prefix ||= find_common_prefix(msg, other_msg)
-                break if !other_msg.start_with?(prefix)
-
-                if grouping
-                    break if prefix != groups.last[0]
-                    groups.last[1] << other_idx
-                else
-                    current_prefix, current_group = groups.last
-                    if prefix.size > current_prefix.size # create a new group from there
-                        groups.last[1] = (current_group.first..[idx-1,current_group.last].min)
-                        groups << [prefix, [idx, other_idx]]
-                        grouping = true
-                    else break
-                    end
-                end
-            end
-        end
-        if groups.last.last.last < messages.size
-            groups << ["", (groups.last.last.last + 1)...(messages.size)]
-        end
-
-        result = []
-        groups.each do |prefix, indexes|
-            if prefix.empty?
-                indexes.each do |index|
-                    result << messages[index]
-                end
-            else
-                grouped_messages = []
-                indexes.each do |index|
-                    grouped_messages << messages[index][(prefix.size)..-1]
-                end
-                if !grouped_messages.empty?
-                    result << "#{prefix}#{grouped_messages.uniq.join(", ")}"
-                end
-            end
-        end
-        result.join(" | ")
-    end
-
-    def self.display_progress
-        msg = format_progress_message(progress_messages.map(&:last))
-
-        if msg.empty?
-            @last_progress_msg = nil
-        else
-            msg = "  #{msg}"
-            @last_progress_msg = msg
-        end
-
-        if !silent?
-            if Autobuild.progress_display_enabled?
-                print "#{clear_line}#{msg}"
-            elsif @last_progress_msg
-                puts msg
-            end
-        end
+    def self.progress_done(key, display_last = true, message: nil)
+        @display.progress_done(key, display_last, message: message)
     end
 
     ## The reporting module provides the framework # to run commands in
@@ -289,6 +122,9 @@ module Autobuild
         # @param [Symbol] on_package_failures how does the reporting should behave.
         #
         def self.report_finish_on_error(errors, on_package_failures: default_report_on_package_failures, interrupted_by: nil)
+            if not_package_error = errors.find { |e| !e.respond_to?(:fatal?) }
+                raise not_package_error
+            end
             if ![:raise, :report_silent, :exit_silent].include?(on_package_failures)
                 errors.each { |e| error(e) }
             end
