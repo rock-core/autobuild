@@ -2,15 +2,8 @@ require 'autobuild/importer'
 require 'digest/sha1'
 require 'open-uri'
 require 'fileutils'
-
-WINDOWS = RbConfig::CONFIG["host_os"] =~%r!(msdos|mswin|djgpp|mingw|[Ww]indows)! 
-if WINDOWS 
-        require 'net/http' 
-        require 'net/https'
-        require 'rubygems/package'
-        require 'zlib'
-end
-
+require 'net/http'
+require 'net/https'
 
 module Autobuild
     class ArchiveImporter < Importer
@@ -30,7 +23,10 @@ module Autobuild
         }
 
         # Known URI schemes for +url+
-        VALID_URI_SCHEMES = [ 'file', 'http', 'https', 'ftp' ]
+        VALID_URI_SCHEMES = ['file', 'http', 'https', 'ftp']
+
+        # Known URI schemes for +url+ on windows
+        WINDOWS_VALID_URI_SCHEMES = ['file', 'http', 'https']
 
         class << self
             # The directory in which downloaded files are saved
@@ -100,34 +96,83 @@ module Autobuild
         def self.auto_update?
             @auto_update
         end
+        def self.auto_update=(flag)
+            @auto_update = flag
+        end
         @auto_update = (ENV['AUTOBUILD_ARCHIVE_AUTOUPDATE'] == '1')
 
-        def update_cached_file?; @options[:update_cached_file] end
+        attr_writer :update_cached_file
+        def update_cached_file?
+            @update_cached_file
+        end
 
-                
-        def get_url_on_windows(url, filename)
-            uri = URI(url)              
+        def download_http(package, uri, filename, user: nil, password: nil,
+                current_time: nil)
+            request = Net::HTTP::Get.new(uri)
+            if current_time
+                request['If-Modified-Since'] = current_time.rfc2822
+            end
+            if user
+                request.basic_auth user, password
+            end
 
-            http = Net::HTTP.new(uri.host,uri.port)
-            http.use_ssl = true if uri.port == 443
-            http.verify_mode = OpenSSL::SSL::VERIFY_NONE  #Unsure, critical?, Review this
-            resp = http.get(uri.request_uri)
+            Net::HTTP.start(
+                uri.hostname, uri.port, use_ssl: uri.scheme == 'https') do |http|
 
-            if resp.code == "301" or resp.code == "302"
-                get_url_on_windows(resp.header['location'],filename)
-            else
-                if resp.message != 'OK'
-                    raise "Could not get File from url \"#{url}\", got response #{resp.message} (#{resp.code})"
-                end
-                open(filename, "wb") do |file|
-                    file.write(resp.body)
+                http.request(request) do |resp|
+                    case resp
+                    when Net::HTTPNotModified
+                        return false
+                    when Net::HTTPSuccess
+                        if current_time && (last_modified = resp.header['last-modified'])
+                            return false if current_time >= Time.rfc2822(last_modified)
+                        end
+                        if (length = resp.header['Content-Length'])
+                            length = Integer(length)
+                            expected_size = "/#{Autobuild.human_readable_size(length)}"
+                        end
+
+                        File.open(filename, 'wb') do |io|
+                            size = 0
+                            next_update = Time.now
+                            resp.read_body do |chunk|
+                                io.write chunk
+                                size += chunk.size
+                                if size != 0 && (Time.now > next_update)
+                                    formatted_size = Autobuild.human_readable_size(size)
+                                    package.progress "downloading %s "\
+                                        "(#{formatted_size}#{expected_size})"
+                                    next_update = Time.now + 1
+                                end
+                            end
+                            formatted_size = Autobuild.human_readable_size(size)
+                            package.progress "downloaded %s "\
+                                "(#{formatted_size}#{expected_size})"
+                        end
+                    when Net::HTTPRedirection
+                        if (location = resp.header['location']).start_with?('/')
+                            redirect_uri = uri.dup
+                            redirect_uri.path = resp.header['location']
+                        else
+                            redirect_uri = location
+                        end
+
+                        return download_http(package, URI(redirect_uri), filename,
+                            user: user, password: password, current_time: current_time)
+                    else
+                        raise PackageException.new(package, 'import'),
+                            "failed download of #{package.name} from #{uri}: #{resp.class}"
+                    end
                 end
             end
+            true
         end
-        
-        def extract_tar_on_windows(filename,target)
-            Gem::Package::TarReader.new(Zlib::GzipReader.open(filename)).each do |entry|
-                newname = File.join(target,entry.full_name.slice(entry.full_name.index('/'),entry.full_name.size))
+
+        def extract_tar_gz(io, target)
+            Gem::Package::TarReader.new(io).each do |entry|
+                newname = File.join(
+                    target,
+                    entry.full_name.slice(entry.full_name.index('/'), entry.full_name.size))
                 if(entry.directory?)
                     FileUtils.mkdir_p(newname)
                 end
@@ -142,68 +187,80 @@ module Autobuild
                 end
             end
         end
-        
+
+        def update_needed?(package)
+            return true  unless File.file?(cachefile)
+            return false unless update_cached_file?
+
+            cached_size = File.lstat(cachefile).size
+            cached_mtime = File.lstat(cachefile).mtime
+
+            size, mtime = nil
+            if @url.scheme == "file"
+                size  = File.stat(@url.path).size
+                mtime = File.stat(@url.path).mtime
+            else
+                open @url, :content_length_proc => lambda { |v| size = v } do |file|
+                    mtime = file.last_modified
+                end
+            end
+
+            if mtime && size
+                return size != cached_size || mtime > cached_mtime
+            elsif mtime
+                package.warn "%s: archive size is not available for #{@url}, relying on modification time"
+                return mtime > cached_mtime
+            elsif size
+                package.warn "%s: archive modification time is not available for #{@url}, relying on size"
+                return size != cached_size
+            else
+                package.warn "%s: neither the archive size nor its modification time available for #{@url}, will always update"
+                return true
+            end
+        end
+
+        def download_from_url(package)
+            FileUtils.mkdir_p(cachedir)
+            begin
+                if %w[http https].include?(@url.scheme)
+                    if File.file?(cachefile)
+                        return false unless update_cached_file?
+                        cached_mtime = File.lstat(cachefile).mtime
+                    end
+                    updated = download_http(package, @url, "#{cachefile}.partial",
+                        user: @user, password: @password,
+                        current_time: cached_mtime)
+                    return false unless updated
+                elsif Autobuild.bsd?
+                    return false unless update_needed?(package)
+                    package.run(:import, Autobuild.tool('curl'),
+                                '-Lso',"#{cachefile}.partial", @url)
+                else
+                    return false unless update_needed?(package)
+                    additional_options = []
+                    if timeout = self.timeout
+                        additional_options << "--timeout" << timeout
+                    end
+                    if retries = self.retries
+                        additional_options << "--tries" << retries
+                    end
+                    package.run(:import, Autobuild.tool('wget'), '-q', '-P', cachedir, *additional_options, @url, '-O', "#{cachefile}.partial", retry: true)
+                end
+            rescue Exception
+                FileUtils.rm_f "#{cachefile}.partial"
+                raise
+            end
+            FileUtils.mv "#{cachefile}.partial", cachefile
+            true
+        end
+
         # Updates the downloaded file in cache only if it is needed
+        #
+        # @return [Boolean] true if a new file was downloaded, false otherwise
         def update_cache(package)
-            do_update = false
-
-            if !File.file?(cachefile)
-                do_update = true
-            elsif self.update_cached_file?
-                cached_size = File.lstat(cachefile).size
-                cached_mtime = File.lstat(cachefile).mtime
-
-                size, mtime = nil
-                if @url.scheme == "file"
-                    size  = File.stat(@url.path).size
-                    mtime = File.stat(@url.path).mtime
-                else
-                    open @url, :content_length_proc => lambda { |v| size = v } do |file| 
-                        mtime = file.last_modified
-                    end
-                end
-
-                if mtime && size
-                    do_update = (size != cached_size || mtime > cached_mtime)
-                elsif mtime
-                    package.warn "%s: archive size is not available for #{@url}, relying on modification time"
-                    do_update = (mtime > cached_mtime)
-                elsif size
-                    package.warn "%s: archive modification time is not available for #{@url}, relying on size"
-                    do_update = (size != cached_size)
-                else
-                    package.warn "%s: neither the archive size nor its modification time available for #{@url}, will always update"
-                    do_update = true
-                end
-            end
-
-            if do_update
-                FileUtils.mkdir_p(cachedir)
-                begin
-                    if(WINDOWS)
-                        get_url_on_windows(@url, "#{cachefile}.partial")
-                    elsif Autobuild.bsd?
-                        package.run(:import, Autobuild.tool('curl'), '-Lso',"#{cachefile}.partial", @url)
-                    else
-                        additional_options = []
-                        if timeout = self.timeout
-                            additional_options << "--timeout" << timeout
-                        end
-                        if retries = self.retries
-                            additional_options << "--tries" << retries
-                        end
-                        package.run(:import, Autobuild.tool('wget'), '-q', '-P', cachedir, *additional_options, @url, '-O', "#{cachefile}.partial", retry: true)
-                    end
-                rescue Exception
-                    FileUtils.rm_f "#{cachefile}.partial"
-                    raise
-                end
-                FileUtils.mv "#{cachefile}.partial", cachefile
-            end
-
+            updated = download_from_url(package)
             @cachefile_digest = Digest::SHA1.hexdigest File.read(cachefile)
-
-            do_update
+            updated
         end
 
         # The source URL
@@ -286,16 +343,15 @@ module Autobuild
         #       usually automatically inferred from the filename
         def initialize(url, options = Hash.new)
             sourceopts, options = Kernel.filter_options options,
-                :source_id, :repository_id, :filename, :mode
+                :source_id, :repository_id, :filename, :mode, :update_cached_file,
+                :user, :password
             super(options)
 
             @filename = nil
-            if !@options.has_key?(:update_cached_file)
-                @options[:update_cached_file] = false
-            end
+            @update_cached_file = false
             @cachedir = @options[:cachedir] || ArchiveImporter.cachedir
-            @retries = @options[:retries] || ArchiveImporter.retries
-            @timeout = @options[:timeout] || ArchiveImporter.timeout
+            @retries  = @options[:retries] || ArchiveImporter.retries
+            @timeout  = @options[:timeout] || ArchiveImporter.timeout
             relocate(url, sourceopts)
         end
 
@@ -304,14 +360,31 @@ module Autobuild
             parsed_url = URI.parse(url).normalize
             @url = parsed_url
             if !VALID_URI_SCHEMES.include?(@url.scheme)
-                raise ConfigException, "invalid URL #{@url} (local files must be prefixed with file://)" 
+                raise ConfigException, "invalid URL #{@url} (local files "\
+                    "must be prefixed with file://)"
+            elsif Autobuild.windows?
+                unless WINDOWS_VALID_URI_SCHEMES.include?(@url.scheme)
+                    raise ConfigException, "downloading from a #{@url.scheme} URL "\
+                        "is not supported on windows"
+                end
             end
+
             @repository_id = options[:repository_id] || parsed_url.to_s
-            @source_id = options[:source_id] || parsed_url.to_s
+            @source_id     = options[:source_id] || parsed_url.to_s
 
             @filename = options[:filename] || @filename || File.basename(url).gsub(/\?.*/, '')
+            @update_cached_file = options[:update_cached_file]
 
             @mode = options[:mode] || ArchiveImporter.find_mode_from_filename(filename) || @mode
+            if Autobuild.windows? && (mode != Gzip)
+                raise ConfigException, "only gzipped tar archives are supported on Windows"
+            end
+            @user = options[:user]
+            @password = options[:password]
+            if @user && !%w[http https].include?(@url.scheme)
+                raise ConfigException, "authentication is only supported for http and https URIs"
+            end
+
             if @url.scheme == 'file'
                 @cachefile = @url.path
             else
@@ -332,10 +405,8 @@ module Autobuild
 
             if needs_update || archive_changed?(package)
                 checkout(package, allow_interactive: options[:allow_interactive])
+                true
             end
-            (needs_update || archive_changed?(package))
-        rescue OpenURI::HTTPError
-            raise Autobuild::Exception.new(package.name, :import)
         end
 
         def checkout_digest_stamp(package)
@@ -400,7 +471,7 @@ module Autobuild
                 FileUtils.mkdir_p base_dir
                 cmd = [ '-o', cachefile, '-d', main_dir ]
                 package.run(:import, Autobuild.tool('unzip'), *cmd)
-                
+
                 archive_dir = (self.archive_dir || File.basename(package.name))
                 if archive_dir != File.basename(package.srcdir)
                     FileUtils.rm_rf File.join(package.srcdir)
@@ -414,17 +485,20 @@ module Autobuild
                 if !@options[:no_subdirectory]
                     cmd << '--strip-components=1'
                 end
-                                
-                if(WINDOWS)
-                    extract_tar_on_windows(cachefile,package.srcdir)
+
+                if Autobuild.windows?
+                    io = if mode == Plain
+                        File.open(cachefile, 'r')
+                    else
+                        Zlib::GzipReader.open(cachefile)
+                    end
+                    extract_tar_gz(io, package.srcdir)
                 else
                     package.run(:import, Autobuild.tool('tar'), *cmd)
                 end
             end
             write_checkout_digest_stamp(package)
 
-        rescue OpenURI::HTTPError
-            raise Autobuild::PackageException.new(package.name, :import)
         rescue SubcommandFailed
             if cachefile != url.path
                 FileUtils.rm_f cachefile
@@ -447,4 +521,3 @@ module Autobuild
         ArchiveImporter.new(source, options)
     end
 end
-

@@ -210,4 +210,18 @@ module Autobuild
             end
         end
     end
+
+    HUMAN_READABLE_SIZES = [
+        [1_000_000_000.0, "G"],
+        [1_000_000.0, "M"],
+        [1_000.0, "k"],
+        [1.0, ""]
+    ]
+
+    def self.human_readable_size(size)
+        HUMAN_READABLE_SIZES.each do |scale, name|
+            scaled_size = (size / scale)
+            return format("%3.1f%s", scaled_size, name) if scaled_size > 1
+        end
+    end
 end

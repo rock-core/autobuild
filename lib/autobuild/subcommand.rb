@@ -45,9 +45,9 @@ module Autobuild
         #
         # See #parallel_build_level for detailed information
         attr_writer :parallel_build_level
-        
+
         # set/get a value how much log lines should be displayed on errors
-        # this may be an integer or 'ALL' (which will be translated to -1) 
+        # this may be an integer or 'ALL' (which will be translated to -1)
         # this is not using an attr_accessor to be able to validate the values
         def displayed_error_line_count=(value)
             @displayed_error_line_count = validate_displayed_error_line_count(value)
@@ -81,7 +81,7 @@ module Autobuild
         if @processor_count
             return @processor_count
         end
-                
+
         if File.file?('/proc/cpuinfo')
             cpuinfo = File.readlines('/proc/cpuinfo')
             physical_ids, core_count, processor_ids = [], [], []
@@ -95,7 +95,7 @@ module Autobuild
                     core_count << Integer($1)
                 end
             end
-            
+
             # Try to count the number of physical cores, not the number of
             # logical ones. If the info is not available, fallback to the
             # logical count
@@ -132,16 +132,15 @@ module Autobuild
 
         @processor_count
     end
-    
-    def self.validate_displayed_error_line_count(lines) 
+
+    def self.validate_displayed_error_line_count(lines)
         if lines == 'ALL'
             return Float::INFINITY
         elsif lines.to_i > 0
             return lines.to_i
         end
-        raise ConfigError, 'Autobuild.displayed_error_line_count can only be a positive integer or \'ALL\'' 
+        raise ConfigException.new, 'Autobuild.displayed_error_line_count can only be a positive integer or \'ALL\''
     end
-
 end
 
 
@@ -294,7 +293,7 @@ module Autobuild::Subprocess
             logfile.sync = true
 
             if !input_streams.empty?
-                pread, pwrite = IO.pipe # to feed subprocess stdin 
+                pread, pwrite = IO.pipe # to feed subprocess stdin
             end
 
             outread, outwrite = IO.pipe
@@ -335,7 +334,7 @@ module Autobuild::Subprocess
                         pwrite.close
                         $stdin.reopen(pread)
                     end
-                   
+
                     exec(env, *command, close_others: false)
                 rescue Errno::ENOENT
                     cwrite.write([CONTROL_COMMAND_NOT_FOUND].pack('I'))
@@ -398,7 +397,7 @@ module Autobuild::Subprocess
                 if Autobuild.verbose || transparent_mode?
                     STDOUT.puts "#{transparent_prefix}#{line}"
                 elsif block_given?
-                    # Do not yield 
+                    # Do not yield
                     # would mix the progress output with the actual command
                     # output. Assume that if the user wants the command output,
                     # the autobuild progress output is unnecessary
@@ -447,4 +446,3 @@ module Autobuild::Subprocess
     end
 
 end
-
