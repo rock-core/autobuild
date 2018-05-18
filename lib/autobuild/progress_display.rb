@@ -41,7 +41,7 @@ module Autobuild
             end
 
             @display_lock.synchronize do
-                io.print "#{@cursor.clear_screen_down}#{@color.call(message, *args)}\n"
+                io.print "#{@cursor.column(1)}#{@cursor.clear_screen_down}#{@color.call(message, *args)}\n"
                 io.flush if @io != io
                 display_progress
                 @io.flush
