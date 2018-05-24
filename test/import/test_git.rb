@@ -480,9 +480,9 @@ describe Autobuild::Git do
                 untar('gitrepo-with-extra-commit-and-tag.tar')
                 importer.import(pkg)
                 extra_repo = File.join(tempdir, 'gitrepo-with-extra-commit-and-tag.git')
-                importer.relocate(extra_repo, commit: '1ddb20665622279700770be09f9a291b37c9b631')
+                importer.relocate(extra_repo, commit: 'ba9ec170be55ba4675e2980b6e2da29a4c5797aa')
                 assert importer.import(pkg, reset: false)
-                assert_equal  '1ddb20665622279700770be09f9a291b37c9b631', importer.rev_parse(pkg, 'HEAD')
+                assert_equal  'ba9ec170be55ba4675e2980b6e2da29a4c5797aa', importer.rev_parse(pkg, 'HEAD')
             end
 
             common_commit_and_tag_behaviour
