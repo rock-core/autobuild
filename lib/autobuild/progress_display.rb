@@ -184,24 +184,26 @@ module Autobuild
             end.compact
         end
 
-        def format_grouped_messages(messages, indent: "  ")
-            terminal_w = TTY::Screen.width
+        def format_grouped_messages(messages, indent: "  ", width: TTY::Screen.width)
             groups = group_messages(messages)
             groups.each_with_object([]) do |(prefix, messages), lines|
                 if prefix.empty?
-                    lines << "#{indent}#{messages.shift}"
-                else
-                    lines << "#{indent}#{prefix.dup.strip} #{messages.shift}"
+                    lines.concat(messages.map { |m| "#{indent}#{m.strip}" })
+                    next
                 end
+
+                lines << "#{indent}#{prefix.dup.strip} #{messages.shift}"
                 until messages.empty?
                     msg = messages.shift.strip
-                    if lines.last.size + 2 + msg.size > terminal_w
-                        lines << "#{indent}  #{msg}"
+                    margin = messages.empty? ? 1 : 2
+                    if lines.last.size + margin + msg.size > width
+                        lines << "".dup
+                        lines.last << indent << indent << msg
                     else
-                        lines.last << ", #{msg}"
+                        lines.last << " " << msg
                     end
                 end
-                lines
+                lines.last << "," unless messages.empty?
             end
         end
     end
