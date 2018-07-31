@@ -13,7 +13,7 @@ module Autobuild
         @macos
     end
 
-    @freebsd = RbConfig::CONFIG["host_os"].include?('freebsd') 
+    @freebsd = RbConfig::CONFIG["host_os"].include?('freebsd')
     def self.freebsd?
         @freebsd
     end
@@ -77,7 +77,7 @@ module Autobuild
         #
         # If inherited_environment[varname] is true, the generated shell script
         # will contain
-        #   
+        #
         #   export VARNAME=new_value:new_value:$VARNAME
         #
         # otherwise
@@ -113,7 +113,7 @@ module Autobuild
 
             @system_env = Hash.new
             @original_env = ORIGINAL_ENV.dup
-            
+
             @default_pkgconfig_search_suffixes = nil
             @arch_names = nil
             @target_arch = nil
@@ -142,8 +142,8 @@ module Autobuild
                 map_value { |k, v| v.dup if v }
             @environment = @environment.
                 map_value { |k, v| v.dup if v }
-            @source_before = @source_before.dup
-            @source_after = @source_after.dup
+            @source_before = Marshal.load(Marshal.dump(@source_before)) # deep copy
+            @source_after = Marshal.load(Marshal.dump(@source_after)) # deep copy
             @inherited_variables = @inherited_variables.dup
 
             @system_env = @system_env.
@@ -157,7 +157,7 @@ module Autobuild
         end
 
         # Resets the value of +name+ to its original value. If it is inherited from
-        # the 
+        # the
         def reset(name = nil)
             if name
                 environment.delete(name)
@@ -174,7 +174,7 @@ module Autobuild
         # value.
         #
         # In a bourne shell, this would be equivalent to doing
-        #   
+        #
         #   unset name
         #
         def clear(name = nil)
@@ -212,7 +212,7 @@ module Autobuild
         # @see env_inherit env_inherit=
         def inherit?(name = nil)
             if @inherit
-                if name 
+                if name
                     @inherited_variables.include?(name)
                 else true
                 end
@@ -248,7 +248,7 @@ module Autobuild
                     names.pop
                 else true
                 end
-            
+
             if flag
                 @inherited_variables |= names
                 names.each do |env_name|
@@ -446,10 +446,12 @@ module Autobuild
         # @overload source_before(path)
         #   @param [String] path a path that should be added to source_before
         #
-        def source_before(file = nil)
+        def source_before(file = nil, shell: 'sh')
             if file
-                @source_before << file
-            else @source_before
+                @source_before << { file: file, shell: shell }
+                source_before(shell: shell) # for backwards compatibility
+            else @source_before.select { |pair| pair[:shell] == shell }
+                               .map { |item| item[:file] }
             end
         end
 
@@ -462,10 +464,12 @@ module Autobuild
         # @overload source_after(path)
         #   @param [String] path a path that should be added to source_after
         #
-        def source_after(file = nil)
+        def source_after(file = nil, shell: 'sh')
             if file
-                @source_after << file
-            else @source_after
+                @source_after << { file: file, shell: shell }
+                source_after(shell: shell) # for backwards compatibility
+            else @source_after.select { |pair| pair[:shell] == shell }
+                              .map { |item| item[:file] }
             end
         end
 
@@ -502,9 +506,9 @@ module Autobuild
         # Autobuild.inherited_environment.
         #
         # It also sources the files added by source_file
-        def export_env_sh(io)
+        def export_env_sh(io, shell: 'sh')
             export = exported_environment
-            source_before.each do |path|
+            source_before(shell: shell).each do |path|
                 io.puts SHELL_SOURCE_SCRIPT % path
             end
             export.unset.each do |name|
@@ -518,7 +522,7 @@ module Autobuild
                 io.puts SHELL_CONDITIONAL_SET_COMMAND % [name, with_inheritance.join(File::PATH_SEPARATOR), without_inheritance.join(File::PATH_SEPARATOR)]
                 io.puts SHELL_EXPORT_COMMAND % [name]
             end
-            source_after.each do |path|
+            source_after(shell: shell).each do |path|
                 io.puts SHELL_SOURCE_SCRIPT % [path]
             end
         end
@@ -568,7 +572,7 @@ module Autobuild
         def each_env_search_path(prefix, patterns)
             arch_names = self.arch_names
             arch_size  = self.arch_size
-            
+
             seen = Set.new
             patterns.each do |base_path|
                 paths = []
@@ -833,16 +837,16 @@ module Autobuild
         env.push_path(name, *values)
     end
     # @deprecated, use the API on {env} instead
-    def self.env_source_file(file)
-        env.source_after(file)
+    def self.env_source_file(file, shell: 'sh')
+        env.source_after(file, shell: shell)
     end
     # @deprecated, use the API on {env} instead
-    def self.env_source_before(file = nil)
-        env.source_before(file)
+    def self.env_source_before(file = nil, shell: 'sh')
+        env.source_before(file, shell: shell)
     end
     # @deprecated, use the API on {env} instead
-    def self.env_source_after(file = nil)
-        env.source_after(file)
+    def self.env_source_after(file = nil, shell: 'sh')
+        env.source_after(file, shell: shell)
     end
     # @deprecated, use the API on {env} instead
     def self.export_env_sh(io)
