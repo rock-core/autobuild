@@ -154,26 +154,6 @@ module Autobuild
 end
 
 class TC_Reporting < Minitest::Test
-    def test_format_progress_message_does_not_touch_messages_without_prefix
-        assert_equal "a | b | c",
-            Autobuild.format_progress_message(%w{a b c})
-    end
-    def test_format_progress_message_find_common_prefix_at_beginning
-        assert_equal "X a, b | c",
-            Autobuild.format_progress_message(["X a", "X b", "c"])
-    end
-    def test_format_progress_message_joins_identical_messages
-        assert_equal "X a",
-            Autobuild.format_progress_message(["X a", "X a"])
-    end
-    def test_format_progress_message_picks_up_bigger_prefix
-        assert_equal "X a | X y b, c | d",
-            Autobuild.format_progress_message(["X a", "X y b", "X y c", "d"])
-    end
-    def test_format_progress_message_prefix_comparison_uses_string_length
-        assert_equal "X mmmmmmmmmm a, b | X my x c | d",
-            Autobuild.format_progress_message(["X mmmmmmmmmm a", "X mmmmmmmmmm b", "X my x c", "d"])
-    end
     def test_package_message_with_marker_inside_token
         package = Autobuild::Package.new('pkg')
         assert_equal 'patching pkg: unapplying', package.process_formatting_string('patching %s: unapplying')
