@@ -881,4 +881,3 @@ module Autobuild
         env.arch_names
     end
 end
-

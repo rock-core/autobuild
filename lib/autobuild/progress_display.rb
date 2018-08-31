@@ -33,8 +33,8 @@ module Autobuild
             !@silent && @progress_enabled
         end
 
-        def message(message, *args, io: @io)
-            return if silent?
+        def message(message, *args, io: @io, force: false)
+            return if silent? && !force
 
             if args.last.respond_to?(:to_io)
                 io = args.pop
@@ -119,7 +119,7 @@ module Autobuild
 
         def display_progress
             return unless progress_enabled?
-            
+
             formatted = format_grouped_messages(@progress_messages.map(&:last), indent: "  ")
             @io.print @cursor.clear_screen_down
             @io.print formatted.join("\n")
@@ -208,4 +208,3 @@ module Autobuild
         end
     end
 end
-
