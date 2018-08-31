@@ -190,10 +190,11 @@ module Autobuild
         def genstamp; File.join(srcdir, '.orogen', 'orogen-stamp') end
 
         def add_cmd_to_cmdline(cmd, cmdline)
-            if cmd =~ /^([\w-]+)/
+            if cmd =~ /^([\w-]+)$/
                 cmd_filter = $1
             else
-                raise ArgumentError, "cannot parse the provided command #{cmd}"
+                cmdline << cmd
+                return
             end
 
             cmdline.delete_if { |str| str =~ /^#{cmd_filter}/ }
