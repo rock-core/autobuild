@@ -128,6 +128,8 @@ module Autobuild
             gitopts, common = Kernel.filter_options options,
                 push_to: nil,
                 branch: nil,
+                local_branch: nil,
+                remote_branch: nil,
                 tag: nil,
                 commit: nil,
                 repository_id: nil,

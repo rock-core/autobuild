@@ -23,6 +23,16 @@ describe Autobuild::Git do
                 Autobuild::Git.new('repo', 'branch', branch: 'another')
             end
         end
+        it "takes a local_branch argument" do
+            git = Autobuild::Git.new('repo', local_branch: 'test')
+            assert_equal "test", git.local_branch
+            assert_equal "master", git.remote_branch
+        end
+        it "takes a remote_branch argument" do
+            git = Autobuild::Git.new('repo', remote_branch: 'test')
+            assert_equal "master", git.local_branch
+            assert_equal "test", git.remote_branch
+        end
     end
 
     describe "#relocate" do
