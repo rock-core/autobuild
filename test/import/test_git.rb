@@ -70,6 +70,21 @@ describe Autobuild::Git do
             importer.relocate('test')
             assert_equal 'random', importer.remote_branch
         end
+        it "raises if attempting to use a full ref as local branch" do
+            assert_raises(ArgumentError) do
+                importer.relocate("test", local_branch: "refs/heads/master")
+            end
+        end
+        it "raises if attempting to use a full ref as branch" do
+            assert_raises(ArgumentError) do
+                importer.relocate("test", local_branch: "refs/heads/master")
+            end
+        end
+        it "accepts a full ref as remote branch" do
+            importer.relocate("test", remote_branch: "refs/heads/master")
+            assert_equal "master", importer.local_branch
+            assert_equal "refs/heads/master", importer.remote_branch
+        end
     end
 
     describe "version_compare" do
@@ -302,6 +317,13 @@ describe Autobuild::Git do
     end
 
     describe "update" do
+        it "accepts a full ref as remote_branch" do
+            importer.relocate(importer.repository,
+                local_branch: 'test', remote_branch: 'refs/heads/master')
+            importer.import(pkg)
+            assert_equal 'refs/heads/test', importer.current_branch(pkg)
+        end
+
         def self.common_commit_and_tag_behaviour
             it "does not access the repository if the target is already merged and reset is false" do
                 importer.import(pkg)
