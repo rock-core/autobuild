@@ -462,6 +462,76 @@ module Autobuild
                 assert_equal '/path/to/autotools', @package.using[:autotools]
             end
         end
+
+        describe '#build' do
+            it 'runs build command' do
+                @package.use bear: false
+                @package.should_receive(:run).with(any, Autobuild.tool(:make),
+                    "-j#{@package.parallel_build_level}").once
+                @package.send(:build)
+            end
+
+            it 'runs build command using bear' do
+                @package.use bear: '/path/to/bear'
+                @package.should_receive(:run).with(any, '/path/to/bear', '-a',
+                    Autobuild.tool(:make), "-j#{@package.parallel_build_level}").once
+                @package.send(:build)
+            end
+        end
+
+        describe '#tool_program' do
+            it 'allows string argument' do
+                package.use bear: '/path/to/bear'
+                assert_equal '/path/to/bear', package.tool_program('bear')
+            end
+
+            it 'allows symbol argument' do
+                package.use bear: '/the/path/bear'
+                assert_equal '/the/path/bear', package.tool_program(:bear)
+            end
+
+            it 'returns the default program' do
+                Autobuild.programs['bear'] = '/foo/bear'
+                package.use bear: nil
+                assert_equal '/foo/bear', package.tool_program(:bear)
+
+                package.use bear: false
+                assert_equal '/foo/bear', package.tool_program(:bear)
+
+                package.use bear: true
+                assert_equal '/foo/bear', package.tool_program(:bear)
+            end
+        end
+
+        describe 'bear tool support' do
+            describe '#enable_bear_globally' do
+                it 'enables bear tool globally' do
+                    Autotools.enable_bear_globally = true
+                    assert_equal true, package.using_bear?
+                    assert_equal true, Autotools.enable_bear_globally?
+                end
+
+                it 'disables bear tool globally' do
+                    Autotools.enable_bear_globally = false
+                    assert_equal false, package.using_bear?
+                    assert_equal false, Autotools.enable_bear_globally?
+                end
+            end
+
+            describe '#using_bear?' do
+                it 'honors package setting over global setting' do
+                    Autotools.enable_bear_globally = false
+                    package.use bear: true
+                    assert_equal true, package.using_bear?
+                    assert_equal false, Autotools.enable_bear_globally?
+
+                    Autotools.enable_bear_globally = true
+                    package.use bear: false
+                    assert_equal false, package.using_bear?
+                    assert_equal true, Autotools.enable_bear_globally?
+                end
+            end
+        end
     end
 end
 
