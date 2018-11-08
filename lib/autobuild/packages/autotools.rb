@@ -38,7 +38,7 @@ module Autobuild
         @@enable_bear_globally = false
 
         def self.enable_bear_globally?
-            @@enable_bear_globally ? true : false
+            @@enable_bear_globally
         end
 
         def self.enable_bear_globally=(flag)
@@ -47,7 +47,7 @@ module Autobuild
 
         def using_bear?
             return Autotools.enable_bear_globally? if using[:bear].nil?
-            using[:bear] ? true : false
+            using[:bear]
         end
 
         def configurestamp; "#{builddir}/config.status" end
