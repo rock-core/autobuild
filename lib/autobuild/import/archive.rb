@@ -395,7 +395,7 @@ module Autobuild
         def update(package, options = Hash.new) # :nodoc:
             if options[:only_local]
                 package.warn "%s: the archive importer does not support local updates, skipping"
-                return
+                return false
             end
             needs_update = update_cache(package)
 
@@ -404,9 +404,9 @@ module Autobuild
             end
 
             if needs_update || archive_changed?(package)
-                checkout(package, allow_interactive: options[:allow_interactive])
-                true
+                return checkout(package, allow_interactive: options[:allow_interactive])
             end
+            false
         end
 
         def checkout_digest_stamp(package)
@@ -449,7 +449,7 @@ module Autobuild
                 if !response
                     package.message "not updating #{package.srcdir}"
                     package.progress_done
-                    return
+                    return false
                 else
                     package.message "deleting #{package.srcdir} to update to new archive"
                     FileUtils.rm_rf package.srcdir
@@ -498,6 +498,7 @@ module Autobuild
                 end
             end
             write_checkout_digest_stamp(package)
+            return true
 
         rescue SubcommandFailed
             if cachefile != url.path
