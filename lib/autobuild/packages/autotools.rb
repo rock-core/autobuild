@@ -19,8 +19,8 @@ module Autobuild
     # ==== Handles autotools-based packages
     #
     # == Used programs (see <tt>Autobuild.programs</tt>)
-    # Autotools will use the 'aclocal', 'autoheader', 'autoconf' and 'automake'
-    # programs defined on Autobuild.programs. autoheader is disabled by default,
+    # Autotools will use the 'aclocal', 'autoheader', 'autoconf', 'automake' and 'bear'
+    # programs defined on Autobuild.programs. autoheader and bear are disabled by default,
     # aclocal, autoconf and automake use are autodetected.
     #
     # To override this default behaviour on a per-package basis, use Autotools#use
@@ -32,8 +32,23 @@ module Autobuild
         attr_accessor   :autoheader_flags
         attr_accessor   :autoconf_flags
         attr_accessor   :automake_flags
+        attr_accessor   :bear_flags
 
         @builddir = 'build'
+        @@enable_bear_globally = false
+
+        def self.enable_bear_globally?
+            @@enable_bear_globally
+        end
+
+        def self.enable_bear_globally=(flag)
+            @@enable_bear_globally = flag
+        end
+
+        def using_bear?
+            return Autotools.enable_bear_globally? if using[:bear].nil?
+            using[:bear]
+        end
 
         def configurestamp; "#{builddir}/config.status" end
 
@@ -44,6 +59,7 @@ module Autobuild
             @autoheader_flags = Array.new
             @autoconf_flags   = Array.new
             @automake_flags   = Array.new
+            @bear_flags       = ['-a']
 
             super
         end
@@ -209,6 +225,15 @@ module Autobuild
             file configurestamp => regen_target
         end
 
+        def tool_program(tool)
+            tool_flag = using[tool.to_sym]
+            if tool_flag.respond_to?(:to_str)
+                tool_flag.to_str
+            else
+                Autobuild.tool(tool)
+            end
+        end
+
         # If set to true, configure will be called with --no-create and
         # ./config.status will be started each time before "make"
         #
@@ -272,15 +297,9 @@ module Autobuild
                     working_directory: srcdir
             else
                 [ :aclocal, :autoconf, :autoheader, :automake ].each do |tool|
-                    if tool_flag = using[tool]
-                        tool_program = if tool_flag.respond_to?(:to_str)
-                                        tool_flag.to_str
-                                    else; Autobuild.tool(tool)
-                                    end
-
-                        run 'configure', tool_program, *send("#{tool}_flags"),
-                            working_directory: srcdir
-                    end
+                    next unless using[tool]
+                    run 'configure', tool_program(tool), *send("#{tool}_flags"),
+                        working_directory: srcdir
                 end
             end
         end
@@ -308,7 +327,18 @@ module Autobuild
                     if force_config_status
                         run('build', './config.status')
                     end
-                    run('build', Autobuild.tool(:make), "-j#{parallel_build_level}")
+
+                    build_options = []
+                    if using_bear?
+                        build_tool = tool_program(:bear)
+                        build_options = bear_flags
+                        build_options << Autobuild.tool(:make)
+                    else
+                        build_tool = Autobuild.tool(:make)
+                    end
+                    build_options << "-j#{parallel_build_level}"
+
+                    run('build', build_tool, *build_options)
                 end
             end
             Autobuild.touch_stamp(buildstamp)
