@@ -128,6 +128,8 @@ module Autobuild
             gitopts, common = Kernel.filter_options options,
                 push_to: nil,
                 branch: nil,
+                local_branch: nil,
+                remote_branch: nil,
                 tag: nil,
                 commit: nil,
                 repository_id: nil,
@@ -443,7 +445,7 @@ module Autobuild
             run_git_bare(package, 'config', '--replace-all', "remote.#{remote_name}.fetch",  "+refs/heads/*:refs/remotes/#{remote_name}/*")
 
             if remote_branch && local_branch
-                run_git_bare(package, 'config', '--replace-all', "remote.#{remote_name}.push",  "refs/heads/#{local_branch}:refs/heads/#{remote_branch}")
+                run_git_bare(package, 'config', '--replace-all', "remote.#{remote_name}.push",  "refs/heads/#{local_branch}:#{remote_branch_to_ref(remote_branch)}")
             else
                 run_git_bare(package, 'config', '--replace-all', "remote.#{remote_name}.push",  "refs/heads/*:refs/heads/*")
             end
@@ -471,7 +473,7 @@ module Autobuild
 
             if local_branch
                 run_git_bare(package, 'config', '--replace-all', "branch.#{local_branch}.remote",  remote_name)
-                run_git_bare(package, 'config', '--replace-all', "branch.#{local_branch}.merge", "refs/heads/#{local_branch}")
+                run_git_bare(package, 'config', '--replace-all', "branch.#{local_branch}.merge", remote_branch_to_ref(local_branch))
             end
         end
 
@@ -578,12 +580,16 @@ module Autobuild
             end
             only_local = options.delete(:only_local)
 
-
             if only_local
                 refspec = options[:refspec] ||
                     ("refs/tags/#{tag}" if tag) ||
-                    "refs/remotes/#{remote_name}/#{remote_branch}"
-                refspec = Array(refspec).first
+                    ("refs/remotes/#{remote_name}/#{remote_branch}" \
+                        unless remote_branch.start_with?("refs/"))
+                unless (refspec = Array(refspec).first)
+                    raise ArgumentError, "cannot use only_local with no tag,"\
+                      " and an absolute remote ref"
+                end
+
                 begin
                     run_git_bare(package, 'show-ref', '-s', refspec).first.strip
                 rescue SubcommandFailed
@@ -592,7 +598,7 @@ module Autobuild
             else
                 refspec = options[:refspec] ||
                     ("refs/tags/#{tag}" if tag) ||
-                    "refs/heads/#{remote_branch}"
+                    remote_branch_to_ref(remote_branch)
                 begin fetch_remote(package, refspec: refspec)
                 rescue Exception => e
                     return fallback(e, package, :status, package, only_local)
@@ -635,7 +641,7 @@ module Autobuild
         end
 
         def has_branch?(package, branch_name)
-            run_git_bare(package, 'show-ref', '-q', '--verify', "refs/heads/#{branch_name}")
+            run_git_bare(package, 'show-ref', '-q', '--verify', remote_branch_to_ref(branch_name))
             true
         rescue SubcommandFailed => e
             if e.status == 1
@@ -650,6 +656,14 @@ module Autobuild
 
         def detached_head?(package)
             current_branch(package).nil?
+        end
+
+        private def remote_branch_to_ref(branch)
+            if branch.start_with?("refs/")
+                branch
+            else
+                "refs/heads/#{branch}"
+            end
         end
 
         # Returns the branch HEAD is pointing to
@@ -780,7 +794,7 @@ module Autobuild
             commit_id = rev_parse(package, rev)
 
             remote_refs = Hash[*each_remote_ref(package).to_a.flatten]
-            remote_branch_ref = "refs/heads/#{remote_branch}"
+            remote_branch_ref = remote_branch_to_ref(remote_branch)
             remote_branch_id = remote_refs.delete(remote_branch_ref)
             begin
                 if commit_present_in?(package, commit_id, remote_branch_id)
@@ -932,7 +946,14 @@ module Autobuild
                 # repository. We'll refuse resetting if there are uncommitted
                 # changes
                 if !commit_present_in?(package, current_head, fetch_commit)
-                    raise ImporterCannotReset.new(package, 'import'), "branch #{local_branch} of #{package.name} contains commits that do not seem to be present on the branch #{remote_branch} of the remote repository. I can't go on as it could make you loose some stuff. Update the remote branch in your overrides, push your changes or reset to the remote commit manually before trying again"
+                    raise ImporterCannotReset.new(package, 'import'),
+                        "branch #{local_branch} of #{package.name} contains"\
+                        " commits that do not seem to be present on the branch"\
+                        " #{remote_branch} of the remote repository. I can't"\
+                        " go on as it could make you lose some stuff. Update"\
+                        " the remote branch in your overrides, push your"\
+                        " changes or reset to the remote commit manually"\
+                        " before trying again"
                 end
             end
 
@@ -951,7 +972,7 @@ module Autobuild
             rescue ::Exception
                 run_git(package, 'symbolic-ref', "HEAD", target_commit)
                 run_git(package, 'update-ref', "refs/heads/#{local_branch}", current_head)
-                run_git(package, 'checkout', local_branch)
+                run_git(package, 'checkout', "refs/heads/#{local_branch}")
                 raise
             end
             true
@@ -968,7 +989,7 @@ module Autobuild
                     fetch_commit = current_remote_commit(
                         package,
                         only_local: only_local,
-                        refspec: [remote_branch, tag])
+                        refspec: [remote_branch_to_ref(remote_branch), tag])
                 end
                 target_commit = pinned_state = rev_parse(package, pinned_state)
             else
@@ -1005,7 +1026,8 @@ module Autobuild
 
             unless pin_is_uptodate
                 fetch_commit ||= current_remote_commit(
-                    package, only_local: only_local, refspec: [remote_branch, tag])
+                    package, only_local: only_local,
+                    refspec: [remote_branch_to_ref(remote_branch), tag])
                 did_update =
                     if reset
                         reset_head_to_commit(package, target_commit, fetch_commit,
@@ -1084,7 +1106,7 @@ module Autobuild
                 clone_options << '--recurse-submodules'
             end
             if single_branch?
-                clone_options << "--branch=#{remote_branch}" << "--single-branch"
+                clone_options << "--branch=#{remote_branch_to_ref(remote_branch)}" << "--single-branch"
             end
             each_alternate_path(package) do |path|
                 clone_options << '--reference' << path
@@ -1096,7 +1118,7 @@ module Autobuild
                 Autobuild.tool('git'), 'clone', '-o', remote_name, *clone_options, repository, package.importdir, retry: true)
 
             update_remotes_configuration(package)
-            update(package, only_local: true, reset: true)
+            update(package, only_local: !remote_branch.start_with?("refs/"), reset: true)
             if with_submodules?
                 run_git(package, "submodule", "update", '--init')
             end
@@ -1106,9 +1128,14 @@ module Autobuild
         def relocate(repository, options = Hash.new)
             options = Hash[options.map { |k, v| [k.to_sym, v] }]
 
-            @push_to = options[:push_to] || @push_to
             local_branch  = options[:local_branch]  || options[:branch] || self.local_branch || 'master'
             remote_branch = options[:remote_branch] || options[:branch] || self.remote_branch || 'master'
+            if local_branch.start_with?("refs/")
+                raise ArgumentError, "you cannot provide a full ref for"\
+                  " the local branch, only for the remote branch"
+            end
+
+            @push_to = options[:push_to] || @push_to
             @branch = @local_branch = @remote_branch = nil
             if local_branch == remote_branch
                 @branch = local_branch
