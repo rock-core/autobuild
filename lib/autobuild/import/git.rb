@@ -2,6 +2,7 @@ require 'fileutils'
 require 'autobuild/subcommand'
 require 'autobuild/importer'
 require 'utilrb/kernel/options'
+require 'open3'
 
 module Autobuild
     class Git < Importer
@@ -1093,6 +1094,21 @@ module Autobuild
                 end
             end
             nil
+        end
+
+        def uses_lfs?(package)
+            git_files = run_git(package, 'ls-files').join("\n")
+            git_attrs = run_git(
+                package, 'check-attr', '--all', '--stdin',
+                input_streams: [StringIO.new(git_files)]
+            ).join("\n")
+
+            !git_attrs.scan(/(.*): filter: lfs/).empty?
+        end
+
+        def lfs_installed?
+            _, _, status = Open3.capture3('git lfs env')
+            status.success?
         end
 
         def checkout(package, options = Hash.new)
