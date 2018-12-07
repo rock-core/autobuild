@@ -1106,9 +1106,10 @@ module Autobuild
             !git_attrs.scan(/(.*): filter: lfs/).empty?
         end
 
-        def lfs_installed?
+        def self.lfs_installed?
+            return @lfs_installed unless @lfs_installed.nil?
             _, _, status = Open3.capture3('git lfs env')
-            status.success?
+            @lfs_installed = status.success?
         end
 
         def checkout(package, options = Hash.new)

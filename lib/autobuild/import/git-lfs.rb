@@ -4,7 +4,7 @@ Autobuild::Git.default_config['filter.lfs.required'] = 'false'
 
 module Autobuild
     Git.add_post_hook(always: true) do |importer, package|
-        if importer.uses_lfs?(package) && !importer.lfs_installed?
+        if importer.uses_lfs?(package) && !Git.lfs_installed?
             Autobuild.warn "#{package.name} uses git LFS but it is not installed, files may be missing from checkout"
         end
 
