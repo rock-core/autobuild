@@ -1103,7 +1103,7 @@ module Autobuild
                 input_streams: [StringIO.new(git_files)]
             ).join("\n")
 
-            !git_attrs.scan(/(.*): filter: lfs/).empty?
+            /(.*): filter: lfs/.match(git_attrs)
         end
 
         def self.lfs_installed?
