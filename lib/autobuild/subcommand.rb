@@ -348,12 +348,17 @@ module Autobuild::Subprocess
                 end
             end
 
+            readbuffer = StringIO.new
+
             # Feed the input
             if !input_streams.empty?
                 pread.close
                 begin
                     input_streams.each do |instream|
-                        instream.each_line { |line| pwrite.write(line) }
+                        instream.each_line do |line|
+                            readbuffer.write(outread.readpartial(128)) while IO.select([outread], nil, nil, 0)
+                            pwrite.write(line)
+                        end
                     end
                 rescue Errno::ENOENT => e
                     raise Failed.new(nil, false),
@@ -387,6 +392,13 @@ module Autobuild::Subprocess
             # If the caller asked for process output, provide it to him
             # line-by-line.
             outwrite.close
+
+            if !input_streams.empty?
+                readbuffer.write(outread.read)
+                outread.close
+                outread = readbuffer
+            end
+
             outread.each_line do |line|
                 line.force_encoding(options[:encoding])
                 line = line.chomp
