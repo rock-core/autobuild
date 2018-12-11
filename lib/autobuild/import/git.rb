@@ -2,6 +2,7 @@ require 'fileutils'
 require 'autobuild/subcommand'
 require 'autobuild/importer'
 require 'utilrb/kernel/options'
+require 'open3'
 
 module Autobuild
     class Git < Importer
@@ -54,7 +55,7 @@ module Autobuild
         # Helper method to compare two (partial) versions represented as array
         # of integers
         #
-        # @return [Integer] -1 if actual is greater than required, 
+        # @return [Integer] -1 if actual is greater than required,
         #   0 if equal, and 1 if actual is smaller than required
         def self.compare_versions(actual, required)
             if actual.size > required.size
@@ -82,7 +83,7 @@ module Autobuild
         # Creates an importer which tracks a repository and branch.
         #
         # This importer uses the 'git' tool to perform the import. It defaults
-        # to 'git' and can be configured by doing 
+        # to 'git' and can be configured by doing
         #
         #   Autobuild.programs['git'] = 'my_git_tool'
         #
@@ -372,7 +373,7 @@ module Autobuild
         # @param [Package] package
         # @option options [Boolean] only_local (false) whether the tags should
         #   be fetch from the remote first, or if one should only list tags that
-        #   are already known locally 
+        #   are already known locally
         # @return [Hash<String,String>] a mapping from a tag name to its commit
         #   ID
         def tags(package, options = Hash.new)
@@ -747,7 +748,7 @@ module Autobuild
             raise PackageException.new(package, 'import'), "failed to resolve #{name}. Are you sure this commit, branch or tag exists ?"
         end
 
-        # Returns the file's conents at a certain commit 
+        # Returns the file's conents at a certain commit
         #
         # @param [Package] package
         # @param [String] commit
@@ -772,7 +773,7 @@ module Autobuild
             begin
                 merge_base = run_git_bare(package, 'merge-base', commit, reference).first
                 merge_base == commit
-                
+
             rescue Exception
                 raise PackageException.new(package, 'import'), "failed to find the merge-base between #{rev} and #{reference}. Are you sure these commits exist ?"
             end
@@ -1006,7 +1007,7 @@ module Autobuild
             validate_importdir(package)
             only_local = options.fetch(:only_local, false)
             reset = options.fetch(:reset, false)
-            
+
             # This is really really a hack to workaround how broken the
             # importdir thing is
             if package.importdir == package.srcdir
@@ -1093,6 +1094,22 @@ module Autobuild
                 end
             end
             nil
+        end
+
+        def uses_lfs?(package)
+            git_files = run_git(package, 'ls-files').join("\n")
+            git_attrs = run_git(
+                package, 'check-attr', '--all', '--stdin',
+                input_streams: [StringIO.new(git_files)]
+            ).join("\n")
+
+            /(.*): filter: lfs/.match(git_attrs)
+        end
+
+        def self.lfs_installed?
+            return @lfs_installed unless @lfs_installed.nil?
+            _, _, status = Open3.capture3('git lfs env')
+            @lfs_installed = status.success?
         end
 
         def checkout(package, options = Hash.new)
