@@ -395,6 +395,7 @@ module Autobuild::Subprocess
 
             if !input_streams.empty?
                 readbuffer.write(outread.read)
+                readbuffer.seek(0)
                 outread.close
                 outread = readbuffer
             end
