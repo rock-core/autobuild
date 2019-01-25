@@ -159,7 +159,11 @@ module Autobuild
             end
 
             def trivial_task?(task)
-                (task.kind_of?(Autobuild::SourceTreeTask) || task.kind_of?(Rake::FileTask)) && task.actions.empty?
+                (task.kind_of?(Rake::Task) || task.kind_of?(Autobuild::SourceTreeTask) || task.kind_of?(Rake::FileTask)) &&
+                    task.actions.empty?
+            end
+        end
+
         def compute_weights(tasks, reverse_dependencies)
             all_downstream = Hash.new
             queue = Array.new
