@@ -78,39 +78,42 @@ module Autobuild
         class ProcessingState
             attr_reader :reverse_dependencies
             attr_reader :processed
-            attr_reader :started_packages
             attr_reader :active_tasks
             attr_reader :queue
             attr_reader :priorities
 
-            def initialize(reverse_dependencies)
+            def initialize(reverse_dependencies, weights: Hash.new(0))
                 @reverse_dependencies = reverse_dependencies
                 @processed = Set.new
                 @active_tasks = Set.new
                 @priorities = Hash.new
-                @started_packages = Hash.new
-                @queue = Hash.new
+                @queue = Array.new
+                @weights = weights
             end
 
-            def push(task, base_priority = 1)
-                if task.respond_to?(:package)
-                    started_packages[task.package] ||= -started_packages.size
-                    queue[task] = started_packages[task.package]
-                else queue[task] = base_priority
-                end
+            def push(task)
+                @queue.unshift(task)
+                @queue = @queue.sort_by { |t| @weights[t] }
             end
 
             def find_task
-                if task = queue.sort_by { |t, p| p }.first
-                    priorities[task.first] = task.last
-                    task.first
-                end
+                @queue.last
+            end
+
+            def top
+                @queue.last
+            end
+
+            def queue_empty?
+                @queue.empty?
             end
 
             def pop
-                candidate = find_task
-                queue.delete(candidate)
-                candidate
+                @queue.pop
+            end
+
+            def weight_of(task)
+                @weights[task]
             end
 
             def mark_as_active(pending_task)
@@ -140,13 +143,48 @@ module Autobuild
                 processed << task
                 reverse_dependencies[task].each do |candidate|
                     if needs_processing?(candidate) && ready?(candidate)
-                        push(candidate, priorities[task])
+                        push(candidate)
                     end
                 end
             end
 
             def trivial_task?(task)
                 (task.kind_of?(Autobuild::SourceTreeTask) || task.kind_of?(Rake::FileTask)) && task.actions.empty?
+        def compute_weights(tasks, reverse_dependencies)
+            all_downstream = Hash.new
+            queue = Array.new
+            wait_count = Hash.new 
+            tasks.each do |t|
+                revdep = reverse_dependencies[t]
+                wait = revdep.size
+                all_downstream[t] = revdep.
+                    map { |t| t.package if t.respond_to?(:package) }.
+                    compact.to_set
+                if wait == 0
+                    queue << t
+                else
+                    wait_count[t] = wait
+                end
+            end
+
+            until queue.empty?
+                t = queue.shift
+                t.prerequisite_tasks.each do |pre_t|
+                    all_downstream[pre_t].merge(all_downstream[t])
+                    new_count = (wait_count[pre_t] -= 1)
+                    if new_count == 0
+                        wait_count.delete(pre_t)
+                        queue << pre_t 
+                    end
+                end
+            end
+
+            unless wait_count.empty?
+                raise "internal inconsistency in weight calculations"
+            end
+
+            all_downstream.each_with_object(Hash.new) do |(t, set), w|
+                w[t] = set.size
             end
         end
 
@@ -158,10 +196,12 @@ module Autobuild
             required_tasks.each do |t|
                 discover_dependencies(tasks, reverse_dependencies, t)
             end
+            weights = compute_weights(tasks, reverse_dependencies)
+
             # The queue is the set of tasks for which all prerequisites have
             # been successfully executed (or where not needed). I.e. it is the
             # set of tasks that can be queued for execution.
-            state = ProcessingState.new(reverse_dependencies)
+            state = ProcessingState.new(reverse_dependencies, weights: weights)
             tasks.each do |t|
                 if state.ready?(t)
                     state.push(t)
