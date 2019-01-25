@@ -132,6 +132,9 @@ module Autobuild
             @in_dir_stack = Array.new
             @utilities = Hash.new
             @env = Array.new
+            @imported = false
+            @prepared = false
+            @built = false
 
             if Hash === spec
                 name, depends = spec.to_a.first
@@ -153,18 +156,20 @@ module Autobuild
             # Define the default tasks
             task "#{name}-import" do
                 isolate_errors { import }
+                @imported = true
             end
             task :import => "#{name}-import"
 
             # Define the prepare task
             task "#{name}-prepare" => "#{name}-import" do
                 isolate_errors { prepare }
+                @prepared = true
             end
             task :prepare => "#{name}-prepare"
 
             task "#{name}-build"
-            task :build => "#{name}-build"
 
+            task :build => "#{name}-build"
             task(name) do
                 Rake::Task["#{name}-import"].invoke
                 Rake::Task["#{name}-prepare"].invoke
@@ -183,6 +188,30 @@ module Autobuild
         # Whether the package's source directory is present on disk
         def checked_out?
             File.directory?(srcdir)
+        end
+
+        def prepare_invoked?
+            task("#{name}-prepare").already_invoked?
+        end
+
+        def prepared?
+            @prepared
+        end
+
+        def import_invoked?
+            task("#{name}-import").already_invoked?
+        end
+
+        def imported?
+            @imported
+        end
+
+        def build_invoked?
+            task("#{name}-build").already_invoked?
+        end
+
+        def built?
+            @built
         end
 
         def to_s
@@ -422,6 +451,7 @@ module Autobuild
 
             if @importer
                 result = @importer.import(self, options)
+                @imported = true
             elsif update?
                 message "%s: no importer defined, doing nothing"
             end
@@ -443,6 +473,8 @@ module Autobuild
                 isolate_errors { install }
             end
             task "#{name}-build" => installstamp
+
+            @prepared = true
         end
 
         def process_formatting_string(msg, *prefix_style)
@@ -522,6 +554,8 @@ module Autobuild
             progress_done
 
             Autobuild.touch_stamp(installstamp)
+
+            @built = true
         end
 
         def run(*args, &block)
