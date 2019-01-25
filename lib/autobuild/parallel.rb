@@ -24,7 +24,17 @@ module Autobuild
                 put(level)
             end
             def get(token_count = 1)
-                @rio.read(token_count)
+                tic = nil
+                while true
+                    @rio.read(token_count)
+                    toc = Time.now
+
+                    return if tic && (toc - tic) < 0.1
+
+                    tic = toc
+                    put(token_count)
+                    sleep 0.01
+                end
             end
             def put(token_count = 1)
                 @wio.write(" " * token_count)
