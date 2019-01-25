@@ -49,6 +49,10 @@ module Autobuild
 
         end
 
+        def process_finished_workers(state)
+            wait_for_worker_to_end(state) until finished_workers.empty?
+        end
+
         def wait_for_worker_to_end(state)
             w = finished_workers.pop
             finished_task, error = w.last_result
@@ -230,37 +234,34 @@ module Autobuild
             # time for tasks that have no currently running prerequisites
 
             while true
-                pending_task = state.pop
-                if !pending_task
-                    # If we have pending workers, wait for one to be finished
-                    # until either they are all finished or the queue is not
-                    # empty anymore
-                    while !pending_task && available_workers.size != workers.size
-                        wait_for_worker_to_end(state)
-                        pending_task = state.pop
-                    end
-
-                    if !pending_task && available_workers.size == workers.size
-                        break
-                    end
+                while !finished_workers.empty? || (state.queue_empty? && available_workers.size != workers.size)
+                    wait_for_worker_to_end(state)
                 end
+                break if state.queue_empty?
 
+                pending_task = state.top
                 if state.trivial_task?(pending_task)
+                    state.pop
                     Worker.execute_task(pending_task)
                     state.process_finished_task(pending_task)
                     next
                 elsif pending_task.already_invoked? || !pending_task.needed?
+                    state.pop
                     pending_task.already_invoked = true
                     state.process_finished_task(pending_task)
                     next
                 end
 
-                # Get a job server token
+                # Get a job server token ... but getting one might have taken
+                # some time, we could have had a more important job in the queue
+                # now. Just retry if that's the case.
                 job_server.get
-
-                while !finished_workers.empty?
-                    wait_for_worker_to_end(state)
+                process_finished_workers(state)
+                if pending_task != state.top
+                    job_server.put
+                    next
                 end
+                state.pop
 
                 # We do have a job server token, so we are allowed to allocate a
                 # new worker if none are available
