@@ -188,6 +188,20 @@ describe Autobuild::Git do
         end
     end
 
+    describe "#checkout" do
+        it "raises if a full ref is provided while cloning a single branch" do
+            importer = Autobuild::Git.new(
+                'repo',
+                remote_branch: 'refs/heads/test',
+                single_branch: true
+            )
+
+            assert_raises(ArgumentError) do
+                importer.checkout(pkg)
+            end
+        end
+    end
+
     describe "#current_branch" do
         before do
             importer.import(pkg)

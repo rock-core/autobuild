@@ -1123,7 +1123,11 @@ module Autobuild
                 clone_options << '--recurse-submodules'
             end
             if single_branch?
-                clone_options << "--branch=#{remote_branch_to_ref(remote_branch)}" << "--single-branch"
+                if remote_branch.start_with?("refs/")
+                    raise ArgumentError, "you cannot provide a full ref for"\
+                        " the remote branch while cloning a single branch"
+                end
+                clone_options << "--branch=#{remote_branch}" << "--single-branch"
             end
             each_alternate_path(package) do |path|
                 clone_options << '--reference' << path
