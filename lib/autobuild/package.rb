@@ -618,6 +618,15 @@ module Autobuild
             end
         end
 
+        def fingerprint(recursive: true)
+            concatenate_fingerprints = importer.fingerprint(self)
+            dependencies.each do |pkg_name|
+                pkg = Autobuild::Package[pkg_name]
+                concatenate_fingerprints += pkg.importer.fingerprint(pkg)
+            end
+            Digest::SHA1.hexdigest concatenate_fingerprints
+        end
+
         # Returns the name of all the packages +self+ depends on
         def all_dependencies(result = Set.new)
             dependencies.each do |pkg_name|

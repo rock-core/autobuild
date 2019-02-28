@@ -201,6 +201,12 @@ class Importer
         @options[:retry_count] = Integer(count)
     end
 
+    def fingerprint(package)
+        #each importer type should implement its own 
+        Autoproj.warn "Fingerprint has not been implemented for this type of packages, results should be discarded"
+        return
+    end
+
     def patches
         patches =
             if @options[:patches].respond_to?(:to_ary)

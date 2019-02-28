@@ -282,6 +282,10 @@ module Autobuild
             end
         end
 
+        def fingerprint(package)
+            digest
+        end
+
         # The source URL
         attr_reader :url
         # The local file (either a downloaded file if +url+ is not local, or +url+ itself)
