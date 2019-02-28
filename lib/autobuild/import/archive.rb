@@ -259,8 +259,27 @@ module Autobuild
         # @return [Boolean] true if a new file was downloaded, false otherwise
         def update_cache(package)
             updated = download_from_url(package)
-            @cachefile_digest = Digest::SHA1.hexdigest File.read(cachefile)
+            @cachefile_digest = read_cachefile_digest
+
+            if @expected_digest && @expected_digest != @cachefile_digest
+                raise ConfigException, "The archive #{@url.to_s} does not match the digest provided"
+            end
+
             updated
+        end
+
+        def read_cachefile_digest
+            Digest::SHA1.hexdigest File.read(cachefile)
+        end
+
+        def digest
+            if @cachefile_digest
+                @cachefile_digest
+            elsif File.file?(cachefile)
+                read_cachefile_digest
+            else
+                @expected_digest
+            end
         end
 
         # The source URL
@@ -344,7 +363,7 @@ module Autobuild
         def initialize(url, options = Hash.new)
             sourceopts, options = Kernel.filter_options options,
                 :source_id, :repository_id, :filename, :mode, :update_cached_file,
-                :user, :password
+                :user, :password, :expected_digest
             super(options)
 
             @filename = nil
@@ -371,6 +390,7 @@ module Autobuild
 
             @repository_id = options[:repository_id] || parsed_url.to_s
             @source_id     = options[:source_id] || parsed_url.to_s
+            @expected_digest = options[:expected_digest]
 
             @filename = options[:filename] || @filename || File.basename(url).gsub(/\?.*/, '')
             @update_cached_file = options[:update_cached_file]
