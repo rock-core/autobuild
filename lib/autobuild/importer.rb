@@ -204,7 +204,7 @@ class Importer
     def fingerprint(package)
         #each importer type should implement its own 
         Autoproj.warn "Fingerprint has not been implemented for this type of packages, results should be discarded"
-        return
+        return ""
     end
 
     def patches
