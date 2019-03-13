@@ -1,4 +1,3 @@
----
 inherit_gem:
   rubocop-rock: defaults.yml
 
@@ -7,37 +6,22 @@ AllCops:
     Exclude:
         - vendor/**/*
         - pkg/**/*
-        - test/**/*
 
-Style/EmptyLiteral:
+Style/ClassVars:
     Enabled: false
 
-Style/DoubleNegation:
+Style/TrivialAccessors:
+    IgnoreClassMethods: true
+
+Naming/PredicateName:
     Enabled: false
 
-Style/StringLiterals:
+Lint/SplatKeywordArguments:
     Enabled: false
 
-Style/HashSyntax:
-    Enabled: false
 
-Bundler/OrderedGems:
-    Enabled: false
 
-Gemspec/DuplicatedAssignment:
-    Enabled: false
 
-Gemspec/OrderedDependencies:
-    Enabled: false
-
-Layout/AccessModifierIndentation:
-    Enabled: false
-
-Layout/AlignArray:
-    Enabled: false
-
-Layout/AlignHash:
-    Enabled: false
 
 Layout/AlignParameters:
     Enabled: false
@@ -45,10 +29,13 @@ Layout/AlignParameters:
 Layout/DotPosition:
     Enabled: false
 
-Layout/ElseAlignment:
+Layout/FirstParameterIndentation:
     Enabled: false
 
 Layout/IndentAssignment:
+    Enabled: false
+
+Layout/IndentationWidth:
     Enabled: false
 
 Layout/MultilineMethodCallBraceLayout:
@@ -57,7 +44,7 @@ Layout/MultilineMethodCallBraceLayout:
 Layout/MultilineMethodCallIndentation:
     Enabled: false
 
-Layout/MultilineOperationIndentation:
+Lint/RescueException:
     Enabled: false
 
 Metrics/AbcSize:
@@ -66,195 +53,41 @@ Metrics/AbcSize:
 Metrics/BlockLength:
     Enabled: false
 
-Metrics/BlockNesting:
-    Enabled: false
-
 Metrics/ClassLength:
     Enabled: false
 
 Metrics/CyclomaticComplexity:
     Enabled: false
 
-Metrics/LineLength:
-    Enabled: false
-
 Metrics/MethodLength:
-    Enabled: false
-
-Metrics/ModuleLength:
-    Enabled: false
-
-Metrics/ParameterLists:
     Enabled: false
 
 Metrics/PerceivedComplexity:
     Enabled: false
 
-Naming/ConstantName:
-    Enabled: false
-
-Naming/MethodName:
-    Enabled: false
-
-Naming/PredicateName:
-    Enabled: false
-
-Naming/UncommunicativeMethodParamName:
-    Enabled: false
-
-Naming/VariableName:
-    Enabled: false
-
-Performance/Caller:
-    Enabled: false
-
-Performance/StringReplacement:
-    Enabled: false
-
-Performance/UnneededSort:
-    Enabled: false
-
-Security/Eval:
-    Enabled: false
-
-Security/Open:
-    Enabled: false
-
-Style/Alias:
-    Enabled: false
-
-Style/BlockDelimiters:
-    Enabled: false
-
-Style/ClassAndModuleChildren:
-    Enabled: false
-
-Style/ClassVars:
-    Enabled: false
-
-Style/ColonMethodCall:
-    Enabled: false
-
-Style/CommentedKeyword:
-    Enabled: false
-
-Style/ConditionalAssignment:
-    Enabled: false
-
-Style/DateTime:
+Style/ClassCheck:
     Enabled: false
 
 Style/Documentation:
     Enabled: false
 
-Style/EachWithObject:
-    Enabled: false
-
-Style/Encoding:
-    Enabled: false
-
-Style/EvalWithLocation:
-    Enabled: false
-
-Style/ExpandPathArguments:
-    Enabled: false
-
-Style/FormatString:
-    Enabled: false
-
-Style/FormatStringToken:
+Style/EmptyLiteral:
     Enabled: false
 
 Style/GuardClause:
     Enabled: false
 
-Style/IdenticalConditionalBranches:
-    Enabled: false
-
-Style/IfInsideElse:
-    Enabled: false
-
-Style/IfUnlessModifier:
-    Enabled: false
-
-Style/InfiniteLoop:
-    Enabled: false
-
-Style/Lambda:
-    Enabled: false
-
-Style/MethodMissingSuper:
-    Enabled: false
-
-Style/MissingRespondToMissing:
-    Enabled: false
-
-Style/MixinUsage:
-    Enabled: false
-
-Style/NumericLiteralPrefix:
-    Enabled: false
-
-Style/ParallelAssignment:
-    Enabled: false
-
-Style/PercentLiteralDelimiters:
+Style/HashSyntax:
     Enabled: false
 
 Style/PerlBackrefs:
     Enabled: false
 
-Style/PreferredHashMethods:
+Style/StringLiterals:
     Enabled: false
 
-Style/RedundantException:
+Metrics/LineLength:
     Enabled: false
 
-Style/SpecialGlobalVars:
+Layout/IndentHeredoc:
     Enabled: false
-
-Style/StringLiteralsInInterpolation:
-    Enabled: false
-
-Style/TrivialAccessors:
-    IgnoreClassMethods: true
-
-Style/WhileUntilModifier:
-    Enabled: false
-
-Layout/EndAlignment:
-    Enabled: false
-
-Lint/HandleExceptions:
-    Enabled: false
-
-Lint/InheritException:
-    Enabled: false
-
-Lint/LiteralAsCondition:
-    Enabled: false
-
-Lint/NestedMethodDefinition:
-    Enabled: false
-
-Lint/RescueException:
-    Enabled: false
-
-Lint/ShadowedException:
-    Enabled: false
-
-Lint/SplatKeywordArguments:
-    Enabled: false
-
-Lint/StringConversionInInterpolation:
-    Enabled: false
-
-Lint/UnusedBlockArgument:
-    Enabled: false
-
-Lint/UnusedMethodArgument:
-    Enabled: false
-
-Style/FrozenStringLiteralComment:
-    Enabled: false
-

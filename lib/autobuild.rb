@@ -1,8 +1,8 @@
 require 'rake'
 
-if defined? Rake::DSL
-    include Rake::DSL
-end
+# rubocop:disable Style/MixinUsage
+include Rake::DSL if defined?(Rake::DSL)
+# rubocop:enable Style/MixinUsage
 
 require 'utilrb/logger'
 

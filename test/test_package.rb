@@ -31,9 +31,12 @@ module Autobuild
                 package.env_set 'KEY', 'OTHER_VALUE'
                 env.should_receive(:set).never
                 e = assert_raises(Package::IncompatibleEnvironment) do
-                    package.apply_env(env, Hash['KEY'=> [flexmock(name: 'test'), 'VALUE']])
+                    package.apply_env(env,
+                        Hash['KEY' => [flexmock(name: 'test'), 'VALUE']])
                 end
-                assert_equal "trying to reset KEY to [\"OTHER_VALUE\"] in pkg but this conflicts with test already setting it to VALUE: Autobuild::Package::IncompatibleEnvironment", e.message
+                assert_equal "trying to reset KEY to [\"OTHER_VALUE\"] in "\
+                    "pkg but this conflicts with test already setting it to "\
+                    "VALUE: Autobuild::Package::IncompatibleEnvironment", e.message
             end
             it "registers the set operations on the given 'set' Hash" do
                 package.env_set 'KEY', 'VALUE'
@@ -46,7 +49,6 @@ module Autobuild
             it "registers the applied operations on the given op array" do
                 package.env_set 'KEY', 'VALUE'
                 env.should_receive(:set)
-                set_hash = Hash.new
 
                 ops = Array.new
                 assert_same ops, package.apply_env(env, Hash.new, ops)
@@ -69,9 +71,11 @@ module Autobuild
                 pkg0 = Package.new('pkg0')
                 pkg1 = Package.new('pkg1')
                 flexmock(package).should_receive(:all_dependencies).
-                    and_return(['pkg0', 'pkg1'])
+                    and_return(%w[pkg0 pkg1])
 
-                env, set, ops = flexmock, flexmock, flexmock
+                env = flexmock
+                set = flexmock
+                ops = flexmock
                 flexmock(pkg0).should_receive(:apply_env).with(env, set, ops).
                     and_return(ops)
                 flexmock(pkg1).should_receive(:apply_env).with(env, set, ops).
@@ -81,4 +85,3 @@ module Autobuild
         end
     end
 end
-

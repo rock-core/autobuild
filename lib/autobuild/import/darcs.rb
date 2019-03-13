@@ -37,11 +37,9 @@ module Autobuild
             true # no easy to know if package was updated, keep previous behavior
         end
 
-        def checkout(package, options = Hash.new) # :nodoc:
+        def checkout(package, _options = Hash.new) # :nodoc:
             basedir = File.dirname(package.srcdir)
-            unless File.directory?(basedir)
-                FileUtils.mkdir_p(basedir)
-            end
+            FileUtils.mkdir_p(basedir) unless File.directory?(basedir)
 
             package.run(:import, @program,
                'get', '--set-scripts-executable', @source, package.srcdir, *@get, retry: true)

@@ -62,16 +62,13 @@ module Autobuild
             state.process_finished_task(finished_task)
         end
 
-        def discover_dependencies(all_tasks, reverse_dependencies, t)
-            if t.already_invoked?
-                return
-            end
+        def discover_dependencies(all_tasks, reverse_dependencies, task)
+            return if task.already_invoked?
+            return if all_tasks.include?(task) # already discovered or being discovered
+            all_tasks << task
 
-            return if all_tasks.include?(t) # already discovered or being discovered
-            all_tasks << t
-
-            t.prerequisite_tasks.each do |dep_t|
-                reverse_dependencies[dep_t] << t
+            task.prerequisite_tasks.each do |dep_t|
+                reverse_dependencies[dep_t] << task
                 discover_dependencies(all_tasks, reverse_dependencies, dep_t)
             end
         end
@@ -102,7 +99,7 @@ module Autobuild
             end
 
             def find_task
-                if (task = queue.sort_by { |t, p| p }.first)
+                if (task = queue.min_by { |_t, p| p })
                     priorities[task.first] = task.last
                     task.first
                 end
@@ -164,9 +161,7 @@ module Autobuild
             # set of tasks that can be queued for execution.
             state = ProcessingState.new(reverse_dependencies)
             tasks.each do |t|
-                if state.ready?(t)
-                    state.push(t)
-                end
+                state.push(t) if state.ready?(t)
             end
 
             # Build a reverse dependency graph (i.e. a mapping from a task to
@@ -176,7 +171,7 @@ module Autobuild
             # topological sort since we would then have to scan all tasks each
             # time for tasks that have no currently running prerequisites
 
-            while true
+            loop do
                 pending_task = state.pop
                 unless pending_task
                     # If we have pending workers, wait for one to be finished
@@ -187,9 +182,7 @@ module Autobuild
                         pending_task = state.pop
                     end
 
-                    if !pending_task && available_workers.size == workers.size
-                        break
-                    end
+                    break if !pending_task && available_workers.size == workers.size
                 end
 
                 if state.trivial_task?(pending_task)
@@ -205,9 +198,7 @@ module Autobuild
                 # Get a job server token
                 job_server.get
 
-                until finished_workers.empty?
-                    wait_for_worker_to_end(state)
-                end
+                wait_for_worker_to_end(state) until finished_workers.empty?
 
                 # We do have a job server token, so we are allowed to allocate a
                 # new worker if none are available
@@ -225,7 +216,7 @@ module Autobuild
             not_processed = tasks.find_all { |t| !t.already_invoked? }
             unless not_processed.empty?
                 cycle = resolve_cycle(tasks, not_processed, reverse_dependencies)
-                raise "cycle in task graph: #{cycle.map(&:name).sort.join(", ")}"
+                raise "cycle in task graph: #{cycle.map(&:name).sort.join(', ')}"
             end
         end
 
@@ -233,7 +224,7 @@ module Autobuild
             cycle = tasks.dup
             chain = []
             next_task = tasks.first
-            while true
+            loop do
                 task = next_task
                 chain << task
                 tasks.delete(next_task)
@@ -247,7 +238,7 @@ module Autobuild
                 end
                 unless next_task
                     Autobuild.fatal "parallel processing stopped prematurely, but no cycle is present in the remaining tasks"
-                    Autobuild.fatal "remaining tasks: #{cycle.map(&:name).join(", ")}"
+                    Autobuild.fatal "remaining tasks: #{cycle.map(&:name).join(', ')}"
                     Autobuild.fatal "known dependencies at initialization time that could block the processing of the remaining tasks"
                     reverse_dependencies.each do |parent_task, parents|
                         if cycle.include?(parent_task)
@@ -262,7 +253,7 @@ module Autobuild
                             Autobuild.fatal "  #{p}: #{t}"
                         end
                     end
-                    raise "failed to resolve cycle in #{cycle.map(&:name).join(", ")}"
+                    raise "failed to resolve cycle in #{cycle.map(&:name).join(', ')}"
                 end
             end
             chain

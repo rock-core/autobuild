@@ -50,8 +50,8 @@ module Autobuild
             root = root.gsub(/^:ext:/, '')
             expected_root = @root.gsub(/^:ext:/, '')
             # Remove the optional ':' between the host and the path
-            root = root.gsub(/:/, '')
-            expected_root = expected_root.gsub(/:/, '')
+            root = root.delete(':')
+            expected_root = expected_root.delete(':')
 
             if root != expected_root || mod != @module
                 raise ConfigException.new(package, 'import'),
@@ -62,7 +62,7 @@ module Autobuild
             true # no easy way to check if package was updated, keep previous behavior and consider updated
         end
 
-        def checkout(package, options = Hash.new) # :nodoc:
+        def checkout(package, _options = Hash.new) # :nodoc:
             head, tail = File.split(package.srcdir)
             cvsroot = @root
 

@@ -41,7 +41,7 @@ module Autobuild
             # This is still considered experimental. Use
             # Orogen.always_regenerate= to set it
             def always_regenerate?
-                !!@always_regenerate
+                @always_regenerate
             end
         end
 
@@ -70,7 +70,7 @@ module Autobuild
         end
         @orogen_options = []
         @default_type_export_policy = :used
-        @transports = %w{corba typelib mqueue}
+        @transports = %w[corba typelib mqueue]
         @rtt_scripting = true
 
         attr_reader :orogen_options
@@ -158,9 +158,7 @@ module Autobuild
             if !@orogen_version && (root = orogen_root)
                 version_file = File.join(root, 'lib', 'orogen', 'version.rb')
                 version_line = File.readlines(version_file).grep(/VERSION\s*=\s*"/).first
-                if version_line =~ /.*=\s+"(.+)"$/
-                    @orogen_version = $1
-                end
+                @orogen_version = $1 if version_line =~ /.*=\s+"(.+)"$/
             end
             @orogen_version
         end
@@ -168,9 +166,7 @@ module Autobuild
         def orogen_root
             if orogen_tool_path
                 root = File.expand_path(File.join('..', '..'), orogen_tool_path)
-                if File.directory?(File.join(root, 'lib', 'orogen'))
-                    root
-                end
+                root if File.directory?(File.join(root, 'lib', 'orogen'))
             end
         end
 
@@ -214,29 +210,28 @@ module Autobuild
             ext_states = extended_states
             unless ext_states.nil?
                 cmdline.delete_if { |str| str =~ /extended-states/ }
-                if ext_states
-                    cmdline << '--extended-states'
-                else
-                    cmdline << '--no-extended-states'
-                end
+                cmdline <<
+                    if ext_states
+                        '--extended-states'
+                    else
+                        '--no-extended-states'
+                    end
             end
 
-            @orogen_tool_path = find_in_path 'orogen'
-            unless orogen_tool_path
+            unless (@orogen_tool_path = find_in_path('orogen'))
                 raise ArgumentError, "cannot find 'orogen' in #{resolved_env['PATH']}"
             end
 
-            version = orogen_version
-            unless version
+            unless (version = orogen_version)
                 raise ArgumentError, "cannot determine the orogen version"
             end
 
-            if version >= "1.0"
+            if version >= "1.0" # rubocop:disable Style/IfUnlessModifier
                 cmdline << "--parallel-build=#{parallel_build_level}"
             end
             if version >= "1.1"
                 cmdline << "--type-export-policy=#{Orogen.default_type_export_policy}"
-                cmdline << "--transports=#{Orogen.transports.sort.uniq.join(",")}"
+                cmdline << "--transports=#{Orogen.transports.sort.uniq.join(',')}"
             end
 
             # Now, add raw options

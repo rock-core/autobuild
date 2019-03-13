@@ -20,7 +20,8 @@ module Autobuild
         end
 
         def silent
-            @silent, silent = true, @silent
+            @silent = true
+            silent = @silent
             yield
         ensure
             @silent = silent
@@ -35,9 +36,7 @@ module Autobuild
         def message(message, *args, io: @io, force: false)
             return if silent? && !force
 
-            if args.last.respond_to?(:to_io)
-                io = args.pop
-            end
+            io = args.pop if args.last.respond_to?(:to_io)
 
             @display_lock.synchronize do
                 io.print "#{@cursor.column(1)}#{@cursor.clear_screen_down}#{@color.call(message, *args)}\n"
@@ -93,9 +92,7 @@ module Autobuild
                 current_size = @progress_messages.size
                 @progress_messages.delete_if do |msg_key, msg|
                     if msg_key == key
-                        if display_last && !message
-                            message = msg
-                        end
+                        message = msg if display_last && !message
                         true
                     end
                 end
@@ -148,7 +145,8 @@ module Autobuild
             groups = Array.new
             groups << ["", (0...messages.size)]
             messages.each_with_index do |msg, idx|
-                prefix, grouping = nil, false
+                prefix = nil
+                grouping = false
                 messages[(idx + 1)..-1].each_with_index do |other_msg, other_idx|
                     other_idx += idx + 1
                     prefix ||= find_common_prefix(msg, other_msg)

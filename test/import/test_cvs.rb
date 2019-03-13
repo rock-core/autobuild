@@ -1,6 +1,6 @@
 require 'autobuild/test'
 
-class TC_CVSImport < Minitest::Test
+class TestCVSImport < Minitest::Test
     include Autobuild
 
     attr_reader :cvsroot, :pkg_cvs
@@ -13,12 +13,12 @@ class TC_CVSImport < Minitest::Test
         @pkg_cvs = Package.new 'cvs'
         pkg_cvs.srcdir = File.join(tempdir, 'cvs')
     end
-    
+
     def test_cvs
         untar('cvsroot.tar')
         importer = Autobuild.cvs(cvsroot, module: 'cvs')
         importer.import(pkg_cvs)
-        assert( File.exists?(File.join(pkg_cvs.srcdir, 'test')) )
+        assert File.exist?(File.join(pkg_cvs.srcdir, 'test'))
     end
 
     def test_update
@@ -49,7 +49,7 @@ class TC_CVSImport < Minitest::Test
         assert_raises(Autobuild::ConfigException) { importer.import pkg_cvs }
     end
 
-    def test_update_fails_if_the_package_directory_is_a_checkout_from_another_CVS_repository
+    def test_update_fails_if_the_package_directory_is_a_checkout_from_another_cvs_repository
         untar 'cvsroot.tar'
         FileUtils.cp_r cvsroot, "#{cvsroot}-dup"
         importer = Autobuild.cvs(cvsroot, module: 'cvs')
@@ -58,5 +58,3 @@ class TC_CVSImport < Minitest::Test
         assert_raises(Autobuild::ConfigException) { importer.import pkg_cvs }
     end
 end
-
-

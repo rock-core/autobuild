@@ -11,9 +11,7 @@ module Autobuild
         Autotools.new(opts, &proc)
     end
 
-    if Autobuild.macos?
-        Autobuild.programs['libtoolize'] = "glibtoolize"
-    end
+    Autobuild.programs['libtoolize'] = "glibtoolize" if Autobuild.macos?
 
     #
     # ==== Handles autotools-based packages
@@ -120,9 +118,8 @@ module Autobuild
                 end
 
             unless programs.kind_of?(Hash)
-                programs = Array[*programs].inject({}) do |progs, spec|
+                programs = Array[*programs].each_with_object({}) do |spec, progs|
                     progs[spec.first] = spec.last
-                    progs
                 end
             end
             programs.each do |name, opt|
@@ -142,9 +139,7 @@ module Autobuild
 
             if using[:automake]
                 Find.find(srcdir) do |path|
-                    if File.basename(path) == "Makefile.in"
-                        FileUtils.rm_f path
-                    end
+                    FileUtils.rm_f(path) if File.basename(path) == "Makefile.in"
                 end
             end
 
@@ -241,7 +236,7 @@ module Autobuild
         # In general, you should not need that.
         attr_accessor :force_config_status
 
-    private
+        private
 
         def autodetect_needed_stages
             # Autodetect autoconf/aclocal/automake
@@ -263,7 +258,7 @@ module Autobuild
             end
 
             if using[:autogen].nil?
-                using[:autogen] = %w{autogen autogen.sh}.find { |f| File.exist?(File.join(srcdir, f)) }
+                using[:autogen] = %w[autogen autogen.sh].find { |f| File.exist?(File.join(srcdir, f)) }
             end
         end
 
@@ -272,7 +267,7 @@ module Autobuild
             conffile = "#{srcdir}/configure"
             if confsource
                 file conffile => confsource
-            elsif (confext = %w{.ac .in}.find { |ext| File.exist?("#{conffile}#{ext}") })
+            elsif (confext = %w[.ac .in].find { |ext| File.exist?("#{conffile}#{ext}") })
                 file conffile => "#{conffile}#{confext}"
             elsif using[:autoconf]
                 raise PackageException.new(self, 'prepare'), "neither configure.ac nor configure.in present in #{srcdir}"
@@ -310,9 +305,7 @@ module Autobuild
         def configure
             super do
                 command = ["#{srcdir}/configure"]
-                if force_config_status
-                    command << "--no-create"
-                end
+                command << "--no-create" if force_config_status
                 command << "--prefix=#{prefix}"
                 command += configureflags.flatten
 
@@ -326,9 +319,7 @@ module Autobuild
         def build
             in_dir(builddir) do
                 progress_start "building %s [progress not available]", :done_message => 'built %s' do
-                    if force_config_status
-                        run('build', './config.status')
-                    end
+                    run('build', './config.status') if force_config_status
 
                     build_options = []
                     if using_bear?

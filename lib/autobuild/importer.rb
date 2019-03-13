@@ -107,9 +107,7 @@ module Autobuild
         # @return [Array<String>,nil]
         # @see .cache_dirs
         def self.default_cache_dirs
-            if @default_cache_dirs ||= ENV['AUTOBUILD_CACHE_DIR']
-                [@default_cache_dirs]
-            end
+            [@default_cache_dirs] if @default_cache_dirs ||= ENV['AUTOBUILD_CACHE_DIR']
         end
 
         # Sets the cache directory for a given importer type
@@ -182,9 +180,7 @@ module Autobuild
         end
 
         # Changes whether this importer is interactive or not
-        def interactive=(value)
-            @interactive = !!value
-        end
+        attr_writer :interactive
 
         # The number of times update / checkout should be retried before giving up.
         # The default is 0 (do not retry)
@@ -213,34 +209,29 @@ module Autobuild
                     [[@options[:patches], 0]]
                 end
 
-            if patches.size == 2 && patches[0].respond_to?(:to_str) && patches[1].respond_to?(:to_int)
-                patches = [patches]
-            else
-                patches = patches.map do |obj|
-                    if obj.respond_to?(:to_str)
-                        [obj, 0]
-                    elsif obj.respond_to?(:to_ary)
-                        obj
-                    else
-                        raise Arguments, "wrong patch specification #{obj.inspect}"
-                    end
+            single_patch = (patches.size == 2 &&
+                patches[0].respond_to?(:to_str) &&
+                patches[1].respond_to?(:to_int))
+
+            patches = [patches] if single_patch
+            patches.map do |obj|
+                if obj.respond_to?(:to_str)
+                    path  = obj
+                    level = 0
+                elsif obj.respond_to?(:to_ary)
+                    path, level = obj
+                else
+                    raise Arguments, "wrong patch specification #{obj.inspect}"
                 end
-            end
-            patches.map do |path, level|
                 [path, level, File.read(path)]
             end
         end
 
         def update_retry_count(original_error, retry_count)
-            if !original_error.respond_to?(:retry?) ||
-                !original_error.retry?
-                return
-            end
+            return if !original_error.respond_to?(:retry?) || !original_error.retry?
 
             retry_count += 1
-            if retry_count <= self.retry_count
-                retry_count
-            end
+            retry_count if retry_count <= self.retry_count
         end
 
         # A list of hooks that are called after a successful checkout or update
@@ -267,9 +258,7 @@ module Autobuild
             return enum_for(__method__) unless block_given?
 
             (@post_hooks ||= Array.new).each do |hook|
-                if hook.always || !error
-                    yield(hook.callback)
-                end
+                yield(hook.callback) if hook.always || !error
             end
         end
 
@@ -301,18 +290,15 @@ module Autobuild
             end
 
             post_hooks.each do |hook|
-                if hook.always || !error
-                    yield(hook.callback)
-                end
+                yield(hook.callback) if hook.always || !error
             end
         end
 
         def perform_update(package, only_local = false)
             cur_patches    = currently_applied_patches(package)
             needed_patches = patches
-            if cur_patches.map(&:last) != needed_patches.map(&:last)
-                patch(package, [])
-            end
+            patch_changed = cur_patches.map(&:last) != needed_patches.map(&:last)
+            patch(package, []) if patch_changed
 
             last_error = nil
             retry_count = 0
@@ -402,7 +388,7 @@ module Autobuild
 
             patch(package)
             package.updated = true
-        rescue Interrupt
+        rescue Interrupt # rubocop:disable Lint/ShadowedException
             raise
         rescue ::Exception
             package.message "checkout of %s failed, deleting the source directory #{package.importdir}"
@@ -435,11 +421,11 @@ module Autobuild
         def import(package, options = Hash.new)
             # Backward compatibility
             unless options.kind_of?(Hash)
-                options = !!options
+                options = options
                 Autoproj.warn "calling #import with a boolean as second argument is deprecated, switch to the named argument interface instead"
                 Autoproj.warn "   e.g. call import(package, only_local: #{options})"
-                Autoproj.warn "   #{caller(1).first}"
-                options = Hash[only_local: !!options]
+                Autoproj.warn "   #{caller(1..1).first}"
+                options = Hash[only_local: options]
             end
 
             options = Kernel.validate_options options,
@@ -455,10 +441,8 @@ module Autobuild
                 package.isolate_errors(mark_as_failed: false, ignore_errors: ignore_errors) do
                     if !options[:checkout_only] && package.update?
                         perform_update(package, options)
-                    else
-                        if Autobuild.verbose
-                            package.message "%s: not updating"
-                        end
+                    elsif Autobuild.verbose
+                        package.message "%s: not updating"
                     end
                 end
 
@@ -499,8 +483,8 @@ module Autobuild
 
         def call_patch(package, reverse, file, patch_level)
             package.run(:patch, Autobuild.tool('patch'),
-                        "-p#{patch_level}", (reverse ? '-R' : nil), '--forward', input: file,
-                        working_directory: package.importdir)
+                        "-p#{patch_level}", (reverse ? '-R' : nil), '--forward',
+                        input: file, working_directory: package.importdir)
         end
 
         def apply(package, path, patch_level = 0)
@@ -527,9 +511,7 @@ module Autobuild
 
         def currently_applied_patches(package)
             patches_file = patchlist(package)
-            if File.exist?(patches_file)
-                return parse_patch_list(package, patches_file)
-            end
+            return parse_patch_list(package, patches_file) if File.exist?(patches_file)
 
             patches_file = File.join(package.importdir, "patches-autobuild-stamp")
             if File.exist?(patches_file)
@@ -548,9 +530,7 @@ module Autobuild
 
             cur_patches_state = cur_patches.map { |_, level, content| [level, content] }
             patches_state     = patches.map { |_, level, content| [level, content] }
-            if cur_patches_state == patches_state
-                return false
-            end
+            return false if cur_patches_state == patches_state
 
             # Do not be smart, remove all already applied patches
             # and then apply the new ones

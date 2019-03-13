@@ -21,16 +21,14 @@ module Autobuild
         # in *target*
         def initialize(target = nil, phase = nil, options = Hash.new)
             options = Kernel.validate_options options, retry: true
-            @target, @phase = target, phase
-            @retry = options[:retry]
+            @target = target
+            @phase  = phase
+            @retry  = options[:retry]
         end
 
-        alias :exception_message :to_s
+        alias exception_message to_s
         def to_s
-            dir =
-                if target.respond_to?(:srcdir)
-                    "(#{target.srcdir})"
-                end
+            dir = "(#{target.srcdir})" if target.respond_to?(:srcdir)
             target_name =
                 if target.respond_to?(:name)
                     target.name
@@ -48,7 +46,7 @@ module Autobuild
     end
 
     ## There is an error/inconsistency in the configuration
-    class ConfigException < Exception
+    class ConfigException < RuntimeError
         def initialize(target = nil, phase = nil, options = Hash.new)
             options, other_options = Kernel.filter_options options,
                 retry: false
@@ -56,7 +54,7 @@ module Autobuild
         end
     end
     ## An error occured in a package
-    class PackageException < Exception
+    class PackageException < RuntimeError
         def mail?
             true
         end
@@ -74,9 +72,9 @@ module Autobuild
     end
 
     ## The subcommand is not found
-    class CommandNotFound  < Exception; end
+    class CommandNotFound  < RuntimeError; end
     ## An error occured while running a subcommand
-    class SubcommandFailed < Exception
+    class SubcommandFailed < RuntimeError
         def mail?
             true
         end
@@ -86,8 +84,11 @@ module Autobuild
         def initialize(*args)
             if args.size == 1
                 sc = args[0]
-                target, command, logfile, status, output =
-                    sc.target, sc.command, sc.logfile, sc.status, sc.output
+                target = sc.target
+                command = sc.command
+                logfile = sc.logfile
+                status = sc.status
+                output = sc.output
                 @orig_message = sc.exception_message
             elsif args.size == 4 || args.size == 5
                 target, command, logfile, status, output = *args
@@ -104,9 +105,7 @@ module Autobuild
 
         def to_s
             msg = super
-            if @orig_message
-                msg << "\n     #{@orig_message}"
-            end
+            msg << "\n     #{@orig_message}" if @orig_message
             msg << "\n    see #{logfile} for details"
 
             # If we do not have a status, it means an error occured in the
@@ -154,7 +153,7 @@ module Autobuild
         def to_s
             result = ["#{original_errors.size} errors occured"]
             original_errors.each_with_index do |e, i|
-                result << "(#{i}) #{e.to_s}"
+                result << "(#{i}) #{e}"
             end
             result.join("\n")
         end

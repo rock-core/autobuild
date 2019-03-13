@@ -29,7 +29,7 @@ module Autobuild
         end
 
         def coverage_available?
-            !!@coverage_source_dir
+            @coverage_source_dir
         end
 
         # Controls whether code coverage should be measured

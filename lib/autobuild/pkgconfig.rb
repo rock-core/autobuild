@@ -30,19 +30,22 @@ class PkgConfig
         @variables = Hash.new
     end
 
-    ACTIONS = %w{cflags cflags-only-I cflags-only-other
-                libs libs-only-L libs-only-l libs-only-other static}.freeze
+    ACTIONS = %w[cflags cflags-only-I cflags-only-other
+                 libs libs-only-L libs-only-l libs-only-other static].freeze
     ACTIONS.each do |action|
-        define_method(action.gsub(/-/, '_')) do
+        define_method(action.tr('-', '_')) do
             @actions[action] ||= `pkg-config --#{action} #{name}`.chomp.strip
         end
     end
 
-    def method_missing(varname, *args, &proc)
+    def method_missing(varname, *args, &proc) # rubocop:disable Style/MissingRespondToMissing
         if args.empty?
-            @variables[varname] ||= `pkg-config --variable=#{varname} #{name}`.chomp.strip
-        else
-            super(varname, *args, &proc)
+            unless (value = @variables[varname])
+                value = `pkg-config --variable=#{varname} #{name}`.chomp.strip
+                @variables[varname] = value
+            end
+            return value
         end
+        super
     end
 end

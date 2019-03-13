@@ -82,7 +82,7 @@ module Autobuild
     #
     # It does not use a logging framework like Log4r, but it should ;-)
     module Reporting
-        @@reporters = Array.new
+        @reporters = Array.new
 
         ## Run a block and report known exception
         # If an exception is fatal, the program is terminated using exit()
@@ -98,7 +98,7 @@ module Autobuild
             # on the way. If so, raise an exception to inform the user about
             # it
             errors = []
-            Autobuild::Package.each do |name, pkg|
+            Autobuild::Package.each do |_name, pkg|
                 errors.concat(pkg.failures)
             end
 
@@ -140,13 +140,11 @@ module Autobuild
             end
 
             if on_package_failures == :raise
-                if interrupted_by
-                    raise interrupted_by
-                end
+                raise interrupted_by if interrupted_by
 
                 e = if errors.size == 1 then errors.first
-                else CompositeException.new(errors)
-                end
+                    else CompositeException.new(errors)
+                    end
                 raise e
             elsif %i[report_silent report].include?(on_package_failures)
                 if interrupted_by
@@ -173,19 +171,19 @@ module Autobuild
 
         ## Add a new reporter
         def self.<<(reporter)
-            @@reporters << reporter
+            @reporters << reporter
         end
 
         def self.remove(reporter)
-            @@reporters.delete(reporter)
+            @reporters.delete(reporter)
         end
 
         def self.clear_reporters
-            @@reporters.clear
+            @reporters.clear
         end
 
         def self.each_reporter(&iter)
-            @@reporters.each(&iter)
+            @reporters.each(&iter)
         end
 
         ## Iterate on all log files
@@ -209,9 +207,7 @@ module Autobuild
 
         def success
             puts "Build finished successfully at #{Time.now}"
-            if Autobuild.post_success_message
-                puts Autobuild.post_success_message
-            end
+            puts Autobuild.post_success_message if Autobuild.post_success_message
         end
     end
 
@@ -225,7 +221,11 @@ module Autobuild
     def self.human_readable_size(size)
         HUMAN_READABLE_SIZES.each do |scale, name|
             scaled_size = (size / scale)
-            return format("%3.1f%s", scaled_size, name) if scaled_size > 1
+            if scaled_size > 1
+                return format("%3.1<scaled>f%<scale_name>s",
+                    scaled: scaled_size,
+                    scale_name: name)
+            end
         end
     end
 end

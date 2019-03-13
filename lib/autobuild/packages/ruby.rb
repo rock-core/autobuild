@@ -71,7 +71,7 @@ module Autobuild
 
         def prepare_for_forced_build # :nodoc:
             super
-            %w{ext tmp}.each do |extdir|
+            %w[ext tmp].each do |extdir|
                 if File.directory?(extdir)
                     Find.find(extdir) do |file|
                         next if file !~ /\<Makefile\>|\<CMakeCache.txt\>$/
@@ -99,9 +99,7 @@ module Autobuild
         def update_environment
             env_add_prefix srcdir
             libdir = File.join(srcdir, 'lib')
-            if File.directory?(libdir)
-                env_add_path 'RUBYLIB', libdir
-            end
+            env_add_path 'RUBYLIB', libdir if File.directory?(libdir)
         end
     end
 

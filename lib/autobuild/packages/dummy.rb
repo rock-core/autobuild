@@ -15,7 +15,7 @@ module Autobuild
         def import(options = Hash.new); end
 
         def prepare
-            %w{import prepare build doc}.each do |phase|
+            %w[import prepare build doc].each do |phase|
                 task "#{name}-#{phase}"
                 t = Rake::Task["#{name}-#{phase}"]
                 def t.needed?

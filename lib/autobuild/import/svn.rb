@@ -99,10 +99,8 @@ module Autobuild
         def has_local_modifications?(package, with_untracked_files = false)
             status = run_svn(package, 'status', '--xml')
 
-            not_modified = %w{external ignored none normal}
-            unless with_untracked_files
-                not_modified << "unversioned"
-            end
+            not_modified = %w[external ignored none normal]
+            not_modified << "unversioned" unless with_untracked_files
 
             REXML::Document.new(status.join("")).
                 elements.enum_for(:each, '//wc-status').
@@ -133,7 +131,7 @@ module Autobuild
                     date = l.elements['date'].first.to_s
                     author = l.elements['author'].first.to_s
                     msg = l.elements['msg'].first.to_s.split("\n").first
-                    "#{rev} #{DateTime.parse(date)} #{author} #{msg}"
+                    "#{rev} #{DateTime.parse(date)} #{author} #{msg}" # rubocop:disable Style/DateTime
                 end
                 status.remote_commits = missing_revisions[1..-1]
                 status.status =
@@ -148,10 +146,13 @@ module Autobuild
 
         # Helper method to run a SVN command on a package's working copy
         def run_svn(package, *args, &block)
-            options = Hash.new
-            if args.last.kind_of?(Hash)
-                options = args.pop
-            end
+            options =
+                if args.last.kind_of?(Hash)
+                    args.pop
+                else
+                    Hash.new
+                end
+
             options, other_options = Kernel.filter_options options,
                 working_directory: package.importdir, retry: true
             options = options.merge(other_options)
@@ -175,7 +176,8 @@ module Autobuild
         # @raises [ConfigException] if the working copy is not a subversion
         #   working copy
         def svn_info(package)
-            old_lang, ENV['LC_ALL'] = ENV['LC_ALL'], 'C'
+            old_lang = ENV['LC_ALL']
+            ENV['LC_ALL'] = 'C'
             begin
                 svninfo = run_svn(package, 'info')
             rescue SubcommandFailed => e
@@ -222,7 +224,7 @@ module Autobuild
             true
         end
 
-        def checkout(package, options = Hash.new) # :nodoc:
+        def checkout(package, _options = Hash.new) # :nodoc:
             run_svn(package, 'co', "--non-interactive", *@options_co, svnroot, package.importdir,
                     working_directory: nil)
         end

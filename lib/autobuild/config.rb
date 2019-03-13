@@ -1,5 +1,5 @@
 # Evaluates +script+ in autobuild context
-def Autobuild(&script)
+def Autobuild(&script) # rubocop:disable Naming/MethodName
     Autobuild.send(:module_eval, &script)
 end
 
@@ -27,10 +27,10 @@ end
 #   Otherwise, the existing logfile contents is erased.
 module Autobuild
     class << self
-        %w{ nice srcdir prefix
+        %w[ nice srcdir prefix
             verbose debug do_update do_build do_rebuild do_forced_build
             daemonize clean_log packages default_packages
-            keep_oldlogs}.each do |name|
+            keep_oldlogs ].each do |name|
             attr_accessor name
         end
 
@@ -70,7 +70,9 @@ module Autobuild
                 package.utilities[utility_name] = utility
                 utility.enabled = !creation_options[:disabled_by_default]
                 utility
-            else raise ArgumentError, "there is no utility called #{utility_name}, available utilities are #{utilities.keys.sort.join(", ")}"
+            else
+                raise ArgumentError, "there is no utility called #{utility_name}, "\
+                    "available utilities are #{utilities.keys.sort.join(', ')}"
             end
         end
         # The directory in which logs are saved. Defaults to PREFIX/log.
@@ -85,12 +87,13 @@ module Autobuild
     register_utility_class 'doc', Utility, disabled_by_default: false
     register_utility_class 'test', TestUtility, disabled_by_default: true
 
-    DEFAULT_OPTIONS = { :nice => nil,
-        :srcdir => Dir.pwd, :prefix => Dir.pwd, :logdir => nil,
-        :verbose => false, :debug => false, :do_build => true,
+    DEFAULT_OPTIONS = {
+        :nice => nil, :srcdir => Dir.pwd, :prefix => Dir.pwd,
+        :logdir => nil, :verbose => false, :debug => false, :do_build => true,
         :do_forced_build => false, :do_rebuild => false, :do_update => true,
         :daemonize => false, :packages => [], :default_packages => [],
-        :keep_oldlogs => false }.freeze
+        :keep_oldlogs => false
+    }.freeze
 
     DEFAULT_OPTIONS.each do |name, value|
         send("#{name}=", value)
@@ -287,7 +290,7 @@ module Autobuild
     #
     # @return [Array<String>]
     def self.all_phases
-        %w{import prepare build} +
+        %w[import prepare build] +
             utilities.keys
     end
 

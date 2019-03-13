@@ -4,7 +4,7 @@ module Autobuild
     describe Importer do
         describe ".cache_dirs" do
             before do
-                relevant = ENV.keys.grep /^AUTOBUILD_\w+_CACHE_DIR$/
+                relevant = ENV.keys.grep(/^AUTOBUILD_\w+_CACHE_DIR$/)
                 relevant.each { |k| ENV.delete(k) }
                 ENV.delete 'AUTOBUILD_CACHE_DIR'
                 Importer.unset_cache_dirs

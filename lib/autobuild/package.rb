@@ -1,5 +1,5 @@
 module Autobuild
-    TARGETS = %w{import prepare build}.freeze
+    TARGETS = %w[import prepare build].freeze
 
     class << self
         attr_accessor :ignore_errors
@@ -46,7 +46,7 @@ module Autobuild
 
         # Whether {#apply_post_install} has been called
         def applied_post_install?
-            !!@applied_post_install
+            @applied_post_install
         end
 
         # Sets importer object for this package. Defined for backwards compatibility.
@@ -129,7 +129,7 @@ module Autobuild
         # true if the importer has been called while Autobuild.do_update was
         # false.
         def updated?
-            !!@updated
+            @updated
         end
 
         def initialize(spec = Hash.new)
@@ -154,7 +154,8 @@ module Autobuild
             if Hash === spec
                 name, depends = spec.to_a.first
             else
-                name, depends = spec, nil
+                name = spec
+                depends = nil
             end
 
             name = name.to_s
@@ -189,9 +190,7 @@ module Autobuild
                 Rake::Task["#{name}-import"].invoke
                 Rake::Task["#{name}-prepare"].invoke
                 Rake::Task["#{name}-build"].invoke
-                if has_doc? && Autobuild.do_doc
-                    Rake::Task["#{name}-doc"].invoke
-                end
+                Rake::Task["#{name}-doc"].invoke if has_doc? && Autobuild.do_doc
             end
             task :default => name
 
@@ -244,8 +243,8 @@ module Autobuild
         #
         # @param [EnvOp] op
         # @return [void]
-        def add_env_op(op)
-            env << op
+        def add_env_op(envop)
+            env << envop
         end
 
         # Add value(s) to a list-based environment variable
@@ -377,9 +376,7 @@ module Autobuild
         # target files so that all the build phases of this package gets
         # retriggered. However, it should not clean the build products.
         def prepare_for_forced_build
-            if File.exist?(installstamp)
-                FileUtils.rm_f installstamp
-            end
+            FileUtils.rm_f installstamp if File.exist?(installstamp)
         end
 
         # Called when the user asked for a full rebuild. It should delete the
@@ -387,9 +384,7 @@ module Autobuild
         def prepare_for_rebuild
             prepare_for_forced_build
 
-            if File.exist?(installstamp)
-                FileUtils.rm_f installstamp
-            end
+            FileUtils.rm_f installstamp if File.exist?(installstamp)
         end
 
         # Returns true if one of the operations applied on this package failed
@@ -409,9 +404,7 @@ module Autobuild
         # will subsequently be a noop. I.e. if +build+ fails, +install+ will do
         # nothing.
         def isolate_errors(options = Hash.new)
-            unless options.kind_of?(Hash)
-                options = Hash[mark_as_failed: true]
-            end
+            options = Hash[mark_as_failed: true] unless options.kind_of?(Hash)
             options = validate_options options,
                 mark_as_failed: true,
                 ignore_errors: Autobuild.ignore_errors
@@ -434,18 +427,12 @@ module Autobuild
                 raise
             rescue ::Exception => e
                 @failures << e
-                if options[:mark_as_failed]
-                    @failed = true
-                end
+                @failed = true if options[:mark_as_failed]
 
                 if options[:ignore_errors]
                     lines = e.to_s.split("\n")
-                    if lines.empty?
-                        lines = e.message.split("\n")
-                    end
-                    if lines.empty?
-                        lines = ["unknown error"]
-                    end
+                    lines = e.message.split("\n") if lines.empty?
+                    lines = ["unknown error"] if lines.empty?
                     message(lines.shift, :red, :bold)
                     lines.each do |line|
                         message(line)
@@ -455,9 +442,7 @@ module Autobuild
                     raise
                 end
             ensure
-                if toplevel
-                    Thread.current[:isolate_errors] = false
-                end
+                Thread.current[:isolate_errors] = false if toplevel
             end
         end
 
@@ -466,9 +451,7 @@ module Autobuild
         #
         # (see Importer#import)
         def import(options = Hash.new)
-            unless options.respond_to?(:to_hash)
-                options = Hash[only_local: options]
-            end
+            options = Hash[only_local: options] unless options.respond_to?(:to_hash)
 
             if @importer
                 result = @importer.import(self, options)
@@ -499,7 +482,8 @@ module Autobuild
         end
 
         def process_formatting_string(msg, *prefix_style)
-            prefix, suffix = [], []
+            prefix = []
+            suffix = []
             msg.split(" ").each do |token|
                 if token =~ /%s/
                     suffix << token.gsub(/%s/, name)
@@ -532,17 +516,13 @@ module Autobuild
         # Display a progress message. %s in the string is replaced by the
         # package name
         def message(*args)
-            unless args.empty?
-                args[0] = "  #{process_formatting_string(args[0])}"
-            end
+            args[0] = "  #{process_formatting_string(args[0])}" unless args.empty?
             Autobuild.message(*args)
         end
 
         def progress_start(*args, done_message: nil, **raw_options, &block)
             args[0] = process_formatting_string(args[0], :bold)
-            if done_message
-                done_message = process_formatting_string(done_message)
-            end
+            done_message = process_formatting_string(done_message) if done_message
             Autobuild.progress_start(self, *args,
                 done_message: done_message, **raw_options, &block)
         end
@@ -580,13 +560,14 @@ module Autobuild
         end
 
         def run(*args, &block)
-            if args.last.kind_of?(Hash)
-                options = args.pop
-            else
-                options = Hash.new
-            end
+            options =
+                if args.last.kind_of?(Hash)
+                    args.pop
+                else
+                    Hash.new
+                end
             options[:env] = options.delete(:resolved_env) ||
-                (options[:env] || Hash.new).merge(resolved_env)
+                            (options[:env] || Hash.new).merge(resolved_env)
             Autobuild::Subprocess.run(self, *args, options, &block)
         end
 
@@ -707,9 +688,7 @@ module Autobuild
 
                 next if @dependencies.include?(pkg.name)
 
-                if Autobuild.verbose
-                    Autobuild.message "#{name} depends on #{pkg.name}"
-                end
+                Autobuild.message "#{name} depends on #{pkg.name}" if Autobuild.verbose
 
                 task "#{name}-import"  => "#{pkg.name}-import"
                 task "#{name}-prepare" => "#{pkg.name}-prepare"
@@ -731,9 +710,7 @@ module Autobuild
 
                 @@provides[p] = self
 
-                if Autobuild.verbose
-                    Autobuild.message "#{name} provides #{p}"
-                end
+                Autobuild.message "#{name} provides #{p}" if Autobuild.verbose
 
                 task p => name
                 task "#{p}-import" => "#{name}-import"
@@ -746,11 +723,11 @@ module Autobuild
         # Iterates on all available packages
         # if with_provides is true, includes the list
         # of package aliases
-        def self.each(with_provides = false, &p)
-            return enum_for(:each, with_provides) unless p
+        def self.each(with_provides = false, &block)
+            return enum_for(:each, with_provides) unless block
 
-            @@packages.each(&p)
-            @@provides.each(&p) if with_provides
+            @@packages.each(&block)
+            @@provides.each(&block) if with_provides
         end
 
         # Gets a package from its name
@@ -823,11 +800,15 @@ module Autobuild
         end
 
         def utility(utility_name)
-            utilities[utility_name] ||= Autobuild.create_utility(utility_name, self)
+            utilities[utility_name.to_s] ||= Autobuild.create_utility(utility_name, self)
         end
 
-        def method_missing(m, *args, &block)
-            case m.to_s
+        def respond_to_missing?(name, _include_all)
+            utilities.key?(name.to_s)
+        end
+
+        def method_missing(name, *args, &block)
+            case name.to_s
             when /(\w+)_utility$/
                 utility_name = $1
                 unless args.empty?
@@ -836,7 +817,7 @@ module Autobuild
                 begin
                     return utility(utility_name)
                 rescue ArgumentError => e
-                    raise NoMethodError.new(m), e.message, e.backtrace
+                    raise NoMethodError.new(name), e.message, e.backtrace
                 end
             end
             super

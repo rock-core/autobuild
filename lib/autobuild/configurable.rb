@@ -83,9 +83,7 @@ module Autobuild
         def prepare_for_rebuild
             super
 
-            if File.exist?(builddir) && builddir != srcdir
-                FileUtils.rm_rf builddir
-            end
+            FileUtils.rm_rf(builddir) if File.exist?(builddir) && builddir != srcdir
         end
 
         def ensure_dependencies_installed

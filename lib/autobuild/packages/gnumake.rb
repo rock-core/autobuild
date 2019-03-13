@@ -4,7 +4,7 @@ module Autobuild
     def self.make_is_gnumake?(pkg, path = Autobuild.tool(:make))
         @make_is_gnumake ||= Hash.new
         @gnumake_version ||= Hash.new
-        if @make_is_gnumake.has_key?(path)
+        if @make_is_gnumake.key?(path)
             @make_is_gnumake[path]
         else
             begin
@@ -45,9 +45,7 @@ module Autobuild
         else yield
         end
     ensure
-        if reserved
-            job_server.put(reserved)
-        end
+        job_server.put(reserved) if reserved
     end
 
     def self.make_subcommand(pkg, phase, *options, &block)

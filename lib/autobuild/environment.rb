@@ -28,34 +28,31 @@ module Autobuild
     end
 
     SHELL_VAR_EXPANSION =
-        if windows? then "%%%s%%"
-        else "$%s"
+        if windows? then "%%%s%%".freeze
+        else "$%s".freeze
         end
     SHELL_SET_COMMAND =
-        if windows? then "set %s=%s"
-        else "%s=\"%s\""
+        if windows? then "set %s=%s".freeze
+        else "%s=\"%s\"".freeze
         end
     SHELL_CONDITIONAL_SET_COMMAND =
-        if windows? then "set %s=%s"
-        else "if test -z \"$%1$s\"; then\n  %1$s=\"%3$s\"\nelse\n  %1$s=\"%2$s\"\nfi"
+        if windows? then "set %s=%s".freeze
+        else "if test -z \"$%1$s\"; then\n  %1$s=\"%3$s\"\nelse\n  %1$s=\"%2$s\"\nfi".freeze
         end
-    SHELL_UNSET_COMMAND =
-        if windows? then "unset %s"
-        else "unset %s"
-        end
+    SHELL_UNSET_COMMAND = "unset %s".freeze
     SHELL_EXPORT_COMMAND =
-        if windows? then "set %s"
-        else "export %s"
+        if windows? then "set %s".freeze
+        else "export %s".freeze
         end
     SHELL_SOURCE_SCRIPT =
-        if windows? then "%s"
-        else ". \"%s\""
+        if windows? then "%s".freeze
+        else '. "%s"'.freeze
         end
 
     LIBRARY_PATH =
-        if macos? then 'DYLD_LIBRARY_PATH'
-        elsif windows? then 'PATH'
-        else 'LD_LIBRARY_PATH'
+        if macos? then 'DYLD_LIBRARY_PATH'.freeze
+        elsif windows? then 'PATH'.freeze
+        else 'LD_LIBRARY_PATH'.freeze
         end
 
     LIBRARY_SUFFIX =
@@ -139,17 +136,17 @@ module Autobuild
         def initialize_copy(old)
             super
             @inherited_environment = @inherited_environment.
-                map_value { |k, v| v.dup if v }
+                map_value { |_k, v| v.dup if v }
             @environment = @environment.
-                map_value { |k, v| v.dup if v }
+                map_value { |_k, v| v.dup if v }
             @source_before = Marshal.load(Marshal.dump(@source_before)) # deep copy
             @source_after = Marshal.load(Marshal.dump(@source_after)) # deep copy
             @inherited_variables = @inherited_variables.dup
 
             @system_env = @system_env.
-                map_value { |k, v| v.dup if v }
+                map_value { |_k, v| v.dup if v }
             @original_env = @original_env.
-                map_value { |k, v| v.dup if v }
+                map_value { |_k, v| v.dup if v }
         end
 
         def [](name)
@@ -266,16 +263,17 @@ module Autobuild
             @inherit
         end
 
-        def filter_original_env(name, parent_env)
+        def filter_original_env(_name, parent_env)
             parent_env.dup
         end
 
         def init_from_env(name)
-            if inherit?(name) && (parent_env = original_env[name])
-                inherited_environment[name] = filter_original_env(name, parent_env.split(File::PATH_SEPARATOR))
-            else
-                inherited_environment[name] = Array.new
-            end
+            inherited_environment[name] =
+                if inherit?(name) && (parent_env = original_env[name])
+                    filter_original_env(name, parent_env.split(File::PATH_SEPARATOR))
+                else
+                    Array.new
+                end
         end
 
         def push(name, *values)
@@ -292,13 +290,8 @@ module Autobuild
         def add(name, *values)
             values = values.map { |v| expand(v) }
 
-            set = if environment.has_key?(name)
-                      environment[name]
-                  end
-
-            unless inherited_environment.has_key?(name)
-                init_from_env(name)
-            end
+            set = environment[name] if environment.key?(name)
+            init_from_env(name) unless inherited_environment.key?(name)
 
             if !set
                 set = Array.new
@@ -326,11 +319,12 @@ module Autobuild
         def value(name, options = Hash.new)
             # For backward compatibility only
             unless options.respond_to?(:to_hash)
-                if options
-                    options = Hash[:inheritance_mode => :expand]
-                else
-                    options = Hash[:inheritance_mode => :keep]
-                end
+                options =
+                    if options
+                        Hash[:inheritance_mode => :expand]
+                    else
+                        Hash[:inheritance_mode => :keep]
+                    end
             end
             options = Kernel.validate_options options,
                 inheritance_mode: :expand
@@ -361,16 +355,14 @@ module Autobuild
 
         # Whether this object manages the given environment variable
         def include?(name)
-            environment.has_key?(name)
+            environment.key?(name)
         end
 
         def resolved_env
             resolved_env = Hash.new
             environment.each_key do |name|
                 if (value = value(name))
-                    if path_variable?(name)
-                        value = value.find_all { |p| File.exist?(p) }
-                    end
+                    value = value.find_all { |p| File.exist?(p) } if path_variable?(name)
                     resolved_env[name] = value.join(File::PATH_SEPARATOR)
                 else
                     resolved_env[name] = nil
@@ -403,9 +395,7 @@ module Autobuild
 
                 add(name, path)
                 oldpath << path
-                if name == 'RUBYLIB'
-                    $LOAD_PATH.unshift path
-                end
+                $LOAD_PATH.unshift path if name == 'RUBYLIB'
             end
         end
 
@@ -506,21 +496,23 @@ module Autobuild
         def export_env_sh(io, shell: 'sh')
             export = exported_environment
             source_before(shell: shell).each do |path|
-                io.puts SHELL_SOURCE_SCRIPT % path
+                io.puts format(SHELL_SOURCE_SCRIPT, path)
             end
             export.unset.each do |name|
-                io.puts SHELL_UNSET_COMMAND % [name]
+                io.puts format(SHELL_UNSET_COMMAND, name)
             end
             export.set.each do |name, value|
-                io.puts SHELL_SET_COMMAND % [name, value.join(File::PATH_SEPARATOR)]
-                io.puts SHELL_EXPORT_COMMAND % [name]
+                io.puts format(SHELL_SET_COMMAND, name, value.join(File::PATH_SEPARATOR))
+                io.puts format(SHELL_EXPORT_COMMAND, name)
             end
             export.update.each do |name, (with_inheritance, without_inheritance)|
-                io.puts SHELL_CONDITIONAL_SET_COMMAND % [name, with_inheritance.join(File::PATH_SEPARATOR), without_inheritance.join(File::PATH_SEPARATOR)]
-                io.puts SHELL_EXPORT_COMMAND % [name]
+                io.puts format(SHELL_CONDITIONAL_SET_COMMAND, name,
+                    with_inheritance.join(File::PATH_SEPARATOR),
+                    without_inheritance.join(File::PATH_SEPARATOR))
+                io.puts format(SHELL_EXPORT_COMMAND, name)
             end
             source_after(shell: shell).each do |path|
-                io.puts SHELL_SOURCE_SCRIPT % [path]
+                io.puts format(SHELL_SOURCE_SCRIPT, path)
             end
         end
 
@@ -594,21 +586,15 @@ module Autobuild
         end
 
         def arch_size
-            if @arch_size
-                return @arch_size
-            end
+            return @arch_size if @arch_size
 
             if File.file?('/usr/bin/dpkg-architecture')
                 cmdline = ['/usr/bin/dpkg-architecture']
-                if target_arch
-                    cmdline << "-T" << target_arch
-                end
+                cmdline << "-T" << target_arch if target_arch
                 out = `#{cmdline.join(" ")}`.split
                 arch = out.grep(/DEB_TARGET_ARCH_BITS/).first ||
                        out.grep(/DEB_BUILD_ARCH_BITS/).first
-                if arch
-                    @arch_size = Integer(arch.chomp.split('=').last)
-                end
+                @arch_size = Integer(arch.chomp.split('=').last) if arch
             end
 
             @arch_size ||=
@@ -627,22 +613,16 @@ module Autobuild
         attr_reader :target_arch
 
         def arch_names
-            if @arch_names
-                return @arch_names
-            end
+            return @arch_names if @arch_names
 
             result = Set.new
             if File.file?('/usr/bin/dpkg-architecture')
                 cmdline = ['/usr/bin/dpkg-architecture']
-                if target_arch
-                    cmdline << "-T" << target_arch
-                end
+                cmdline << "-T" << target_arch if target_arch
                 out = `#{cmdline.join(" ")}`.split
                 arch = out.grep(/DEB_TARGET_MULTIARCH/).first ||
                        out.grep(/DEB_BUILD_MULTIARCH/).first
-                if arch
-                    result << arch.chomp.split('=').last
-                end
+                result << arch.chomp.split('=').last if arch
             end
             @arch_names = result
         end
@@ -688,9 +668,7 @@ module Autobuild
                 each_env_search_path(newprefix, ld_library_search) do |path|
                     has_sofile = Dir.enum_for(:glob, File.join(path, "lib*.#{LIBRARY_SUFFIX}")).
                         find { true }
-                    if has_sofile
-                        add_path(LIBRARY_PATH, path)
-                    end
+                    add_path(LIBRARY_PATH, path) if has_sofile
                 end
             end
 
@@ -701,7 +679,7 @@ module Autobuild
                     add_path('RUBYLIB', new_rubylib)
                 end
 
-                %w{rubylibdir archdir sitelibdir sitearchdir vendorlibdir vendorarchdir}.
+                %w[rubylibdir archdir sitelibdir sitearchdir vendorlibdir vendorarchdir].
                     map { |key| RbConfig::CONFIG[key] }.
                     map { |path| path.gsub(%r{.*lib(?:32|64)?/}, '\\1') }.
                     each do |subdir|
@@ -721,10 +699,8 @@ module Autobuild
                 full = File.join(dir, file)
                 begin
                     stat = File.stat(full)
-                    if stat.file? && stat.executable?
-                        return full
-                    end
-                rescue ::Exception
+                    return full if stat.file? && stat.executable?
+                rescue ::Exception # rubocop:disable Lint/HandleExceptions
                 end
             end
             nil
@@ -737,9 +713,7 @@ module Autobuild
         def self.find_in_path(file, entries)
             entries.each do |dir|
                 full = File.join(dir, file)
-                if File.file?(full)
-                    return full
-                end
+                return full if File.file?(full)
             end
             nil
         end

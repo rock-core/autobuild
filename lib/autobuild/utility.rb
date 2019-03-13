@@ -28,7 +28,7 @@ module Autobuild
             @source_ref_dir = nil
             @source_dir = nil
             @target_dir = nil
-            @install_on_error = !!install_on_error
+            @install_on_error = install_on_error
         end
 
         # Directory in which the utility will generate some files The
@@ -43,9 +43,7 @@ module Autobuild
         # Absolute path to where this utulity should output its results. Returns nil if
         # {source_dir} has not been set.
         def source_dir
-            if @source_dir
-                File.expand_path(@source_dir, source_ref_dir || package.srcdir)
-            end
+            File.expand_path(@source_dir, source_ref_dir || package.srcdir) if @source_dir
         end
 
         # Directory in which the utility would install some files.
@@ -101,15 +99,11 @@ module Autobuild
 
             # Allow the user to install manually in the task
             # block
-            if !@installed && target_dir
-                install
-            end
+            install if !@installed && target_dir
         rescue Interrupt
             raise
         rescue ::Exception => e
-            if install_on_error? && !@installed && target_dir
-                install
-            end
+            install if install_on_error? && !@installed && target_dir
 
             if Autobuild.send("pass_#{name}_errors")
                 raise
@@ -189,7 +183,7 @@ module Autobuild
         #
         # @return [Boolean]
         def has_task?
-            !!Rake.application.lookup(task_name)
+            Rake.application.lookup(task_name)
         end
     end
 end

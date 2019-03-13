@@ -44,7 +44,7 @@ module Autobuild
             @temp_dirs = Array.new
 
             @tempdir = make_tmpdir
-            FileUtils.mkdir_p(@tempdir, :mode => 0700)
+            FileUtils.mkdir_p(@tempdir, mode: 0o700)
             Autobuild.logdir = "#{tempdir}/log"
             FileUtils.mkdir_p Autobuild.logdir
             Autobuild.silent = true
@@ -75,7 +75,7 @@ module Autobuild
         attr_reader :tempdir
 
         def build_config(bind, template)
-            eval "basedir = '#{tempdir}'", bind
+            bind.local_variable_set(:basedir, tempdir.to_s)
             ryml = File.open(File.join(data_dir, "#{template}.ryml"), &:readlines).join('')
             result = ERB.new(ryml).result(bind)
 

@@ -154,11 +154,11 @@ module Autobuild
         end
 
         DOXYGEN_ACCEPTED_VARIABLES = {
-            '@CMAKE_SOURCE_DIR@' => lambda { |pkg| pkg.srcdir },
-            '@PROJECT_SOURCE_DIR@' => lambda { |pkg| pkg.srcdir },
-            '@CMAKE_BINARY_DIR@' => lambda { |pkg| pkg.builddir },
-            '@PROJECT_BINARY_DIR@' => lambda { |pkg| pkg.builddir },
-            '@PROJECT_NAME@' => lambda { |pkg| pkg.name }
+            '@CMAKE_SOURCE_DIR@' => ->(pkg) { pkg.srcdir },
+            '@PROJECT_SOURCE_DIR@' => ->(pkg) { pkg.srcdir },
+            '@CMAKE_BINARY_DIR@' => ->(pkg) { pkg.builddir },
+            '@PROJECT_BINARY_DIR@' => ->(pkg) { pkg.builddir },
+            '@PROJECT_NAME@' => ->(pkg) { pkg.name }
         }.freeze
 
         class << self
@@ -224,16 +224,14 @@ module Autobuild
         # This method returns true if the package can use the internal doxygen
         # mode and false otherwise
         def internal_doxygen_mode?
-            if always_use_doc_target?
-                return false
-            end
+            return false if always_use_doc_target?
 
             doxyfile_in = File.join(srcdir, "Doxyfile.in")
             return false unless File.file?(doxyfile_in)
 
             File.readlines(doxyfile_in).each do |line|
                 matches = line.scan(/@[^@]+@/)
-                if matches.any? { |str| !DOXYGEN_ACCEPTED_VARIABLES.has_key?(str) }
+                if matches.any? { |str| !DOXYGEN_ACCEPTED_VARIABLES.key?(str) }
                     return false
                 end
             end
@@ -254,7 +252,8 @@ module Autobuild
         def run_doxygen
             doxyfile_in = File.join(srcdir, "Doxyfile.in")
             unless File.file?(doxyfile_in)
-                raise RuntimeError, "no Doxyfile.in in this package, cannot use the internal doxygen support"
+                raise "no Doxyfile.in in this package, "\
+                    "cannot use the internal doxygen support"
             end
             doxyfile_data = File.readlines(doxyfile_in).map do |line|
                 line.gsub(/@[^@]+@/) { |match| DOXYGEN_ACCEPTED_VARIABLES[match].call(self) }
@@ -381,9 +380,7 @@ module Autobuild
             # but no Makefile.
             #
             # Delete the CMakeCache to force reconfiguration
-            unless File.exist?(File.join(builddir, 'Makefile'))
-                FileUtils.rm_f cmake_cache
-            end
+            FileUtils.rm_f(cmake_cache) unless File.exist?(File.join(builddir, 'Makefile'))
 
             doc_utility.source_ref_dir = builddir
 
@@ -419,15 +416,11 @@ module Autobuild
                     all_defines.each do |name, value|
                         command << "-D#{name}=#{value}"
                     end
-                    if generator
-                        command << Array(generator).map { |g| "-G#{g}" }
-                    end
+                    command << Array(generator).map { |g| "-G#{g}" } if generator
                     command << srcdir
 
                     progress_start "configuring CMake for %s", :done_message => "configured CMake for %s" do
-                        if full_reconfigures?
-                            FileUtils.rm_f cmake_cache
-                        end
+                        FileUtils.rm_f cmake_cache if full_reconfigures?
                         run('configure', *command)
                     end
                 end
@@ -466,9 +459,7 @@ module Autobuild
                         if line =~ /\[\s*(\d+)%\]/
                             progress "building %s (#{Integer($1)}%)"
                         elsif line !~ /^(?:Generating|Linking|Scanning|Building|Built)/
-                            if line =~ /warning/
-                                warning_count += 1
-                            end
+                            warning_count += 1 if line =~ /warning/
                             if show_make_messages?
                                 current_message += line + "\n"
                                 needs_display = true
@@ -509,9 +500,7 @@ module Autobuild
                     run('install', Autobuild.tool(:make), "-j#{parallel_build_level}", 'install')
                 end
 
-                if delete_obsolete_files_in_prefix?
-                    delete_obsolete_files
-                end
+                delete_obsolete_files if delete_obsolete_files_in_prefix?
             end
             super
         end

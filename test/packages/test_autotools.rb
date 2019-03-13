@@ -158,13 +158,13 @@ module Autobuild
             describe "autodetection of changed flags" do
                 before do
                     FileUtils.mkdir_p @package.builddir
-                    File.open(@package.configurestamp, 'w', 0700) do |io|
+                    File.open(@package.configurestamp, 'w', 0o700) do |io|
                         io.puts "#! /bin/sh"
                         io.puts "echo garbage"
                         io.puts "echo \"blablabla with options \\\"--test --options --prefix=#{@package.prefix}\\\"\""
                         io.puts "echo garbage"
                     end
-                    File.open(File.join(@package.builddir, 'configure'), 'w', 0700).close
+                    File.open(File.join(@package.builddir, 'configure'), 'w', 0o700).close
                 end
 
                 it "reconfigures if flags have been removed" do
@@ -179,7 +179,7 @@ module Autobuild
                 end
 
                 it "reconfigures on envvar change if the envvar is part of configureflags" do
-                    File.open(@package.configurestamp, 'w', 0700) do |io|
+                    File.open(@package.configurestamp, 'w', 0o700) do |io|
                         io.puts "#! /bin/sh"
                         io.puts "echo garbage"
                         io.puts "echo \"blablabla with options \\\"ENV=VAR --prefix=#{@package.prefix}\\\"\""
@@ -191,7 +191,7 @@ module Autobuild
                 end
 
                 it "does not reconfigure on envvar change if the envvar is not part of configureflags" do
-                    File.open(@package.configurestamp, 'w', 0700) do |io|
+                    File.open(@package.configurestamp, 'w', 0o700) do |io|
                         io.puts "#! /bin/sh"
                         io.puts "echo garbage"
                         io.puts "echo \"blablabla with options \\\"ENV=VAR --prefix=#{@package.prefix}\\\"\""
@@ -209,12 +209,12 @@ module Autobuild
 
                 it "raises if no lines from config.status match the expected pattern" do
                     FileUtils.mkdir_p @package.builddir
-                    File.open(@package.configurestamp, 'w', 0700) do |io|
+                    File.open(@package.configurestamp, 'w', 0o700) do |io|
                         io.puts "#! /bin/sh"
                         io.puts "echo garbage"
                         io.puts "echo garbage"
                     end
-                    File.open(File.join(@package.builddir, 'configure'), 'w', 0700).close
+                    File.open(File.join(@package.builddir, 'configure'), 'w', 0o700).close
                     assert_raises(Autotools::UnexpectedConfigStatusOutput) { @package.prepare }
                 end
             end
@@ -534,4 +534,3 @@ module Autobuild
         end
     end
 end
-

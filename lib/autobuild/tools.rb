@@ -30,23 +30,24 @@ module Autobuild
         def tool_in_path(name, env: self.env)
             path, path_name, path_env = programs_in_path[name]
             current = tool(name)
-            env_PATH = env.resolved_env['PATH']
-            if (path_env != env_PATH) || (path_name != current)
+            env_path = env.resolved_env['PATH']
+            if (path_env != env_path) || (path_name != current)
                 # Delete the current entry given that it is invalid
                 programs_in_path.delete(name)
-                if current[0, 1] == "/"
-                    # This is already a full path
-                    path = current
-                else
-                    path = env.find_executable_in_path(current)
-                end
+                path =
+                    if current[0, 1] == "/"
+                        # This is already a full path
+                        current
+                    else
+                        env.find_executable_in_path(current)
+                    end
 
                 unless path
                     raise ArgumentError, "tool #{name}, set to #{current}, "\
-                        "can not be found in PATH=#{env_PATH}"
+                        "can not be found in PATH=#{env_path}"
                 end
 
-                programs_in_path[name] = [path, current, env_PATH]
+                programs_in_path[name] = [path, current, env_path]
             end
 
             path

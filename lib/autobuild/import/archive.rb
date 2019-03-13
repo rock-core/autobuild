@@ -7,6 +7,7 @@ require 'net/https'
 
 module Autobuild
     class ArchiveImporter < Importer
+        # rubocop:disable Naming/ConstantName
         # The tarball is not compressed
         Plain = 0
         # The tarball is compressed with gzip
@@ -15,6 +16,7 @@ module Autobuild
         Bzip  = 2
         # Not a tarball but a zip
         Zip   = 3
+        # rubocop:enable Naming/ConstantName
 
         TAR_OPTION = {
             Plain => '',
@@ -107,15 +109,11 @@ module Autobuild
             @update_cached_file
         end
 
-        def download_http(package, uri, filename, user: nil, password: nil,
-                current_time: nil)
+        def download_http(package, uri, filename, # rubocop:disable Metrics/ParameterLists
+                user: nil, password: nil, current_time: nil)
             request = Net::HTTP::Get.new(uri)
-            if current_time
-                request['If-Modified-Since'] = current_time.rfc2822
-            end
-            if user
-                request.basic_auth user, password
-            end
+            request['If-Modified-Since'] = current_time.rfc2822 if current_time
+            request.basic_auth(user, password) if user
 
             Net::HTTP.start(
                 uri.hostname, uri.port, use_ssl: uri.scheme == 'https') do |http|
@@ -172,15 +170,12 @@ module Autobuild
         def extract_tar_gz(io, target)
             Gem::Package::TarReader.new(io).each do |entry|
                 newname = File.join(
-                    target,
-                    entry.full_name.slice(entry.full_name.index('/'), entry.full_name.size))
-                if entry.directory?
-                    FileUtils.mkdir_p(newname)
-                end
+                    target, File.basename(entry.full_name))
+                FileUtils.mkdir_p(newname) if entry.directory?
                 if entry.file?
-                    dir = newname.slice(0, newname.rindex('/'))
+                    dir = File.dirname(newname)
                     FileUtils.mkdir_p(dir) unless File.directory?(dir)
-                    open(newname, "wb") do |file|
+                    File.open(newname, "wb") do |file|
                         file.write(entry.read)
                     end
                 end
@@ -199,9 +194,11 @@ module Autobuild
                 size  = File.stat(@url.path).size
                 mtime = File.stat(@url.path).mtime
             else
-                open @url, :content_length_proc => lambda { |v| size = v } do |file|
+                # rubocop:disable Security/Open
+                open @url, :content_length_proc => ->(v) { size = v } do |file|
                     mtime = file.last_modified
                 end
+                # rubocop:enable Security/Open
             end
 
             if mtime && size
@@ -387,11 +384,12 @@ module Autobuild
                 raise ConfigException, "authentication is only supported for http and https URIs"
             end
 
-            if @url.scheme == 'file'
-                @cachefile = @url.path
-            else
-                @cachefile = File.join(cachedir, filename)
-            end
+            @cachefile =
+                if @url.scheme == 'file'
+                    @url.path
+                else
+                    File.join(cachedir, filename)
+                end
         end
 
         def update(package, options = Hash.new) # :nodoc:
@@ -441,7 +439,7 @@ module Autobuild
                     response = 'yes'
                 elsif options[:allow_interactive]
                     package.progress_done
-                    package.message "The archive #{@url.to_s} is different from the one currently checked out at #{package.srcdir}", :bold
+                    package.message "The archive #{@url} is different from the one currently checked out at #{package.srcdir}", :bold
                     package.message "I will have to delete the current folder to go on with the update"
                     response = TTY::Prompt.new.ask "  Continue (yes or no) ? If no, this update will be ignored, which can lead to build problems.", convert: :bool
                 else
@@ -484,9 +482,7 @@ module Autobuild
             else
                 FileUtils.mkdir_p package.srcdir
                 cmd = ["x#{TAR_OPTION[mode]}f", cachefile, '-C', package.srcdir]
-                unless @options[:no_subdirectory]
-                    cmd << '--strip-components=1'
-                end
+                cmd << '--strip-components=1' unless @options[:no_subdirectory]
 
                 if Autobuild.windows?
                     io = if mode == Plain
@@ -502,9 +498,7 @@ module Autobuild
             write_checkout_digest_stamp(package)
             true
         rescue SubcommandFailed
-            if cachefile != url.path
-                FileUtils.rm_f cachefile
-            end
+            FileUtils.rm_f(cachefile) if cachefile != url.path
             raise
         end
     end

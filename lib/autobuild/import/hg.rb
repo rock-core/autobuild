@@ -29,10 +29,8 @@ module Autobuild
         # Changes the repository this importer is pointing to
         def relocate(repository, options = Hash.new)
             @repository = repository
-            @repository_id = options[:repository_id] ||
-                "hg:#{@repository}"
-            @source_id = options[:source_id] ||
-                "#{repository_id} branch=#{branch}"
+            @repository_id = options[:repository_id] || "hg:#{@repository}"
+            @source_id = options[:source_id] || "#{repository_id} branch=#{branch}"
         end
 
         # The remote repository URL.
@@ -60,11 +58,9 @@ module Autobuild
             true # no easy to know if package was updated, keep previous behavior
         end
 
-        def checkout(package, options = Hash.new)
+        def checkout(package, _options = Hash.new)
             base_dir = File.expand_path('..', package.importdir)
-            unless File.directory?(base_dir)
-                FileUtils.mkdir_p base_dir
-            end
+            FileUtils.mkdir_p(base_dir) unless File.directory?(base_dir)
 
             package.run(:import, Autobuild.tool('hg'), 'clone', '-u', branch, repository, package.importdir, retry: true)
         end

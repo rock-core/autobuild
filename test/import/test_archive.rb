@@ -105,7 +105,7 @@ module Autobuild
 
         def start_web_server(redirect_code: 301, redirect_to: '/files/data/tarimport.tar.gz')
             s = WEBrick::HTTPServer.new :Port => 2000, :DocumentRoot => tempdir
-            s.mount_proc "/redirect" do |req, res|
+            s.mount_proc "/redirect" do |_req, res|
                 res.status = redirect_code
                 res.header['location'] = redirect_to
             end
@@ -114,7 +114,7 @@ module Autobuild
             @webrick_server = s
             @webrick_thread = Thread.new { s.start }
 
-            while true
+            loop do
                 response = nil
                 Net::HTTP.start('localhost', 2000) do |http|
                     response = http.head '/files/data/tarimport.tar.gz'
@@ -137,7 +137,7 @@ module Autobuild
     end
 end
 
-class TC_TarImporter < Minitest::Test
+class TestTarImporter < Minitest::Test
     include Autobuild
     include WEBrick
 
@@ -161,12 +161,12 @@ class TC_TarImporter < Minitest::Test
         assert_equal(TarImporter::Bzip, TarImporter.filename_to_mode('tarfile.tar.bz2'))
     end
 
-    def test_it_sets_the_repository_id_to_the_normalized_URL
+    def test_it_sets_the_repository_id_to_the_normalized_url
         importer = TarImporter.new "FILE://test/file"
         assert_equal "file://test/file", importer.repository_id.to_str
     end
 
-    def test_it_sets_the_source_id_to_the_normalized_URL
+    def test_it_sets_the_source_id_to_the_normalized_url
         importer = TarImporter.new "FILE://test/file"
         assert_equal "file://test/file", importer.source_id.to_str
     end
@@ -181,9 +181,9 @@ class TC_TarImporter < Minitest::Test
     end
 
     def test_tar_valid_url
-        assert_raises(ConfigException) {
+        assert_raises(ConfigException) do
             TarImporter.new 'ccc://localhost/files/tarimport.tar.gz', :cachedir => @cachedir
-        }
+        end
     end
 
     def web_server
@@ -192,7 +192,6 @@ class TC_TarImporter < Minitest::Test
         t = Thread.new { s.start }
 
         yield
-
     ensure
         if s
             s.shutdown
@@ -230,7 +229,7 @@ class TC_TarImporter < Minitest::Test
             e = assert_raises(Autobuild::PackageException) { importer.checkout(pkg) }
             assert_equal pkg, e.target
             assert_equal 'import', e.phase
-            assert_match /NotFound/, e.message
+            assert_match(/NotFound/, e.message)
         end
     end
 end

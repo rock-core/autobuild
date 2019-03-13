@@ -11,8 +11,8 @@ if Autobuild::HAS_RMAIL
     module Autobuild
         class MailReporter < Reporter
             def default_mail
-                Etc::endpwent
-                uname = while (pwent = Etc::getpwent)
+                Etc.endpwent
+                uname = while (pwent = Etc.getpwent)
                             break pwent.name if pwent.uid == Process.uid
                         end
 
@@ -31,9 +31,7 @@ if Autobuild::HAS_RMAIL
             end
 
             def error(error)
-                if error.mail?
-                    send_mail("failed", error.to_s)
-                end
+                send_mail("failed", error.to_s) if error.mail?
             end
 
             def success
@@ -66,18 +64,18 @@ if Autobuild::HAS_RMAIL
                 if smtp_hostname =~ %r{/} && File.directory?(File.dirname(smtp_hostname))
                     File.open(smtp_hostname, 'w') do |io|
                         io.puts "From: #{from_email}"
-                        io.puts "To: #{to_email.join(" ")}"
+                        io.puts "To: #{to_email.join(' ')}"
                         io.write RMail::Serialize.write('', mail)
                     end
                     puts "saved notification email in #{smtp_hostname}"
                 else
                     smtp = Net::SMTP.new(smtp_hostname, smtp_port)
-                    smtp.start {
+                    smtp.start do
                         to_email.each do |email|
                             mail.header.to = email
                             smtp.send_mail RMail::Serialize.write('', mail), from_email, email
                         end
-                    }
+                    end
 
                     # Notify the sending
                     puts "sent notification mail to #{to_email} with source #{from_email}"
@@ -101,4 +99,4 @@ if Autobuild::HAS_RMAIL
             end
         end
     end
-end # if Autobuild::HAS_RMAIL
+end

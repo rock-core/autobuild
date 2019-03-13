@@ -2,6 +2,7 @@ require 'set'
 require 'autobuild/exceptions'
 require 'autobuild/reporting'
 require 'fcntl'
+require 'English'
 
 module Autobuild
     @logfiles = Set.new
@@ -80,13 +81,13 @@ module Autobuild
 
     # Returns the number of CPUs present on this system
     def self.autodetect_processor_count
-        if @processor_count
-            return @processor_count
-        end
+        return @processor_count if @processor_count
 
         if File.file?('/proc/cpuinfo')
             cpuinfo = File.readlines('/proc/cpuinfo')
-            physical_ids, core_count, processor_ids = [], [], []
+            physical_ids  = []
+            core_count    = []
+            processor_ids = []
             cpuinfo.each do |line|
                 case line
                 when /^processor\s+:\s+(\d+)$/
@@ -114,9 +115,7 @@ module Autobuild
             result = Open3.popen3("sysctl", "-n", "hw.ncpu") do |_, io, _|
                 io.read
             end
-            unless result.empty?
-                @processor_count = Integer(result.chomp.strip)
-            end
+            @processor_count = Integer(result.chomp.strip) unless result.empty?
         end
 
         # The format of the cpuinfo file is ... let's say not very standardized.
@@ -145,8 +144,8 @@ module Autobuild
     end
 end
 
-module Autobuild::Subprocess
-    class Failed < Exception
+module Autobuild::Subprocess # rubocop:disable Style/ClassAndModuleChildren
+    class Failed < RuntimeError
         attr_reader :status
 
         def retry?
@@ -220,12 +219,8 @@ module Autobuild::Subprocess
                 env_inherit: true,
                 encoding: 'BINARY'
 
-            if options[:input]
-                input_streams << File.open(options[:input])
-            end
-            if options[:input_streams]
-                input_streams += options[:input_streams]
-            end
+            input_streams << File.open(options[:input]) if options[:input]
+            input_streams.concat(options[:input_streams]) if options[:input_streams]
         end
 
         start_time = Time.now
@@ -256,7 +251,8 @@ module Autobuild::Subprocess
         end
 
         if Autobuild.verbose
-            Autobuild.message "#{target_name}: running #{command.join(" ")}\n    (output goes to #{logname})"
+            Autobuild.message "#{target_name}: running #{command.join(' ')}\n"\
+                "    (output goes to #{logname})"
         end
 
         open_flag = if Autobuild.keep_oldlogs then 'a'
@@ -271,19 +267,15 @@ module Autobuild::Subprocess
         env = options[:env].dup
         if options[:env_inherit]
             ENV.each do |k, v|
-                unless env.has_key?(k)
-                    env[k] = v
-                end
+                env[k] = v unless env.key?(k)
             end
         end
 
         status = File.open(logname, open_flag) do |logfile|
-            if Autobuild.keep_oldlogs
-                logfile.puts
-            end
+            logfile.puts if Autobuild.keep_oldlogs
             logfile.puts
             logfile.puts "#{Time.now}: running"
-            logfile.puts "    #{command.join(" ")}"
+            logfile.puts "    #{command.join(' ')}"
             logfile.puts "with environment:"
             env.keys.sort.each do |key|
                 if (value = env[key])
@@ -292,7 +284,7 @@ module Autobuild::Subprocess
             end
             logfile.puts
             logfile.puts "#{Time.now}: running"
-            logfile.puts "    #{command.join(" ")}"
+            logfile.puts "    #{command.join(' ')}"
             logfile.flush
             logfile.sync = true
 
@@ -309,7 +301,7 @@ module Autobuild::Subprocess
             if Autobuild.windows?
                 Dir.chdir(options[:working_directory]) do
                     unless system(*command)
-                        raise Failed.new($?.exitstatus, nil),
+                        raise Failed.new($CHILD_STATUS.exitstatus, nil),
                             "'#{command.join(' ')}' returned status #{status.exitstatus}"
                     end
                 end
@@ -389,9 +381,7 @@ module Autobuild::Subprocess
             end
 
             transparent_prefix = "#{target_name}:#{phase}: "
-            if target_type
-                transparent_prefix = "#{target_type}:#{transparent_prefix}"
-            end
+            transparent_prefix = "#{target_type}:#{transparent_prefix}" if target_type
 
             # If the caller asked for process output, provide it to him
             # line-by-line.
@@ -445,12 +435,11 @@ module Autobuild::Subprocess
         Autobuild.add_stat(target, phase, duration)
         FileUtils.mkdir_p(Autobuild.logdir)
         File.open(File.join(Autobuild.logdir, "stats.log"), 'a') do |io|
-            formatted_time = "#{start_time.strftime('%F %H:%M:%S')}.#{'%.03i' % [start_time.tv_usec / 1000]}"
+            formatted_msec = format('%.03i', start_time.tv_usec / 1000)
+            formatted_time = "#{start_time.strftime('%F %H:%M:%S')}.#{formatted_msec}"
             io.puts "#{formatted_time} #{target_name} #{phase} #{duration}"
         end
-        if target.respond_to?(:add_stat)
-            target.add_stat(phase, duration)
-        end
+        target.add_stat(phase, duration) if target.respond_to?(:add_stat)
         subcommand_output
     rescue Failed => e
         error = Autobuild::SubcommandFailed.new(target, command.join(" "), logname, e.status, subcommand_output)

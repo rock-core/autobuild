@@ -19,9 +19,7 @@ module Autobuild
 
             exclude = self.exclude.dup
             exclude << Regexp.new("^#{Regexp.quote(installstamp)}")
-            if doc_dir
-                exclude << Regexp.new("^#{Regexp.quote(doc_dir)}")
-            end
+            exclude << Regexp.new("^#{Regexp.quote(doc_dir)}") if doc_dir
 
             source_tree(srcdir) do |pkg|
                 pkg.exclude.concat exclude

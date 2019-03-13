@@ -175,13 +175,13 @@ module Autobuild
             end
 
             it "injects the current value in the placeholder for 'update' values" do
-                @export.update['BLA'] = [['a', 'b', '$BLA', 'c'], []]
+                @export.update['BLA'] = [%w[a b $BLA c], []]
                 assert_equal Hash['BLA' => 'a:b:1:c'], Environment.
                     environment_from_export(@export, 'BLA' => '1')
             end
 
             it "returns the without-inheritance value if the current env entry is unset" do
-                @export.update['BLA'] = [['a', 'b', '$BLA', 'c'], ['d', 'e', 'f']]
+                @export.update['BLA'] = [%w[a b $BLA c], %w[d e f]]
                 assert_equal Hash['BLA' => 'd:e:f'], Environment.
                     environment_from_export(@export, Hash.new)
             end

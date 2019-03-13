@@ -15,11 +15,12 @@ module Autobuild
     # The matching paths will not be considered when looking if a source tree
     # has been updated or not.
     def self.ignore(path)
-        if path.kind_of?(Regexp)
-            ignored_files << path
-        else
-            ignored_files << Regexp.new("^#{Regexp.quote(path)}")
-        end
+        ignored_files <<
+            if path.kind_of?(Regexp)
+                path
+            else
+                Regexp.new("^#{Regexp.quote(path)}")
+            end
     end
 
     def self.tree_timestamp(path, *exclude)
@@ -64,12 +65,10 @@ module Autobuild
         end
 
         def timestamp
-            if @newest_time
-                return @newest_time
-            end
+            return @newest_time if @newest_time
 
             @newest_file, @newest_time =
-                Autobuild.tree_timestamp(name, %r#(?:^|/)(?:CVS|_darcs|\.svn)$#, *@exclude)
+                Autobuild.tree_timestamp(name, %r{(?:^|/)(?:CVS|_darcs|\.svn)$}, *@exclude)
             @newest_time
         end
     end
