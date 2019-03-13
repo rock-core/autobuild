@@ -194,10 +194,11 @@ module Autobuild
                     msg = messages.shift.strip
                     margin = messages.empty? ? 1 : 2
                     if lines.last.size + margin + msg.size > width
+                        lines.last << ","
                         lines << "".dup
                         lines.last << indent << indent << msg
                     else
-                        lines.last << " " << msg
+                        lines.last << ", " << msg
                     end
                 end
                 lines.last << "," unless messages.empty?
