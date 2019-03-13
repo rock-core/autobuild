@@ -10,13 +10,13 @@ module Autobuild
         #
         # This importer uses the 'hg' tool to perform the
         # import. It defaults to 'hg' and can be configured by
-        # doing 
+        # doing
         #   Autobuild.programs['hg'] = 'my_git_tool'
         #
         # @param [String] repository the repository URL
         # @option options [String] :branch (default) the branch to track
         def initialize(repository, options = {})
-            hgopts, common = Kernel.filter_options options,
+            hgopts, _common = Kernel.filter_options options,
                 branch: 'default'
             sourceopts, common = Kernel.filter_options options,
                 :repository_id, :source_id
@@ -32,7 +32,7 @@ module Autobuild
             @repository_id = options[:repository_id] ||
                 "hg:#{@repository}"
             @source_id = options[:source_id] ||
-                "#{self.repository_id} branch=#{self.branch}"
+                "#{repository_id} branch=#{branch}"
         end
 
         # The remote repository URL.
@@ -44,7 +44,7 @@ module Autobuild
         # Raises ConfigException if the current directory is not a hg
         # repository
         def validate_importdir(package)
-            if !File.directory?(File.join(package.importdir, '.hg'))
+            unless File.directory?(File.join(package.importdir, '.hg'))
                 raise ConfigException.new(package, 'import'), "while importing #{package.name}, #{package.importdir} is not a hg repository"
             end
         end
@@ -62,7 +62,7 @@ module Autobuild
 
         def checkout(package, options = Hash.new)
             base_dir = File.expand_path('..', package.importdir)
-            if !File.directory?(base_dir)
+            unless File.directory?(base_dir)
                 FileUtils.mkdir_p base_dir
             end
 
@@ -78,4 +78,3 @@ module Autobuild
         Hg.new(repository, options)
     end
 end
-

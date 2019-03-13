@@ -3,7 +3,6 @@ module Autobuild
     class ProgressDisplay
         def initialize(io, color: ::Autobuild.method(:color))
             @io = io
-            #@cursor = Blank.new
             @cursor = TTY::Cursor
             @last_formatted_progress = []
             @progress_messages = []
@@ -116,7 +115,6 @@ module Autobuild
             end
         end
 
-
         def display_progress
             return unless progress_enabled?
 
@@ -137,13 +135,11 @@ module Autobuild
             msg.each_with_index do |token, idx|
                 if other_msg[idx] != token
                     prefix = msg[0..(idx - 1)].join(" ")
-                    if !prefix.empty?
-                        prefix << " "
-                    end
+                    prefix << " " unless prefix.empty?
                     return prefix
                 end
             end
-            return msg.join(" ")
+            msg.join(" ")
         end
 
         def group_messages(messages)
@@ -156,7 +152,7 @@ module Autobuild
                 messages[(idx + 1)..-1].each_with_index do |other_msg, other_idx|
                     other_idx += idx + 1
                     prefix ||= find_common_prefix(msg, other_msg)
-                    break if !other_msg.start_with?(prefix)
+                    break unless other_msg.start_with?(prefix)
 
                     if grouping
                         break if prefix != groups.last[0]
@@ -164,7 +160,8 @@ module Autobuild
                     else
                         current_prefix, current_group = groups.last
                         if prefix.size > current_prefix.size # create a new group from there
-                            groups.last[1] = (current_group.first..[idx-1,current_group.last].min)
+                            group_end_index = [idx - 1, current_group.last].min
+                            groups.last[1] = (current_group.first..group_end_index)
                             groups << [prefix, [idx, other_idx]]
                             grouping = true
                         else break
@@ -184,8 +181,8 @@ module Autobuild
             end.compact
         end
 
-        def format_grouped_messages(messages, indent: "  ", width: TTY::Screen.width)
-            groups = group_messages(messages)
+        def format_grouped_messages(raw_messages, indent: "  ", width: TTY::Screen.width)
+            groups = group_messages(raw_messages)
             groups.each_with_object([]) do |(prefix, messages), lines|
                 if prefix.empty?
                     lines.concat(messages.map { |m| "#{indent}#{m.strip}" })

@@ -27,7 +27,7 @@ module Autobuild
             # @see default_alternates=, Git#alternates
             def default_alternates
                 if @default_alternates then @default_alternates
-                elsif cache_dirs = Importer.cache_dirs('git')
+                elsif (cache_dirs = Importer.cache_dirs('git'))
                     @default_alternates = cache_dirs.map { |path| File.join(File.expand_path(path), '%s') }
                 else Array.new
                 end
@@ -240,13 +240,17 @@ module Autobuild
         # True if it is allowed to merge remote updates automatically. If false
         # (the default), the import will fail if the updates do not resolve as
         # a fast-forward
-        def merge?; !!@merge end
+        def merge?
+            @merge
+        end
 
         # Set the merge flag. See #merge?
-        def merge=(flag); @merge = flag end
+        attr_writer :merge
 
         # Whether the git checkout should be done with submodules
-        def with_submodules?; !!@with_submodules end
+        def with_submodules?
+            !!@with_submodules
+        end
 
         # Whether 'clone' should fetch only the remote branch, or all the
         # branches
@@ -264,7 +268,7 @@ module Autobuild
         # Verifies that the package's {Package#importdir} points to a git
         # repository
         def validate_importdir(package)
-            return git_dir(package, true)
+            git_dir(package, true)
         end
 
         # @api private
@@ -277,7 +281,7 @@ module Autobuild
         #  :bare or :normal, or nil if path is not a git repository.
         def self.resolve_git_dir(path)
             dir = File.join(path, '.git')
-            if !File.exist?(dir)
+            unless File.exist?(dir)
                 dir = path
             end
 
@@ -355,10 +359,10 @@ module Autobuild
         # @raise [ArgumentError] if one of the tags is unknown
         def delta_between_tags(package, from_tag, to_tag)
             pkg_tags = tags(package)
-            if not pkg_tags.has_key?(from_tag)
+            unless pkg_tags.has_key?(from_tag)
                 raise ArgumentError, "tag '#{from_tag}' is unknown to #{package.name} -- known tags are: #{pkg_tags.keys}"
             end
-            if not pkg_tags.has_key?(to_tag)
+            unless pkg_tags.has_key?(to_tag)
                 raise ArgumentError, "tag '#{to_tag}' is unknown to #{package.name} -- known tags are: #{pkg_tags.keys}"
             end
 
@@ -377,14 +381,14 @@ module Autobuild
         # @return [Hash<String,String>] a mapping from a tag name to its commit
         #   ID
         def tags(package, options = Hash.new)
-            if !options.fetch(:only_local, false)
+            unless options.fetch(:only_local, false)
                 run_git_bare(package, 'fetch', '--tags')
             end
             tag_list = run_git_bare(package, 'show-ref', '--tags').map(&:strip)
             tags = Hash.new
             tag_list.each do |entry|
                 commit_to_tag = entry.split(" ")
-                tags[commit_to_tag[1].sub("refs/tags/","")] = commit_to_tag[0]
+                tags[commit_to_tag[1].sub("refs/tags/", "")] = commit_to_tag[0]
             end
             tags
         end
@@ -443,7 +447,7 @@ module Autobuild
         def setup_remote(package, remote_name, repository, push_to = repository)
             run_git_bare(package, 'config', '--replace-all', "remote.#{remote_name}.url", repository)
             run_git_bare(package, 'config', '--replace-all', "remote.#{remote_name}.pushurl", push_to || repository)
-            run_git_bare(package, 'config', '--replace-all', "remote.#{remote_name}.fetch",  "+refs/heads/*:refs/remotes/#{remote_name}/*")
+            run_git_bare(package, 'config', '--replace-all', "remote.#{remote_name}.fetch", "+refs/heads/*:refs/remotes/#{remote_name}/*")
 
             if remote_branch && local_branch
                 run_git_bare(package, 'config', '--replace-all', "remote.#{remote_name}.push",  "refs/heads/#{local_branch}:#{remote_branch_to_ref(remote_branch)}")
@@ -473,7 +477,7 @@ module Autobuild
             end
 
             if local_branch
-                run_git_bare(package, 'config', '--replace-all', "branch.#{local_branch}.remote",  remote_name)
+                run_git_bare(package, 'config', '--replace-all', "branch.#{local_branch}.remote", remote_name)
                 run_git_bare(package, 'config', '--replace-all', "branch.#{local_branch}.merge", remote_branch_to_ref(local_branch))
             end
         end
@@ -481,10 +485,10 @@ module Autobuild
         # Resolve a commit ref to a tag or commit ID
         def describe_rev(package, rev)
             tag = run_git_bare(package, 'describe', '--tags', '--exact-match', rev).first.strip
-            return true, tag.encode('UTF-8')
+            [true, tag.encode('UTF-8')]
         rescue Autobuild::SubcommandFailed
             commit = rev_parse(package, rev)
-            return false, commit.encode('UTF-8')
+            [false, commit.encode('UTF-8')]
         end
 
         # Enumerates the ref that are present on the remote
@@ -492,7 +496,7 @@ module Autobuild
         # @yieldparam [String] ref_name the ref name
         # @yieldparam [String] commit_id the ref's commit ID
         def each_remote_ref(package)
-            return enum_for(__method__, package) if !block_given?
+            return enum_for(__method__, package) unless block_given?
             run_git_bare(package, 'ls-remote', repository).each do |line|
                 commit_id, ref_name = line.split(/\s+/)
                 if ref_name !~ /\^/
@@ -508,7 +512,7 @@ module Autobuild
         # package's source directory.
         def fetch_remote(package, options = Hash.new)
             validate_importdir(package)
-            if !options[:refspec]
+            unless options[:refspec]
                 raise ArgumentError, "required argument 'refspec' not given"
             end
 
@@ -532,13 +536,14 @@ module Autobuild
 
             # Now get the actual commit ID from the FETCH_HEAD file, and
             # return it
-            if File.readable?( File.join(git_dir, 'FETCH_HEAD') )
-                fetched_commits = File.readlines( File.join(git_dir, 'FETCH_HEAD') ).
+            if File.readable?(File.join(git_dir, 'FETCH_HEAD'))
+                fetched_commits = File.readlines(File.join(git_dir, 'FETCH_HEAD')).
                     find_all { |l| l !~ /not-for-merge/ }.
                     map { |line| line.split(/\s+/).first }
-                refspec.zip(fetched_commits).each do |refspec, commit_id|
-                    if refspec =~ /^refs\/heads\/(.*)$/
-                        run_git_bare(package, 'update-ref', "-m", "updated by autobuild", "refs/remotes/#{remote_name}/#{$1}", commit_id)
+                refspec.zip(fetched_commits).each do |spec, commit_id|
+                    if spec =~ %r{^refs/heads/(.*)$}
+                        run_git_bare(package, 'update-ref', "-m", "updated by autobuild",
+                            "refs/remotes/#{remote_name}/#{$1}", commit_id)
                     end
                 end
 
@@ -576,7 +581,7 @@ module Autobuild
         #   one is returned by this method
         # @return [String] the commit ID as a string
         def current_remote_commit(package, options = Hash.new)
-            if !options.kind_of?(Hash)
+            unless options.kind_of?(Hash)
                 options = Hash[only_local: options]
             end
             only_local = options.delete(:only_local)
@@ -617,11 +622,11 @@ module Autobuild
             end
 
             validate_importdir(package)
-            pinned_state, target_commit, _ = determine_target_state(package, only_local: only_local)
+            _pinned_state, target_commit, = determine_target_state(package, only_local: only_local)
 
             status = merge_status(package, target_commit)
             status.uncommitted_code = self.class.has_uncommitted_changes?(package)
-            if current_branch = self.current_branch(package)
+            if (current_branch = self.current_branch(package))
                 if current_branch != "refs/heads/#{local_branch}"
                     status.unexpected_working_copy_state << "working copy is on branch #{current_branch}, the autoproj configuration expected it to be on #{local_branch}"
                 end
@@ -675,16 +680,13 @@ module Autobuild
         def current_branch(package)
             run_git_bare(package, 'symbolic-ref', 'HEAD', '-q').first.strip
         rescue SubcommandFailed => e
-            if e.status == 1
-                return
-            else raise
-            end
+            raise if e.status != 1
         end
 
         # Checks if the current branch is the target branch. Expects that the
         # current directory is the package's directory
         def on_local_branch?(package)
-            if current_branch = self.current_branch(package)
+            if (current_branch = self.current_branch(package))
                 current_branch == "refs/heads/#{local_branch}"
             end
         end
@@ -773,7 +775,6 @@ module Autobuild
             begin
                 merge_base = run_git_bare(package, 'merge-base', commit, reference).first
                 merge_base == commit
-
             rescue Exception
                 raise PackageException.new(package, 'import'), "failed to find the merge-base between #{rev} and #{reference}. Are you sure these commits exist ?"
             end
@@ -808,15 +809,15 @@ module Autobuild
                 end
             end
 
-            if !options[:tags]
-                remote_refs.delete_if { |r| r =~ /^refs\/tags\// }
+            unless options[:tags]
+                remote_refs.delete_if { |r| r =~ %r{^refs/tags/} }
             end
 
             # Prefer tags, then heads, then the rest (e.g. github pull requests)
             remote_refs = remote_refs.sort_by do |rev_name, rev_id|
                 case rev_name
-                when /^refs\/tags\// then 0
-                when /^refs\/heads\// then 1
+                when %r{^refs/tags/} then 0
+                when %r{^refs/heads/} then 1
                 else 2
                 end
             end
@@ -832,7 +833,7 @@ module Autobuild
                 end
             end
 
-            if !remote_refs.empty?
+            unless remote_refs.empty?
                 fetch_remote(package, refspec: remote_refs.map(&:first))
                 remote_refs.each do |rev_name, rev_id|
                     if commit_present_in?(package, commit_id, rev_id)
@@ -898,7 +899,7 @@ module Autobuild
                 File.join(path, 'objects')
             end
 
-            if !(current_alternates.sort - alternates.sort).empty?
+            unless (current_alternates.sort - alternates.sort).empty?
                 # Warn that something is fishy, but assume that the user knows
                 # what he is doing
                 package.warn "%s: the list of git alternates listed in the repository differs from the one set up in autobuild."
@@ -946,7 +947,7 @@ module Autobuild
                 # Check whether the current HEAD is present on the remote
                 # repository. We'll refuse resetting if there are uncommitted
                 # changes
-                if !commit_present_in?(package, current_head, fetch_commit)
+                unless commit_present_in?(package, current_head, fetch_commit)
                     raise ImporterCannotReset.new(package, 'import'),
                         "branch #{local_branch} of #{package.name} contains"\
                         " commits that do not seem to be present on the branch"\
@@ -986,7 +987,7 @@ module Autobuild
                 end
 
             if pinned_state
-                if !has_commit?(package, pinned_state)
+                unless has_commit?(package, pinned_state)
                     fetch_commit = current_remote_commit(
                         package,
                         only_local: only_local,
@@ -994,13 +995,12 @@ module Autobuild
                 end
                 target_commit = pinned_state = rev_parse(package, pinned_state)
             else
-                target_commit = fetch_commit  =
+                target_commit = fetch_commit =
                     current_remote_commit(package, only_local: only_local)
             end
 
-            return pinned_state, target_commit, fetch_commit
+            [pinned_state, target_commit, fetch_commit]
         end
-
 
         # @option (see Package#update)
         def update(package, options = Hash.new)
@@ -1085,7 +1085,7 @@ module Autobuild
         end
 
         def each_alternate_path(package)
-            return enum_for(__method__, package) if !block_given?
+            return enum_for(__method__, package) unless block_given?
 
             alternates.each do |path|
                 path = path % [package.name]
@@ -1114,7 +1114,7 @@ module Autobuild
 
         def checkout(package, options = Hash.new)
             base_dir = File.expand_path('..', package.importdir)
-            if !File.directory?(base_dir)
+            unless File.directory?(base_dir)
                 FileUtils.mkdir_p base_dir
             end
 
@@ -1171,7 +1171,7 @@ module Autobuild
             @repository_id = options[:repository_id] ||
                 "git:#{@repository}"
             @source_id = options[:source_id] ||
-                "#{@repository_id} branch=#{remote_branch} tag=#{self.tag} commit=#{self.commit}"
+                "#{@repository_id} branch=#{remote_branch} tag=#{tag} commit=#{commit}"
         end
 
         # Tests whether the given directory is a git repository
@@ -1185,8 +1185,9 @@ module Autobuild
         #
         # @raise [ArgumentError] if the path does not point to a git repository
         def self.vcs_definition_for(path, remote_name = 'autobuild')
-            if !can_handle?(path)
-                raise ArgumentError, "#{path} is either not a git repository, or a bare git repository"
+            unless can_handle?(path)
+                raise ArgumentError, "#{path} is neither a git repository, "\
+                    "nor a bare git repository"
             end
 
             Dir.chdir(path) do
@@ -1208,8 +1209,9 @@ module Autobuild
         end
 
         def declare_alternate_repository(name, repository, options = Hash.new)
-            if !name
-                raise ArgumentError, "cannot declare alternate repository #{repository} without a name"
+            unless name
+                raise ArgumentError, "cannot declare alternate repository "\
+                    "#{repository} without a name"
             end
             additional_remotes << [name, repository, options[:push_to] || repository]
         end
@@ -1221,4 +1223,3 @@ module Autobuild
         Git.new(repository, branch, options)
     end
 end
-

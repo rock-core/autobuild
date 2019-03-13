@@ -10,7 +10,10 @@ module Autobuild
 
         def disable!
             @already_invoked = true
-            def self.needed?; false end
+
+            def self.needed?
+                false
+            end
         end
     end
 end

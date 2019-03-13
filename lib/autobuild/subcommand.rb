@@ -24,9 +24,11 @@ module Autobuild
     def self.statistics
         @statistics
     end
+
     def self.reset_statistics
         @statistics = Hash.new
     end
+
     def self.add_stat(package, phase, duration)
         if !@statistics[package]
             @statistics[package] = { phase => duration }
@@ -36,6 +38,7 @@ module Autobuild
             @statistics[package][phase] += duration
         end
     end
+
     reset_statistics
 
     @parallel_build_level = nil
@@ -52,9 +55,8 @@ module Autobuild
         def displayed_error_line_count=(value)
             @displayed_error_line_count = validate_displayed_error_line_count(value)
         end
-        def displayed_error_line_count
-            @displayed_error_line_count
-        end
+
+        attr_reader :displayed_error_line_count
 
         # Returns the number of processes that can run in parallel during the
         # build. This is a system-wide value that can be overriden in a
@@ -112,14 +114,14 @@ module Autobuild
             result = Open3.popen3("sysctl", "-n", "hw.ncpu") do |_, io, _|
                 io.read
             end
-            if !result.empty?
+            unless result.empty?
                 @processor_count = Integer(result.chomp.strip)
             end
         end
 
         # The format of the cpuinfo file is ... let's say not very standardized.
         # If the cpuinfo detection fails, inform the user and set it to 1
-        if !@processor_count
+        unless @processor_count
             # Hug... What kind of system is it ?
             Autobuild.message "INFO: cannot autodetect the number of CPUs on this sytem"
             Autobuild.message "INFO: turning parallel builds off"
@@ -143,11 +145,13 @@ module Autobuild
     end
 end
 
-
 module Autobuild::Subprocess
     class Failed < Exception
-        def retry?; @retry end
         attr_reader :status
+
+        def retry?
+            @retry
+        end
 
         def initialize(status, do_retry)
             @status = status
@@ -227,8 +231,8 @@ module Autobuild::Subprocess
         start_time = Time.now
 
         # Filter nil and empty? in command
-        command.reject!  { |o| o.nil? || (o.respond_to?(:empty?) && o.empty?) }
-        command.collect! { |o| o.to_s }
+        command.reject! { |o| o.nil? || (o.respond_to?(:empty?) && o.empty?) }
+        command.collect!(&:to_s)
 
         if target.respond_to?(:name)
             target_name = target.name
@@ -246,8 +250,8 @@ module Autobuild::Subprocess
             options[:working_directory] ||= target.working_directory
         end
 
-        logname = File.join(logdir, "#{target_name.gsub(/[:]/,'_')}-#{phase.to_s.gsub(/[:]/,'_')}.log")
-        if !File.directory?(File.dirname(logname))
+        logname = File.join(logdir, "#{target_name.gsub(/[:]/, '_')}-#{phase.to_s.gsub(/[:]/, '_')}.log")
+        unless File.directory?(File.dirname(logname))
             FileUtils.mkdir_p File.dirname(logname)
         end
 
@@ -267,7 +271,7 @@ module Autobuild::Subprocess
         env = options[:env].dup
         if options[:env_inherit]
             ENV.each do |k, v|
-                if !env.has_key?(k)
+                unless env.has_key?(k)
                     env[k] = v
                 end
             end
@@ -282,7 +286,7 @@ module Autobuild::Subprocess
             logfile.puts "    #{command.join(" ")}"
             logfile.puts "with environment:"
             env.keys.sort.each do |key|
-                if value = env[key]
+                if (value = env[key])
                     logfile.puts "  '#{key}'='#{value}'"
                 end
             end
@@ -292,7 +296,7 @@ module Autobuild::Subprocess
             logfile.flush
             logfile.sync = true
 
-            if !input_streams.empty?
+            unless input_streams.empty?
                 pread, pwrite = IO.pipe # to feed subprocess stdin
             end
 
@@ -304,12 +308,12 @@ module Autobuild::Subprocess
 
             if Autobuild.windows?
                 Dir.chdir(options[:working_directory]) do
-                    if !system(*command)
+                    unless system(*command)
                         raise Failed.new($?.exitstatus, nil),
                             "'#{command.join(' ')}' returned status #{status.exitstatus}"
                     end
                 end
-                return
+                return # rubocop:disable Lint/NonLocalExitFromIterator
             end
 
             cwrite.fcntl(Fcntl::F_SETFD, Fcntl::FD_CLOEXEC)
@@ -330,7 +334,7 @@ module Autobuild::Subprocess
                     $stderr.reopen(outwrite.dup)
                     $stdout.reopen(outwrite.dup)
 
-                    if !input_streams.empty?
+                    unless input_streams.empty?
                         pwrite.close
                         $stdin.reopen(pread)
                     end
@@ -351,7 +355,7 @@ module Autobuild::Subprocess
             readbuffer = StringIO.new
 
             # Feed the input
-            if !input_streams.empty?
+            unless input_streams.empty?
                 pread.close
                 begin
                     input_streams.each do |instream|
@@ -393,7 +397,7 @@ module Autobuild::Subprocess
             # line-by-line.
             outwrite.close
 
-            if !input_streams.empty?
+            unless input_streams.empty?
                 readbuffer.write(outread.read)
                 readbuffer.seek(0)
                 outread.close
@@ -448,7 +452,6 @@ module Autobuild::Subprocess
             target.add_stat(phase, duration)
         end
         subcommand_output
-
     rescue Failed => e
         error = Autobuild::SubcommandFailed.new(target, command.join(" "), logname, e.status, subcommand_output)
         error.retry = if e.retry?.nil? then options[:retry]
@@ -457,5 +460,4 @@ module Autobuild::Subprocess
         error.phase = phase
         raise error, e.message
     end
-
 end

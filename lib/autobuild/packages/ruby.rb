@@ -22,7 +22,7 @@ module Autobuild
         def initialize(*args)
             self.rake_setup_task = "default"
             self.rake_doc_task   = "redocs"
-            self.rake_clean_task   = "clean"
+            self.rake_clean_task = "clean"
             self.rake_test_task  = "test"
             self.rake_test_options = []
 
@@ -109,4 +109,3 @@ module Autobuild
         Ruby.new(spec, &proc)
     end
 end
-

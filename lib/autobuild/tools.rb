@@ -2,7 +2,7 @@ module Autobuild
     class << self
         # Configure the programs used by different packages
         attr_reader :programs
-        # A cache of entries in programs to their resolved full path 
+        # A cache of entries in programs to their resolved full path
         #
         # @return [{String=>[String,String,String]}] the triplet (full path,
         #   tool name, value of ENV['PATH']). The last two values are used to
@@ -13,7 +13,7 @@ module Autobuild
 
         # Get a given program, using its name as default value. For
         # instance
-        #   tool('automake') 
+        #   tool('automake')
         # will return 'automake' unless the autobuild script defined
         # another automake program in Autobuild.programs by doing
         #   Autobuild.programs['automake'] = 'automake1.9'
@@ -41,18 +41,18 @@ module Autobuild
                     path = env.find_executable_in_path(current)
                 end
 
-                if !path
-                    raise ArgumentError, "tool #{name}, set to #{current}, can not be found in PATH=#{env_PATH}"
+                unless path
+                    raise ArgumentError, "tool #{name}, set to #{current}, "\
+                        "can not be found in PATH=#{env_PATH}"
                 end
 
                 programs_in_path[name] = [path, current, env_PATH]
             end
 
-            return path
+            path
         end
     end
 
     @programs = Hash.new
     @programs_in_path = Hash.new
 end
-

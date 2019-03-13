@@ -121,8 +121,8 @@ module Autobuild
             if @orogen_file
                 @orogen_file
             else
-                return if !File.directory?(srcdir)
-                    
+                return unless File.directory?(srcdir)
+
                 Dir.glob(File.join(srcdir, '*.orogen')) do |path|
                     return File.basename(path)
                 end
@@ -141,7 +141,7 @@ module Autobuild
 
         def prepare_for_forced_build
             super
-            FileUtils.rm_f genstamp 
+            FileUtils.rm_f genstamp
         end
 
         def update_environment
@@ -187,7 +187,9 @@ module Autobuild
             super
         end
 
-        def genstamp; File.join(srcdir, '.orogen', 'orogen-stamp') end
+        def genstamp
+            File.join(srcdir, '.orogen', 'orogen-stamp')
+        end
 
         def add_cmd_to_cmdline(cmd, cmdline)
             if cmd =~ /^([\w-]+)$/
@@ -210,7 +212,7 @@ module Autobuild
             cmdline << '--corba' if corba
 
             ext_states = extended_states
-            if !ext_states.nil?
+            unless ext_states.nil?
                 cmdline.delete_if { |str| str =~ /extended-states/ }
                 if ext_states
                     cmdline << '--extended-states'
@@ -220,19 +222,19 @@ module Autobuild
             end
 
             @orogen_tool_path = find_in_path 'orogen'
-            if !orogen_tool_path
+            unless orogen_tool_path
                 raise ArgumentError, "cannot find 'orogen' in #{resolved_env['PATH']}"
             end
 
             version = orogen_version
-            if !version
+            unless version
                 raise ArgumentError, "cannot determine the orogen version"
             end
 
-            if (version >= "1.0")
+            if version >= "1.0"
                 cmdline << "--parallel-build=#{parallel_build_level}"
             end
-            if (version >= "1.1")
+            if version >= "1.1"
                 cmdline << "--type-export-policy=#{Orogen.default_type_export_policy}"
                 cmdline << "--transports=#{Orogen.transports.sort.uniq.join(",")}"
             end
@@ -294,4 +296,3 @@ module Autobuild
         end
     end
 end
-

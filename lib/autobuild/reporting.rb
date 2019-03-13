@@ -16,6 +16,7 @@ module Autobuild
         def color?
             @colorizer.enabled?
         end
+
         def color(message, *style)
             @colorizer.decorate(message, *style)
         end
@@ -31,6 +32,7 @@ module Autobuild
         def silent?
             @display.silent?
         end
+
         def silent=(flag)
             @display.silent = flag
         end
@@ -122,14 +124,14 @@ module Autobuild
         # @param [Symbol] on_package_failures how does the reporting should behave.
         #
         def self.report_finish_on_error(errors, on_package_failures: default_report_on_package_failures, interrupted_by: nil)
-            if not_package_error = errors.find { |e| !e.respond_to?(:fatal?) }
+            if (not_package_error = errors.find { |e| !e.respond_to?(:fatal?) })
                 raise not_package_error
             end
-            if ![:raise, :report_silent, :exit_silent].include?(on_package_failures)
+            unless %i[raise report_silent exit_silent].include?(on_package_failures)
                 errors.each { |e| error(e) }
             end
             fatal = errors.any?(&:fatal?)
-            if !fatal
+            unless fatal
                 if interrupted_by
                     raise interrupted_by
                 else
@@ -146,13 +148,13 @@ module Autobuild
                 else CompositeException.new(errors)
                 end
                 raise e
-            elsif [:report_silent, :report].include?(on_package_failures)
+            elsif %i[report_silent report].include?(on_package_failures)
                 if interrupted_by
                     raise interrupted_by
                 else
                     return errors
                 end
-            elsif [:exit, :exit_silent].include?(on_package_failures)
+            elsif %i[exit exit_silent].include?(on_package_failures)
                 exit 1
             else
                 raise ArgumentError, "unexpected value for on_package_failures: #{on_package_failures}"
@@ -161,7 +163,7 @@ module Autobuild
 
         ## Reports a successful build to the user
         def self.success
-            each_reporter { |rep| rep.success }
+            each_reporter(&:success)
         end
 
         ## Reports that the build failed to the user
@@ -195,6 +197,7 @@ module Autobuild
     ## Base class for reporters
     class Reporter
         def error(error); end
+
         def success; end
     end
 
@@ -203,6 +206,7 @@ module Autobuild
         def error(error)
             STDERR.puts "Build failed: #{error}"
         end
+
         def success
             puts "Build finished successfully at #{Time.now}"
             if Autobuild.post_success_message
@@ -216,7 +220,7 @@ module Autobuild
         [1_000_000.0, "M"],
         [1_000.0, "k"],
         [1.0, ""]
-    ]
+    ].freeze
 
     def self.human_readable_size(size)
         HUMAN_READABLE_SIZES.each do |scale, name|

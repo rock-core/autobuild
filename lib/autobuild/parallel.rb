@@ -23,9 +23,11 @@ module Autobuild
                 wio.fcntl(Fcntl::F_SETFD, 0)
                 put(level)
             end
+
             def get(token_count = 1)
                 @rio.read(token_count)
             end
+
             def put(token_count = 1)
                 @wio.write(" " * token_count)
             end
@@ -36,7 +38,6 @@ module Autobuild
             @available_workers = Array.new
             @finished_workers = Queue.new
             @workers = Array.new
-
         end
 
         def wait_for_worker_to_end(state)
@@ -63,7 +64,7 @@ module Autobuild
 
         def discover_dependencies(all_tasks, reverse_dependencies, t)
             if t.already_invoked?
-                return 
+                return
             end
 
             return if all_tasks.include?(t) # already discovered or being discovered
@@ -101,7 +102,7 @@ module Autobuild
             end
 
             def find_task
-                if task = queue.sort_by { |t, p| p }.first
+                if (task = queue.sort_by { |t, p| p }.first)
                     priorities[task.first] = task.last
                     task.first
                 end
@@ -167,7 +168,7 @@ module Autobuild
                     state.push(t)
                 end
             end
-            
+
             # Build a reverse dependency graph (i.e. a mapping from a task to
             # the tasks that depend on it)
 
@@ -177,7 +178,7 @@ module Autobuild
 
             while true
                 pending_task = state.pop
-                if !pending_task
+                unless pending_task
                     # If we have pending workers, wait for one to be finished
                     # until either they are all finished or the queue is not
                     # empty anymore
@@ -204,7 +205,7 @@ module Autobuild
                 # Get a job server token
                 job_server.get
 
-                while !finished_workers.empty?
+                until finished_workers.empty?
                     wait_for_worker_to_end(state)
                 end
 
@@ -222,7 +223,7 @@ module Autobuild
             end
 
             not_processed = tasks.find_all { |t| !t.already_invoked? }
-            if !not_processed.empty?
+            unless not_processed.empty?
                 cycle = resolve_cycle(tasks, not_processed, reverse_dependencies)
                 raise "cycle in task graph: #{cycle.map(&:name).sort.join(", ")}"
             end
@@ -244,7 +245,7 @@ module Autobuild
                         true
                     end
                 end
-                if !next_task
+                unless next_task
                     Autobuild.fatal "parallel processing stopped prematurely, but no cycle is present in the remaining tasks"
                     Autobuild.fatal "remaining tasks: #{cycle.map(&:name).join(", ")}"
                     Autobuild.fatal "known dependencies at initialization time that could block the processing of the remaining tasks"
@@ -301,7 +302,7 @@ module Autobuild
             end
 
             def last_result
-                return @last_finished_task, @last_error
+                [@last_finished_task, @last_error]
             end
 
             def queue(task)
@@ -321,5 +322,3 @@ module Autobuild
         attr_accessor :parallel_task_manager
     end
 end
-
-

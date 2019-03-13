@@ -45,7 +45,7 @@ module Autobuild
         # @yieldparam [Hash] utility options
         # @return [void]
         def each_utility
-            return enum_for(__method__) if !block_given?
+            return enum_for(__method__) unless block_given?
             utilities.each { |name, (utl, options)| yield(name, utl, options) }
         end
 
@@ -87,8 +87,10 @@ module Autobuild
 
     DEFAULT_OPTIONS = { :nice => nil,
         :srcdir => Dir.pwd, :prefix => Dir.pwd, :logdir => nil,
-        :verbose => false, :debug => false, :do_build => true, :do_forced_build => false, :do_rebuild => false, :do_update => true, 
-        :daemonize => false, :packages => [], :default_packages => [], :keep_oldlogs => false }
+        :verbose => false, :debug => false, :do_build => true,
+        :do_forced_build => false, :do_rebuild => false, :do_update => true,
+        :daemonize => false, :packages => [], :default_packages => [],
+        :keep_oldlogs => false }.freeze
 
     DEFAULT_OPTIONS.each do |name, value|
         send("#{name}=", value)
@@ -135,7 +137,7 @@ module Autobuild
         # [:port] the port of the SMTP server, defauts to 22
         # [:only_errors] mail only on errors. Defaults to false.
         attr_reader :mail
-        
+
         # call-seq:
         #   post_success_message => string
         #   post_success_message "msg" => "msg"
@@ -159,7 +161,9 @@ module Autobuild
         end
 
         # The directory in which logs are saved
-        def logdir; @logdir || "#{prefix}/log" end
+        def logdir
+            @logdir || "#{prefix}/log"
+        end
 
         # Removes all log files
         def clean_log!
@@ -173,33 +177,67 @@ module Autobuild
         def commandline(args)
             parser = OptionParser.new do |opts|
                 opts.separator "Path specification"
-                opts.on("--srcdir PATH", "sources are installed in PATH") do |v| Autobuild.srcdir=v end
-                opts.on("--prefix PATH", "built packages are installed in PATH") do |v| Autobuild.prefix = v end
-                opts.on("--logdir PATH", "logs are saved in PATH (default: <prefix>/autobuild)") do |v| Autobuild.logdir = v end
+                opts.on("--srcdir PATH", "sources are installed in PATH") do |v|
+                    Autobuild.srcdir = v
+                end
+                opts.on("--prefix PATH", "built packages are installed in PATH") do |v|
+                    Autobuild.prefix = v
+                end
+                opts.on("--logdir PATH", "logs are saved in PATH "\
+                    "(default: <prefix>/autobuild)") do |v|
+                    Autobuild.logdir = v
+                end
 
                 opts.separator ""
                 opts.separator "General behaviour"
-                opts.on('--nice NICE', Integer, 'nice the subprocesses to the given value') do |v| Autobuild.nice = v end
+                opts.on('--nice NICE', Integer,
+                    'nice the subprocesses to the given value') do |v|
+                    Autobuild.nice = v
+                end
                 opts.on("-h", "--help", "Show this message") do
                     puts opts
                     exit
                 end
                 if defined? Daemons
-                    opts.on("--[no-]daemon", "go into daemon mode") do |v| Autobuild.daemonize = v end
+                    opts.on("--[no-]daemon", "go into daemon mode") do |v|
+                        Autobuild.daemonize = v
+                    end
                 end
-                opts.on("--no-update", "update already checked-out sources") do |v|  Autobuild.do_update = v end
-                opts.on("--no-build",  "only prepare packages, do not build them") do |v| Autobuild.do_build = v end 
-                opts.on("--forced-build",  "force the trigger of all the build commands") do |v| Autobuild.do_forced_build = v end 
-                opts.on("--rebuild",  "clean and rebuild") do |v| Autobuild.do_forced_build = v end 
-                opts.on("--only-doc", "only generate documentation") do |v| Autobuild.only_doc = v end
-                opts.on("--no-doc", "don't generate documentation") do |v| Autobuild.do_doc = v end
-                opts.on("--doc-errors", "treat documentation failure as error") do |v| Autobuild.pass_doc_errors = v end
+                opts.on("--no-update", "update already checked-out sources") do |v|
+                    Autobuild.do_update = v
+                end
+                opts.on("--no-build",  "only prepare packages, do not build them") do |v|
+                    Autobuild.do_build = v
+                end
+                opts.on("--forced-build", "force the trigger of "\
+                    "all the build commands") do |v|
+                    Autobuild.do_forced_build = v
+                end
+                opts.on("--rebuild", "clean and rebuild") do |v|
+                    Autobuild.do_forced_build = v
+                end
+                opts.on("--only-doc", "only generate documentation") do |v|
+                    Autobuild.only_doc = v
+                end
+                opts.on("--no-doc", "don't generate documentation") do |v|
+                    Autobuild.do_doc = v
+                end
+                opts.on("--doc-errors", "treat documentation failure as error") do |v|
+                    Autobuild.pass_doc_errors = v
+                end
 
                 opts.separator ""
                 opts.separator "Program output"
-                opts.on("--[no-]verbose", "display output of commands on stdout") do |v| Autobuild.verbose = v end
-                opts.on("--[no-]debug", "debug information (for debugging purposes)") do |v| Autobuild.debug = v end
-                opts.on("--keep-oldlogs", "old logs will be kept, new program output being appended") do |v| Autobuild.keep_oldlogs = v end
+                opts.on("--[no-]verbose", "display output of commands on stdout") do |v|
+                    Autobuild.verbose = v
+                end
+                opts.on("--[no-]debug", "debug information (for debugging purposes)") do |v|
+                    Autobuild.debug = v
+                end
+                opts.on("--keep-oldlogs", "old logs will be kept, "\
+                    "new program output being appended") do |v|
+                    Autobuild.keep_oldlogs = v
+                end
                 opts.on('--version', "displays autobuild version and then exits") do
                     puts "autobuild v#{Autobuild::VERSION}"
                     exit 0
@@ -207,29 +245,34 @@ module Autobuild
 
                 opts.separator ""
                 opts.separator "Mail reports"
-                opts.on("--mail-from EMAIL", String, "From: field of the sent mails") do |from_email|
+                opts.on("--mail-from EMAIL", String,
+                    "From: field of the sent mails") do |from_email|
                     mail[:from] = from_email
                 end
-                opts.on("--mail-to EMAILS", String, "comma-separated list of emails to which the reports should be sent") do |emails| 
+                opts.on("--mail-to EMAILS", String, "comma-separated list of emails "\
+                    "to which the reports should be sent") do |emails|
                     mail[:to] ||= []
                     mail[:to] += emails.split(',')
                 end
-                opts.on("--mail-subject SUBJECT", String, "Subject: field of the sent mails") do |subject_email|
+                opts.on("--mail-subject SUBJECT", String,
+                    "Subject: field of the sent mails") do |subject_email|
                     mail[:subject] = subject_email
                 end
-                opts.on("--mail-smtp HOSTNAME", String, " address of the mail server written as hostname[:port]") do |smtp|
-                    raise "invalid SMTP specification #{smtp}" unless smtp =~ /^([^:]+)(?::(\d+))?$/
+                opts.on("--mail-smtp HOSTNAME", String, "address of the mail server "\
+                    "written as hostname[:port]") do |smtp|
+                    unless smtp =~ /^([^:]+)(?::(\d+))?$/
+                        raise "invalid SMTP specification #{smtp}"
+                    end
                     mail[:smtp] = $1
                     mail[:port] = Integer($2) if $2 && !$2.empty?
                 end
                 opts.on("--mail-only-errors", "send mail only on errors") do
                     mail[:only_errors] = true
                 end
-
             end
 
             parser.parse!(args)
-            if !args[0]
+            unless args[0]
                 puts parser
                 exit
             end
@@ -278,7 +321,7 @@ module Autobuild
                 phases  = ['doc']
             else
                 phases  = ['import']
-                phases += ['prepare', 'build'] if Autobuild.do_build
+                phases += %w[prepare build] if Autobuild.do_build
                 phases << 'doc' if Autobuild.do_doc
             end
         end
@@ -308,4 +351,3 @@ module Autobuild
         end
     end
 end
-

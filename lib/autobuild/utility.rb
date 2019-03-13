@@ -62,7 +62,7 @@ module Autobuild
         # @return [String,nil]
         def target_dir
             if @target_dir
-                File.expand_path(@target_dir, File.expand_path(Autobuild.send("#{name}_prefix") || name,  package.prefix))
+                File.expand_path(@target_dir, File.expand_path(Autobuild.send("#{name}_prefix") || name, package.prefix))
             else
                 File.join(package.logdir, "#{name}-results", package.name)
             end
@@ -92,7 +92,7 @@ module Autobuild
                 end
             end
 
-            package.task name => task_name 
+            package.task name => task_name
             @task
         end
 
@@ -104,7 +104,6 @@ module Autobuild
             if !@installed && target_dir
                 install
             end
-
         rescue Interrupt
             raise
         rescue ::Exception => e
@@ -154,8 +153,10 @@ module Autobuild
         attr_writer :enabled
 
         def install
-            if !File.directory?(source_dir)
-                raise "#{source_dir} was expected to be a directory, but it is not. Check the package's #{name} generation. The generated #{name} products should be in #{source_dir}"
+            unless File.directory?(source_dir)
+                raise "#{source_dir} was expected to be a directory, but it is not. "\
+                    "Check the package's #{name} generation. "\
+                    "The generated #{name} products should be in #{source_dir}"
             end
 
             target_dir  = self.target_dir
@@ -192,4 +193,3 @@ module Autobuild
         end
     end
 end
-

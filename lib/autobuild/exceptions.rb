@@ -1,15 +1,23 @@
 module Autobuild
     ## Base class for all Autobuild exceptions
     class Exception < RuntimeError
-        ## If the error should be reported by mail
-        def mail?;  false end
-        ## If the error is fatal
-        def fatal?; true end
-        ## If the error can be retried
-        def retry?; @retry end
+        # If the error should be reported by mail
+        def mail?
+            false
+        end
+
+        # If the error is fatal
+        def fatal?
+            true
+        end
+
+        # If the error can be retried
+        def retry?
+            @retry
+        end
         attr_accessor :target, :phase
 
-        ## Creates a new exception which occured while doing *phase* 
+        ## Creates a new exception which occured while doing *phase*
         # in *target*
         def initialize(target = nil, phase = nil, options = Hash.new)
             options = Kernel.validate_options options, retry: true
@@ -17,7 +25,7 @@ module Autobuild
             @retry = options[:retry]
         end
 
-        alias :exception_message :to_s 
+        alias :exception_message :to_s
         def to_s
             dir =
                 if target.respond_to?(:srcdir)
@@ -40,7 +48,7 @@ module Autobuild
     end
 
     ## There is an error/inconsistency in the configuration
-    class ConfigException  < Exception
+    class ConfigException < Exception
         def initialize(target = nil, phase = nil, options = Hash.new)
             options, other_options = Kernel.filter_options options,
                 retry: false
@@ -49,7 +57,9 @@ module Autobuild
     end
     ## An error occured in a package
     class PackageException < Exception
-        def mail?; true end
+        def mail?
+            true
+        end
 
         def initialize(target = nil, phase = nil, options = Hash.new)
             options, other_options = Kernel.filter_options options,
@@ -67,13 +77,16 @@ module Autobuild
     class CommandNotFound  < Exception; end
     ## An error occured while running a subcommand
     class SubcommandFailed < Exception
-        def mail?; true end
+        def mail?
+            true
+        end
+
         attr_writer :retry
         attr_reader :command, :logfile, :status, :output
         def initialize(*args)
             if args.size == 1
                 sc = args[0]
-                target, command, logfile, status, output = 
+                target, command, logfile, status, output =
                     sc.target, sc.command, sc.logfile, sc.status, sc.output
                 @orig_message = sc.exception_message
             elsif args.size == 4 || args.size == 5
@@ -99,7 +112,7 @@ module Autobuild
             # If we do not have a status, it means an error occured in the
             # launching process. More importantly, it means we already have a
             # proper explanation for it. Don't display the logfile at all.
-            if status 
+            if status
                 lines = @output
                 logsize = Autobuild.displayed_error_line_count
                 if logsize != Float::INFINITY && lines.size > logsize
@@ -134,7 +147,9 @@ module Autobuild
             @original_errors = original_errors
         end
 
-        def mail?; true end
+        def mail?
+            true
+        end
 
         def to_s
             result = ["#{original_errors.size} errors occured"]

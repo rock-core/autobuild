@@ -10,12 +10,12 @@ module Autobuild
     def self.autotools(opts, &proc)
         Autotools.new(opts, &proc)
     end
-        
+
     if Autobuild.macos?
         Autobuild.programs['libtoolize'] = "glibtoolize"
     end
 
-    # 
+    #
     # ==== Handles autotools-based packages
     #
     # == Used programs (see <tt>Autobuild.programs</tt>)
@@ -50,7 +50,9 @@ module Autobuild
             using[:bear]
         end
 
-        def configurestamp; "#{builddir}/config.status" end
+        def configurestamp
+            "#{builddir}/config.status"
+        end
 
         def initialize(options)
             @using = Hash.new
@@ -117,7 +119,7 @@ module Autobuild
                     programs
                 end
 
-            if !programs.kind_of?(Hash)
+            unless programs.kind_of?(Hash)
                 programs = Array[*programs].inject({}) do |progs, spec|
                     progs[spec.first] = spec.last
                     progs
@@ -161,7 +163,6 @@ module Autobuild
             is_checking_out = !File.directory?(srcdir)
 
             super
-
         ensure
             if is_checking_out && File.directory?(srcdir)
                 FileUtils.touch File.join(srcdir, ".fresh_checkout")
@@ -205,8 +206,8 @@ module Autobuild
                     else
                         # This is an envvar entry. Ignore it if it is not
                         # explicitely given in configureflags
-                        varname, value = o.split("=").first
-                        if current_flag = testflags.find { |fl| fl =~ /^#{varname}=/ }
+                        varname, = o.split("=").first
+                        if (current_flag = testflags.find { |fl| fl =~ /^#{varname}=/ })
                             current_flag != o
                         else false
                         end
@@ -241,6 +242,7 @@ module Autobuild
         attr_accessor :force_config_status
 
     private
+
         def autodetect_needed_stages
             # Autodetect autoconf/aclocal/automake
             #
@@ -248,7 +250,7 @@ module Autobuild
             # 'nil' means autodetection
             if using[:autoconf].nil?
                 if File.file?(File.join(srcdir, 'configure.in')) || File.file?(File.join(srcdir, 'configure.ac'))
-                    using[:autoconf] = true 
+                    using[:autoconf] = true
                 end
             end
             using[:aclocal] = using[:autoconf] if using[:aclocal].nil?
@@ -270,7 +272,7 @@ module Autobuild
             conffile = "#{srcdir}/configure"
             if confsource
                 file conffile => confsource
-            elsif confext = %w{.ac .in}.find { |ext| File.exist?("#{conffile}#{ext}") }
+            elsif (confext = %w{.ac .in}.find { |ext| File.exist?("#{conffile}#{ext}") })
                 file conffile => "#{conffile}#{confext}"
             elsif using[:autoconf]
                 raise PackageException.new(self, 'prepare'), "neither configure.ac nor configure.in present in #{srcdir}"
@@ -284,7 +286,7 @@ module Autobuild
                 end
             end
 
-            return conffile
+            conffile
         end
 
         def regen
@@ -296,7 +298,7 @@ module Autobuild
                 run 'configure', File.expand_path(using[:autogen], srcdir),
                     working_directory: srcdir
             else
-                [ :aclocal, :autoconf, :autoheader, :automake ].each do |tool|
+                %i[aclocal autoconf autoheader automake].each do |tool|
                     next unless using[tool]
                     run 'configure', tool_program(tool), *send("#{tool}_flags"),
                         working_directory: srcdir
@@ -307,7 +309,7 @@ module Autobuild
         # Configure the builddir directory before starting make
         def configure
             super do
-                command = [ "#{srcdir}/configure"]
+                command = ["#{srcdir}/configure"]
                 if force_config_status
                     command << "--no-create"
                 end

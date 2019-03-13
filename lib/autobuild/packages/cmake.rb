@@ -9,10 +9,17 @@ module Autobuild
     # Handler class to build CMake-based packages
     class CMake < Configurable
         class << self
-            def builddir; @builddir || Configurable.builddir end
+            def builddir
+                @builddir || Configurable.builddir
+            end
+
             def builddir=(new)
-                raise ConfigException, "absolute builddirs are not supported" if (Pathname.new(new).absolute?)
-                raise ConfigException, "builddir must be non-nil and non-empty" if (new.nil? || new.empty?)
+                if Pathname.new(new).absolute?
+                    raise ConfigException, "absolute builddirs are not supported"
+                end
+                if new.nil? || new.empty?
+                    raise ConfigException, "builddir must be non-nil and non-empty"
+                end
                 @builddir = new
             end
 
@@ -67,7 +74,7 @@ module Autobuild
         # If true, always run cmake before make during the build
         attr_accessor :always_reconfigure
         # If true, we always remove the CMake cache before reconfiguring.
-        # 
+        #
         # See #full_reconfigures? for more details
         attr_writer :full_reconfigures
         # Sets a generator explicitely for this component. See #generator and
@@ -96,8 +103,13 @@ module Autobuild
             end
         end
 
-        def cmake_cache; File.join(builddir, "CMakeCache.txt") end
-        def configurestamp; cmake_cache end
+        def cmake_cache
+            File.join(builddir, "CMakeCache.txt")
+        end
+
+        def configurestamp
+            cmake_cache
+        end
 
         def initialize(options)
             @defines = Hash.new
@@ -111,9 +123,7 @@ module Autobuild
         end
 
         # (see CMake.delete_obsolete_files_in_prefix=)
-        def delete_obsolete_files_in_prefix=(flag)
-            @delete_obsolete_files_in_prefix = flag
-        end
+        attr_writer :delete_obsolete_files_in_prefix
 
         @@defines = Hash.new
 
@@ -132,7 +142,6 @@ module Autobuild
                 end
         end
 
-
         def define(name, value)
             @defines[name] =
                 if value.respond_to?(:to_str)
@@ -150,7 +159,7 @@ module Autobuild
             '@CMAKE_BINARY_DIR@' => lambda { |pkg| pkg.builddir },
             '@PROJECT_BINARY_DIR@' => lambda { |pkg| pkg.builddir },
             '@PROJECT_NAME@' => lambda { |pkg| pkg.name }
-        }
+        }.freeze
 
         class << self
             # Flag controlling whether autobuild should run doxygen itself or
@@ -197,7 +206,7 @@ module Autobuild
         # for a global control of that feature
         def always_use_doc_target?
             if @always_use_doc_target.nil?
-                return CMake.always_use_doc_target?
+                CMake.always_use_doc_target?
             else
                 @always_use_doc_target
             end
@@ -220,9 +229,8 @@ module Autobuild
             end
 
             doxyfile_in = File.join(srcdir, "Doxyfile.in")
-            if !File.file?(doxyfile_in)
-                return false
-            end
+            return false unless File.file?(doxyfile_in)
+
             File.readlines(doxyfile_in).each do |line|
                 matches = line.scan(/@[^@]+@/)
                 if matches.any? { |str| !DOXYGEN_ACCEPTED_VARIABLES.has_key?(str) }
@@ -245,7 +253,7 @@ module Autobuild
         # support cannot be used on this package
         def run_doxygen
             doxyfile_in = File.join(srcdir, "Doxyfile.in")
-            if !File.file?(doxyfile_in)
+            unless File.file?(doxyfile_in)
                 raise RuntimeError, "no Doxyfile.in in this package, cannot use the internal doxygen support"
             end
             doxyfile_data = File.readlines(doxyfile_in).map do |line|
@@ -296,7 +304,7 @@ module Autobuild
             'YES' => 'ON',
             'OFF' => 'OFF',
             'NO' => 'OFF'
-        }
+        }.freeze
         def equivalent_option_value?(old, new)
             if old == new
                 true
@@ -331,7 +339,7 @@ module Autobuild
             raw = (dependencies.map { |pkg_name| Autobuild::Package[pkg_name].prefix } +
                 CMake.prefix_path)
             raw.each do |path|
-                if !seen.include?(path)
+                unless seen.include?(path)
                     seen << path
                     result << path
                 end
@@ -348,7 +356,7 @@ module Autobuild
 
         def defines_changed?(all_defines, cache_data)
             all_defines.any? do |name, value|
-                if match = /^#{name}:\w+=(.*)$/.match(cache_data)
+                if (match = /^#{name}:\w+=(.*)$/.match(cache_data))
                     old_value = match[1]
                 end
 
@@ -373,7 +381,7 @@ module Autobuild
             # but no Makefile.
             #
             # Delete the CMakeCache to force reconfiguration
-            if !File.exist?( File.join(builddir, 'Makefile') )
+            unless File.exist?(File.join(builddir, 'Makefile'))
                 FileUtils.rm_f cmake_cache
             end
 
@@ -396,14 +404,15 @@ module Autobuild
         def configure
             super do
                 in_dir(builddir) do
-                    if !File.file?(File.join(srcdir, 'CMakeLists.txt'))
-                        raise ConfigException.new(self, 'configure'), "#{srcdir} contains no CMakeLists.txt file"
+                    unless File.file?(File.join(srcdir, 'CMakeLists.txt'))
+                        raise ConfigException.new(self, 'configure'),
+                            "#{srcdir} contains no CMakeLists.txt file"
                     end
 
-                    command = [ "cmake" ]
+                    command = ["cmake"]
 
                     if Autobuild.windows?
-                        command << '-G' 
+                        command << '-G'
                         command << "MSYS Makefiles"
                     end
 
@@ -414,7 +423,7 @@ module Autobuild
                         command << Array(generator).map { |g| "-G#{g}" }
                     end
                     command << srcdir
-                    
+
                     progress_start "configuring CMake for %s", :done_message => "configured CMake for %s" do
                         if full_reconfigures?
                             FileUtils.rm_f cmake_cache
@@ -432,9 +441,7 @@ module Autobuild
             end
         end
 
-        def show_make_messages=(value)
-            @show_make_messages = value
-        end
+        attr_writer :show_make_messages
 
         def self.show_make_messages?
             @show_make_messages
@@ -537,4 +544,3 @@ module Autobuild
         end
     end
 end
-

@@ -16,7 +16,7 @@ module Autobuild
             return std_stamp if File.file?(std_stamp)
 
             pcfile = File.join(pkgconfig.prefix, "lib", "pkgconfig", "#{name}.pc")
-            if !File.file?(pcfile)
+            unless File.file?(pcfile)
                 raise "cannot find the .pc file for #{name}, tried #{pcfile}"
             end
             pcfile
@@ -26,4 +26,3 @@ module Autobuild
         InstalledPkgConfig.new(name, &block)
     end
 end
- 

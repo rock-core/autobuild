@@ -28,7 +28,7 @@ module Autobuild
     def self.invoke_make_parallel(pkg, cmd_path = Autobuild.tool(:make))
         reserved = nil
         if make_has_j_option?(pkg, cmd_path) && pkg.parallel_build_level != 1
-            if manager = Autobuild.parallel_task_manager
+            if (manager = Autobuild.parallel_task_manager)
                 job_server = manager.job_server
                 if !make_has_gnumake_jobserver?(pkg, cmd_path) || (pkg.parallel_build_level != Autobuild.parallel_build_level)
                     reserved = pkg.parallel_build_level
@@ -49,7 +49,7 @@ module Autobuild
             job_server.put(reserved)
         end
     end
-    
+
     def self.make_subcommand(pkg, phase, *options, &block)
         invoke_make_parallel(pkg, Autobuild.tool(:make)) do |*make_parallel_options|
             pkg.run(phase, Autobuild.tool(:make), *make_parallel_options, *options, &block)

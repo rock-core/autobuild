@@ -10,7 +10,7 @@ module Autobuild
         # [:svnco] options to give to 'svn co'
         #
         # This importer uses the 'svn' tool to perform the import. It defaults
-        # to 'svn' and can be configured by doing 
+        # to 'svn' and can be configured by doing
         #   Autobuild.programs['svn'] = 'my_svn_tool'
         def initialize(svnroot, options = {})
             svnroot = [*svnroot].join("/")
@@ -25,7 +25,9 @@ module Autobuild
         # @deprecated use {svnroot} instead
         #
         # @return [String]
-        def source; svnroot end
+        def source
+            svnroot
+        end
 
         # Returns the SVN root
         #
@@ -63,7 +65,7 @@ module Autobuild
         def svn_revision(package)
             svninfo = svn_info(package)
             revision = svninfo.grep(/^Revision: /).first
-            if !revision
+            unless revision
                 raise ConfigException.new(package, 'import'), "cannot get SVN information for #{package.importdir}"
             end
             revision =~ /Revision: (\d+)/
@@ -79,7 +81,7 @@ module Autobuild
         def svn_url(package)
             svninfo = svn_info(package)
             url = svninfo.grep(/^URL: /).first
-            if !url
+            unless url
                 raise ConfigException.new(package, 'import'), "cannot get SVN information for #{package.importdir}"
             end
             url.chomp =~ /URL: (.+)/
@@ -98,7 +100,7 @@ module Autobuild
             status = run_svn(package, 'status', '--xml')
 
             not_modified = %w{external ignored none normal}
-            if !with_untracked_files
+            unless with_untracked_files
                 not_modified << "unversioned"
             end
 
@@ -185,7 +187,7 @@ module Autobuild
                 end
             end
 
-            if !svninfo.grep(/is not a working copy/).empty?
+            unless svninfo.grep(/is not a working copy/).empty?
                 raise ConfigException.new(package, 'import'),
                     "#{package.importdir} does not appear to be a Subversion working copy"
             end
@@ -232,4 +234,3 @@ module Autobuild
         SVN.new(source, options)
     end
 end
-

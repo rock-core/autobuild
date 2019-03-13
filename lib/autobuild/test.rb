@@ -75,20 +75,20 @@ module Autobuild
         attr_reader :tempdir
 
         def build_config(bind, template)
-            eval "basedir = '#{self.tempdir}'", bind
-            ryml = File.open(File.join(data_dir, "#{template}.ryml")) { |f| f.readlines }.join('')
+            eval "basedir = '#{tempdir}'", bind
+            ryml = File.open(File.join(data_dir, "#{template}.ryml"), &:readlines).join('')
             result = ERB.new(ryml).result(bind)
 
             yml = File.join(tempdir, "#{template}.yml")
             File.open(yml, 'w+') { |f| f.write(result) }
-            
-            return yml
+
+            yml
         end
 
         def untar(file)
             file = File.expand_path(file, data_dir)
-            dir = self.tempdir
-            Dir.chdir(dir) do 
+            dir = tempdir
+            Dir.chdir(dir) do
                 system("tar xf #{file}")
             end
 

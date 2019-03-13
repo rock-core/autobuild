@@ -20,13 +20,13 @@ module Autobuild
             Plain => '',
             Gzip => 'z',
             Bzip => 'j'
-        }
+        }.freeze
 
         # Known URI schemes for +url+
-        VALID_URI_SCHEMES = ['file', 'http', 'https', 'ftp']
+        VALID_URI_SCHEMES = %w[file http https ftp].freeze
 
         # Known URI schemes for +url+ on windows
-        WINDOWS_VALID_URI_SCHEMES = ['file', 'http', 'https']
+        WINDOWS_VALID_URI_SCHEMES = %w[file http https].freeze
 
         class << self
             # The directory in which downloaded files are saved
@@ -35,7 +35,7 @@ module Autobuild
             # {Importer.cache_dirs} and falls back #{prefix}/cache
             def cachedir
                 if @cachedir then @cachedir
-                elsif cache_dirs = Importer.cache_dirs('archives')
+                elsif (cache_dirs = Importer.cache_dirs('archives'))
                     @cachedir = cache_dirs.first
                 else
                     "#{Autobuild.prefix}/cache"
@@ -70,16 +70,16 @@ module Autobuild
         # @see filename_to_mode
         def self.find_mode_from_filename(filename)
             case filename
-            when /\.zip$/; Zip
-            when /\.tar$/; Plain
-            when /\.tar\.gz$|\.tgz$/;  Gzip
-            when /\.bz2$/; Bzip
+            when /\.zip$/ then Zip
+            when /\.tar$/ then Plain
+            when /\.tar\.gz$|\.tgz$/ then Gzip
+            when /\.bz2$/ then Bzip
             end
         end
 
         # Returns the unpack mode from the file name
         def self.filename_to_mode(filename)
-            if mode = find_mode_from_filename(filename)
+            if (mode = find_mode_from_filename(filename))
                 mode
             else
                 raise "cannot infer the archive type from '#{filename}', use the mode: option"
@@ -96,6 +96,7 @@ module Autobuild
         def self.auto_update?
             @auto_update
         end
+
         def self.auto_update=(flag)
             @auto_update = flag
         end
@@ -173,14 +174,12 @@ module Autobuild
                 newname = File.join(
                     target,
                     entry.full_name.slice(entry.full_name.index('/'), entry.full_name.size))
-                if(entry.directory?)
+                if entry.directory?
                     FileUtils.mkdir_p(newname)
                 end
-                if(entry.file?)
-                    dir = newname.slice(0,newname.rindex('/'))
-                    if(!File.directory?(dir))
-                        FileUtils.mkdir_p(dir)
-                    end
+                if entry.file?
+                    dir = newname.slice(0, newname.rindex('/'))
+                    FileUtils.mkdir_p(dir) unless File.directory?(dir)
                     open(newname, "wb") do |file|
                         file.write(entry.read)
                     end
@@ -234,14 +233,14 @@ module Autobuild
                 elsif Autobuild.bsd?
                     return false unless update_needed?(package)
                     package.run(:import, Autobuild.tool('curl'),
-                                '-Lso',"#{cachefile}.partial", @url)
+                                '-Lso', "#{cachefile}.partial", @url)
                 else
                     return false unless update_needed?(package)
                     additional_options = []
-                    if timeout = self.timeout
+                    if (timeout = self.timeout)
                         additional_options << "--timeout" << timeout
                     end
-                    if retries = self.retries
+                    if (retries = self.retries)
                         additional_options << "--tries" << retries
                     end
                     package.run(:import, Autobuild.tool('wget'), '-q', '-P', cachedir, *additional_options, @url, '-O', "#{cachefile}.partial", retry: true)
@@ -285,13 +284,16 @@ module Autobuild
             relocate(@url.to_s)
         end
 
-        # The directory contained in the tar file
-        #
-        # DEPRECATED use #archive_dir instead
-        def tardir; @options[:tardir] end
+        # @deprecated use {#archive_dir} instead
+        def tardir
+            @options[:tardir]
+        end
+
         # The directory contained in the archive. If not set, we assume that it
         # is the same than the source dir
-        def archive_dir; @options[:archive_dir] || tardir end
+        def archive_dir
+            @options[:archive_dir] || tardir
+        end
 
         # The number of time we should retry downloading if the underlying tool
         # supports it (wget does).
@@ -399,7 +401,7 @@ module Autobuild
             end
             needs_update = update_cache(package)
 
-            if !File.file?(checkout_digest_stamp(package))
+            unless File.file?(checkout_digest_stamp(package))
                 write_checkout_digest_stamp(package)
             end
 
@@ -469,7 +471,7 @@ module Autobuild
                            end
 
                 FileUtils.mkdir_p base_dir
-                cmd = [ '-o', cachefile, '-d', main_dir ]
+                cmd = ['-o', cachefile, '-d', main_dir]
                 package.run(:import, Autobuild.tool('unzip'), *cmd)
 
                 archive_dir = (self.archive_dir || File.basename(package.name))
@@ -482,24 +484,23 @@ module Autobuild
             else
                 FileUtils.mkdir_p package.srcdir
                 cmd = ["x#{TAR_OPTION[mode]}f", cachefile, '-C', package.srcdir]
-                if !@options[:no_subdirectory]
+                unless @options[:no_subdirectory]
                     cmd << '--strip-components=1'
                 end
 
                 if Autobuild.windows?
                     io = if mode == Plain
-                        File.open(cachefile, 'r')
-                    else
-                        Zlib::GzipReader.open(cachefile)
-                    end
+                             File.open(cachefile, 'r')
+                         else
+                             Zlib::GzipReader.open(cachefile)
+                         end
                     extract_tar_gz(io, package.srcdir)
                 else
                     package.run(:import, Autobuild.tool('tar'), *cmd)
                 end
             end
             write_checkout_digest_stamp(package)
-            return true
-
+            true
         rescue SubcommandFailed
             if cachefile != url.path
                 FileUtils.rm_f cachefile

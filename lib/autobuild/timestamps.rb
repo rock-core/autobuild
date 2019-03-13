@@ -1,5 +1,5 @@
 module Autobuild
-    STAMPFILE = "autobuild-stamp"
+    STAMPFILE = "autobuild-stamp".freeze
 
     class << self
         # The set of global ignores for SourceTreeTask
@@ -24,8 +24,8 @@ module Autobuild
 
     def self.tree_timestamp(path, *exclude)
         # Exclude autobuild timestamps
-        exclude << (/#{Regexp.quote(STAMPFILE)}$/)
-        exclude << (/\.autobuild-patches$/)
+        exclude << /#{Regexp.quote(STAMPFILE)}$/
+        exclude << /\.autobuild-patches$/
 
         Autobuild.message "getting tree timestamp for #{path}" if Autobuild.debug
         latest = Time.at(0)
@@ -33,13 +33,13 @@ module Autobuild
 
         Find.find(path) do |p|
             Find.prune if File.basename(p) =~ /^\./
-            exclude.each do |pattern| 
+            exclude.each do |pattern|
                 if pattern === p
                     Autobuild.message "  excluding #{p} because of #{pattern}" if Autobuild.debug
                     Find.prune
                 end
             end
-            next if !File.file?(p)
+            next unless File.file?(p)
 
             p_time = File.mtime(p)
             if latest < p_time
@@ -49,7 +49,7 @@ module Autobuild
         end
 
         Autobuild.message "  newest file: #{latest_file} at #{latest}" if Autobuild.debug
-        return latest_file, latest
+        [latest_file, latest]
     end
 
     class SourceTreeTask < Rake::Task
@@ -62,7 +62,7 @@ module Autobuild
             @exclude = Autobuild.ignored_files.dup
             super
         end
-            
+
         def timestamp
             if @newest_time
                 return @newest_time
@@ -75,13 +75,16 @@ module Autobuild
     end
     def self.source_tree(path, &block)
         task = SourceTreeTask.define_task(path)
-        block.call(task) unless !block
+        block.call(task) if block
         task
     end
-            
+
     def self.get_stamp(stampfile)
-        return Time.at(0) if !File.exist?(stampfile)
-        return File.mtime(stampfile)
+        if File.exist?(stampfile)
+            File.mtime(stampfile)
+        else
+            Time.at(0)
+        end
     end
 
     def self.hires_modification_time?
@@ -105,7 +108,7 @@ module Autobuild
         end
         FileUtils.touch(stampfile)
 
-        if !hires_modification_time?
+        unless hires_modification_time?
             # File modification times on most Unix filesystems have a granularity of
             # one second, so we (unfortunately) have to sleep 1s to make sure that
             # time comparisons will work as expected.
@@ -113,4 +116,3 @@ module Autobuild
         end
     end
 end
-

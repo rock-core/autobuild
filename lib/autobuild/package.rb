@@ -1,10 +1,10 @@
 module Autobuild
-    TARGETS = %w{import prepare build}
+    TARGETS = %w{import prepare build}.freeze
 
     class << self
         attr_accessor :ignore_errors
     end
-    
+
     # Basic block for the autobuilder
     #
     # The build is done in three phases:
@@ -43,14 +43,18 @@ module Autobuild
         # The set of utilities attached to this package
         # @return [{String=>Utility}]
         attr_reader :utilities
+
         # Whether {#apply_post_install} has been called
-        def applied_post_install?; !!@applied_post_install end
-        
+        def applied_post_install?
+            !!@applied_post_install
+        end
+
         # Sets importer object for this package. Defined for backwards compatibility.
         # Use the #importer attribute instead
         def import=(value)
             @importer = value
         end
+
         # Sets an importer object for this package
         attr_accessor :importer
 
@@ -74,11 +78,20 @@ module Autobuild
         end
 
         # Absolute path to the source directory. See #srcdir=
-        def srcdir; File.expand_path(@srcdir || name, Autobuild.srcdir) end
+        def srcdir
+            File.expand_path(@srcdir || name, Autobuild.srcdir)
+        end
+
         # Absolute path to the import directory. See #importdir=
-        def importdir; File.expand_path(@importdir || srcdir, Autobuild.srcdir) end
+        def importdir
+            File.expand_path(@importdir || srcdir, Autobuild.srcdir)
+        end
+
         # Absolute path to the installation directory. See #prefix=
-        def prefix; File.expand_path(@prefix || '', Autobuild.prefix) end
+        def prefix
+            File.expand_path(@prefix || '', Autobuild.prefix)
+        end
+
         # Absolute path to the log directory for this package. See #logdir=
         def logdir
             if @logdir
@@ -115,17 +128,19 @@ module Autobuild
         # Returns true if this package has already been updated. It will not be
         # true if the importer has been called while Autobuild.do_update was
         # false.
-        def updated?; !!@updated end
+        def updated?
+            !!@updated
+        end
 
         def initialize(spec = Hash.new)
             @srcdir = @importdir = @logdir = @prefix = nil
             @updated = false
             @update = nil
             @failed = nil
-            @dependencies   = Array.new
-            @provides       = Array.new
+            @dependencies = Array.new
+            @provides = Array.new
+            @statistics = Hash.new
             @parallel_build_level = nil
-            @statistics     = Hash.new
             @failures = Array.new
             @post_install_blocks = Array.new
             @applied_post_install = false
@@ -150,8 +165,8 @@ module Autobuild
             # Call the config block (if any)
             yield(self) if block_given?
 
-            self.doc_utility.source_dir ||= 'doc'
-            self.doc_utility.target_dir ||= name
+            doc_utility.source_dir ||= 'doc'
+            doc_utility.target_dir ||= name
 
             # Define the default tasks
             task "#{name}-import" do
@@ -179,7 +194,7 @@ module Autobuild
                 end
             end
             task :default => name
-            
+
             # The dependencies will be declared in the import phase,  so save
             # them there for now
             @spec_dependencies = depends
@@ -217,7 +232,10 @@ module Autobuild
         def to_s
             "#<#{self.class} name=#{name}>"
         end
-        def inspect; to_s end
+
+        def inspect
+            to_s
+        end
 
         # @api private
         #
@@ -301,10 +319,13 @@ module Autobuild
             self.env.each do |env_op|
                 next if ops.last == env_op
                 if env_op.type == :set
-                    if last = set[env_op.name]
+                    if (last = set[env_op.name])
                         last_pkg, last_values = *last
                         if last_values != env_op.values
-                            raise IncompatibleEnvironment, "trying to reset #{env_op.name} to #{env_op.values} in #{self.name} but this conflicts with #{last_pkg.name} already setting it to #{last_values}"
+                            raise IncompatibleEnvironment, "trying to reset "\
+                                "#{env_op.name} to #{env_op.values} in #{name} "\
+                                "but this conflicts with #{last_pkg.name} "\
+                                "already setting it to #{last_values}"
                         end
                     else
                         set[env_op.name] = [self, env_op.values]
@@ -388,7 +409,7 @@ module Autobuild
         # will subsequently be a noop. I.e. if +build+ fails, +install+ will do
         # nothing.
         def isolate_errors(options = Hash.new)
-            if !options.kind_of?(Hash)
+            unless options.kind_of?(Hash)
                 options = Hash[mark_as_failed: true]
             end
             options = validate_options options,
@@ -397,7 +418,7 @@ module Autobuild
 
             # Don't do anything if we already have failed
             if failed?
-                if !options[:ignore_errors]
+                unless options[:ignore_errors]
                     raise AlreadyFailedError, "attempting to do an operation on a failed package"
                 end
                 return
@@ -445,7 +466,7 @@ module Autobuild
         #
         # (see Importer#import)
         def import(options = Hash.new)
-            if !options.respond_to?(:to_hash)
+            unless options.respond_to?(:to_hash)
                 options = Hash[only_local: options]
             end
 
@@ -511,7 +532,7 @@ module Autobuild
         # Display a progress message. %s in the string is replaced by the
         # package name
         def message(*args)
-            if !args.empty?
+            unless args.empty?
                 args[0] = "  #{process_formatting_string(args[0])}"
             end
             Autobuild.message(*args)
@@ -596,17 +617,49 @@ module Autobuild
             task
         end
 
-        def doc_dir=(value); doc_utility.source_dir = value end
-        def doc_dir; doc_utility.source_dir end
-        def doc_target_dir=(value); doc_utility.target_dir = value end
-        def doc_target_dir; doc_utility.target_dir end
-        def doc_task(&block); doc_utility.task(&block) end
-        def generates_doc?; doc_utility.enabled? end
-        def enable_doc; doc_utility.enabled = true end
-        def disable_doc; doc_utility.enabled = false end
-        def install_doc; doc_utility.install end
-        def doc_disabled; doc_utility.disabled end
-        def has_doc?; doc_utility.has_task? end
+        def doc_dir=(value)
+            doc_utility.source_dir = value
+        end
+
+        def doc_dir
+            doc_utility.source_dir
+        end
+
+        def doc_target_dir=(value)
+            doc_utility.target_dir = value
+        end
+
+        def doc_target_dir
+            doc_utility.target_dir
+        end
+
+        def doc_task(&block)
+            doc_utility.task(&block)
+        end
+
+        def generates_doc?
+            doc_utility.enabled?
+        end
+
+        def enable_doc
+            doc_utility.enabled = true
+        end
+
+        def disable_doc
+            doc_utility.enabled = false
+        end
+
+        def install_doc
+            doc_utility.install
+        end
+
+        def doc_disabled
+            doc_utility.disabled
+        end
+
+        def has_doc?
+            doc_utility.has_task?
+        end
 
         def post_install(*args, &block)
             if args.empty?
@@ -622,7 +675,7 @@ module Autobuild
         def all_dependencies(result = Set.new)
             dependencies.each do |pkg_name|
                 pkg = Autobuild::Package[pkg_name]
-                if !result.include?(pkg.name)
+                unless result.include?(pkg.name)
                     result << pkg.name
                     pkg.all_dependencies(result)
                 end
@@ -642,11 +695,14 @@ module Autobuild
         def depends_on(*packages)
             packages.each do |p|
                 p = p.name if p.respond_to?(:name)
-                raise ArgumentError, "#{p.inspect} should be a string" if !p.respond_to? :to_str
+                unless p.respond_to?(:to_str)
+                    raise ArgumentError, "#{p.inspect} should be a string"
+                end
                 p = p.to_str
                 next if p == name
-                unless pkg = Package[p]
-                    raise ConfigException.new(self), "package #{p}, listed as a dependency of #{self.name}, is not defined"
+                unless (pkg = Package[p])
+                    raise ConfigException.new(self), "package #{p}, "\
+                        "listed as a dependency of #{name}, is not defined"
                 end
 
                 next if @dependencies.include?(pkg.name)
@@ -666,12 +722,14 @@ module Autobuild
         # listed in +packages+ are aliases for this package.
         def provides(*packages)
             packages.each do |p|
-                raise ArgumentError, "#{p.inspect} should be a string" if !p.respond_to? :to_str
+                unless p.respond_to?(:to_str)
+                    raise ArgumentError, "#{p.inspect} should be a string"
+                end
                 p = p.to_str
                 next if p == name
                 next if @provides.include?(name)
 
-                @@provides[p] = self 
+                @@provides[p] = self
 
                 if Autobuild.verbose
                     Autobuild.message "#{name} provides #{p}"
@@ -689,11 +747,9 @@ module Autobuild
         # if with_provides is true, includes the list
         # of package aliases
         def self.each(with_provides = false, &p)
-            if !p
-                return enum_for(:each, with_provides)
-            end
+            return enum_for(:each, with_provides) unless p
 
-            @@packages.each(&p) 
+            @@packages.each(&p)
             @@provides.each(&p) if with_provides
         end
 
@@ -719,7 +775,7 @@ module Autobuild
         end
 
         # Returns the level of parallelism authorized during the build for this
-        # particular package. If not set, defaults to the system-wide option 
+        # particular package. If not set, defaults to the system-wide option
         # (Autobuild.parallel_build_level and Autobuild.parallel_build_level=).
         #
         # The default value is the number of CPUs on this system.
@@ -740,7 +796,6 @@ module Autobuild
         def in_dir(directory)
             @in_dir_stack << directory
             yield
-
         ensure
             @in_dir_stack.pop
         end
@@ -771,12 +826,11 @@ module Autobuild
             utilities[utility_name] ||= Autobuild.create_utility(utility_name, self)
         end
 
-
         def method_missing(m, *args, &block)
             case m.to_s
             when /(\w+)_utility$/
                 utility_name = $1
-                if !args.empty?
+                unless args.empty?
                     raise ArgumentError, "expected 0 arguments and got #{args.size}"
                 end
                 begin
@@ -797,4 +851,3 @@ module Autobuild
         end
     end
 end
-

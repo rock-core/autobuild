@@ -9,4 +9,5 @@ group :vscode do
     gem 'ruby-debug-ide', '>= 0.6.0'
     gem 'debase', '>= 0.2.2.beta10'
     gem 'solargraph'
+    gem 'rubocop-rock'
 end

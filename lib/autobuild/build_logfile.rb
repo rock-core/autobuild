@@ -28,9 +28,9 @@ module Autobuild
             result = []
             by_package.each do |pkg_name, phases|
                 other_phases = other.by_package[pkg_name]
-                next if !other_phases
+                next unless other_phases
                 phases.each do |phase, duration|
-                    next if !other_phases.has_key?(phase)
+                    next unless other_phases.has_key?(phase)
                     other_duration = other_phases[phase]
                     result << Entry.new(pkg_name, phase, nil, other_duration - duration)
                 end
@@ -55,4 +55,3 @@ module Autobuild
         end
     end
 end
-

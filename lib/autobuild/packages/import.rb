@@ -5,7 +5,7 @@ module Autobuild
     def self.import(spec, &proc)
         ImporterPackage.new(spec, &proc)
     end
-    
+
     class ImporterPackage < Package
         attr_reader :exclude
 
@@ -32,5 +32,3 @@ module Autobuild
         end
     end
 end
-
-

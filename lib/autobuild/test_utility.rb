@@ -36,9 +36,7 @@ module Autobuild
         #
         # @param [Boolean,nil] flag enable or disable code coverage. If set to
         #   nil, will use the default from {TestUtility.coverage?}
-        def coverage_enabled=(flag)
-            @coverage_enabled = flag
-        end
+        attr_writer :coverage_enabled
 
         # Where the code coverage will be generated
         #
@@ -102,4 +100,3 @@ module Autobuild
         end
     end
 end
-

@@ -3,12 +3,12 @@ require 'rbconfig'
 require 'utilrb/hash/map_value'
 
 module Autobuild
-    @windows = RbConfig::CONFIG["host_os"] =~%r!(msdos|mswin|djgpp|mingw|[Ww]indows)!
+    @windows = RbConfig::CONFIG["host_os"] =~ /(msdos|mswin|djgpp|mingw|[Ww]indows)/
     def self.windows?
         @windows
     end
 
-    @macos =  RbConfig::CONFIG["host_os"] =~%r!([Dd]arwin)!
+    @macos = RbConfig::CONFIG["host_os"] =~ /([Dd]arwin)/
     def self.macos?
         @macos
     end
@@ -19,10 +19,10 @@ module Autobuild
     end
 
     def self.bsd?
-        @freebsd || @macos #can be extended to some other OSes liek NetBSD
+        @freebsd || @macos # can be extended to some other OSes liek NetBSD
     end
 
-    @msys =  RbConfig::CONFIG["host_os"] =~%r!(msys)!
+    @msys = RbConfig::CONFIG["host_os"] =~ /(msys)/
     def self.msys?
         @msys
     end
@@ -279,7 +279,7 @@ module Autobuild
         end
 
         def push(name, *values)
-            if current = environment[name]
+            if (current = environment[name])
                 current = current.dup
                 set(name, *values)
                 add(name, *current)
@@ -296,7 +296,7 @@ module Autobuild
                       environment[name]
                   end
 
-            if !inherited_environment.has_key?(name)
+            unless inherited_environment.has_key?(name)
                 init_from_env(name)
             end
 
@@ -325,7 +325,7 @@ module Autobuild
         #   actual value is OS-specific, and not handled by this method
         def value(name, options = Hash.new)
             # For backward compatibility only
-            if !options.respond_to?(:to_hash)
+            unless options.respond_to?(:to_hash)
                 if options
                     options = Hash[:inheritance_mode => :expand]
                 else
@@ -349,13 +349,10 @@ module Autobuild
                     else []
                     end
 
-
                 value = []
                 [environment[name], inherited, system_env[name]].each do |paths|
                     (paths || []).each do |p|
-                        if !value.include?(p)
-                            value << p
-                        end
+                        value << p unless value.include?(p)
                     end
                 end
                 value
@@ -370,7 +367,7 @@ module Autobuild
         def resolved_env
             resolved_env = Hash.new
             environment.each_key do |name|
-                if value = value(name)
+                if (value = value(name))
                     if path_variable?(name)
                         value = value.find_all { |p| File.exist?(p) }
                     end
@@ -428,7 +425,7 @@ module Autobuild
         # @see push_path
         def push_path(name, *values)
             declare_path_variable(name)
-            if current = environment.delete(name)
+            if (current = environment.delete(name))
                 current = current.dup
                 add_path(name, *values)
                 add_path(name, *current)
@@ -614,13 +611,11 @@ module Autobuild
                 end
             end
 
-            if !@arch_size
-                @arch_size =
-                    if RbConfig::CONFIG['host_cpu'] =~ /64/
-                        64
-                    else 32
-                    end
-            end
+            @arch_size ||=
+                if RbConfig::CONFIG['host_cpu'] =~ /64/
+                    64
+                else 32
+                end
             @arch_size
         end
 
@@ -658,10 +653,10 @@ module Autobuild
 
         # Returns the system-wide search path that is embedded in pkg-config
         def default_pkgconfig_search_suffixes
-            found_path_rx = /Scanning directory (?:#\d+ )?'(.*\/)((?:lib|lib64|share)\/.*)'$/
-            nonexistent_path_rx = /Cannot open directory (?:#\d+ )?'.*\/((?:lib|lib64|share)\/.*)' in package search path:.*/
+            found_path_rx = %r{Scanning directory (?:#\d+ )?'(.*/)((?:lib|lib64|share)/.*)'$}
+            nonexistent_path_rx = %r{Cannot open directory (?:#\d+ )?'.*/((?:lib|lib64|share)/.*)' in package search path:.*}
 
-            if !@default_pkgconfig_search_suffixes
+            unless @default_pkgconfig_search_suffixes
                 output = `LANG=C PKG_CONFIG_PATH= #{Autobuild.tool("pkg-config")} --debug 2>&1`.split("\n")
                 found_paths = output.grep(found_path_rx).
                     map { |l| l.gsub(found_path_rx, '\2') }.
@@ -671,7 +666,7 @@ module Autobuild
                     to_set
                 @default_pkgconfig_search_suffixes = found_paths | not_found
             end
-            return @default_pkgconfig_search_suffixes
+            @default_pkgconfig_search_suffixes
         end
 
         # Updates the environment when a new prefix has been added
@@ -708,7 +703,7 @@ module Autobuild
 
                 %w{rubylibdir archdir sitelibdir sitearchdir vendorlibdir vendorarchdir}.
                     map { |key| RbConfig::CONFIG[key] }.
-                    map { |path| path.gsub(/.*lib(?:32|64)?\//, '\\1') }.
+                    map { |path| path.gsub(%r{.*lib(?:32|64)?/}, '\\1') }.
                     each do |subdir|
                         if File.directory?("#{newprefix}/lib/#{subdir}")
                             add_path("RUBYLIB", "#{newprefix}/lib/#{subdir}")
@@ -774,7 +769,7 @@ module Autobuild
     @env = nil
 
     def self.env
-        if !@env
+        unless @env
             @env = Environment.new
             @env.prepare
         end
@@ -785,77 +780,95 @@ module Autobuild
     def self.env_reset(name = nil)
         env.reset(name)
     end
+
     # @deprecated, use the API on {env} instead
     def self.env_clear(name = nil)
         env.clear(name)
     end
+
     # @deprecated, use the API on {env} instead
     def self.env_set(name, *values)
         env.set(name, *values)
     end
+
     # @deprecated, use the API on {env} instead
     def self.env_inherit?(name = nil)
         env.inherit?(name)
     end
+
     # @deprecated, use the API on {env} instead
     def self.env_inherit=(value)
         env.inherit = value
     end
+
     # @deprecated, use the API on {env} instead
     def self.env_inherit(*names)
         env.inherit(*names)
     end
+
     # @deprecated, use the API on {env} instead
     def self.env_init_from_env(name)
         env.init_from_env(name)
     end
+
     # @deprecated, use the API on {env} instead
     def self.env_push(name, *values)
         env.push(name, *values)
     end
+
     # @deprecated, use the API on {env} instead
     def self.env_add(name, *values)
         env.add(name, *values)
     end
+
     # @deprecated, use the API on {env} instead
     def self.env_value(name, options = Hash.new)
         env.value(name, options)
     end
+
     # @deprecated, there is no corresponding API on the {Environment}
-    def self.env_update_var(name)
-    end
+    def self.env_update_var(name); end
+
     # @deprecated, use the API on {env} instead
     def self.env_add_path(name, *paths)
         env.add_path(name, *paths)
     end
+
     # @deprecated, use the API on {env} instead
     def self.env_remove_path(name, *paths)
         env.remove_path(name, *paths)
     end
+
     # @deprecated, use the API on {env} instead
     def self.env_push_path(name, *values)
         env.push_path(name, *values)
     end
+
     # @deprecated, use the API on {env} instead
     def self.env_source_file(file, shell: 'sh')
         env.source_after(file, shell: shell)
     end
+
     # @deprecated, use the API on {env} instead
     def self.env_source_before(file = nil, shell: 'sh')
         env.source_before(file, shell: shell)
     end
+
     # @deprecated, use the API on {env} instead
     def self.env_source_after(file = nil, shell: 'sh')
         env.source_after(file, shell: shell)
     end
+
     # @deprecated, use the API on {env} instead
     def self.export_env_sh(io)
         env.export_env_sh(io)
     end
+
     # @deprecated, use the API on {env} instead
     def self.each_env_search_path(prefix, patterns)
         env.each_env_search_path(prefix, patterns)
     end
+
     # @deprecated, use the API on {env} instead
     def self.update_environment(newprefix, includes = nil)
         env.update_environment(newprefix, includes)
