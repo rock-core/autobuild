@@ -102,7 +102,10 @@ module Autobuild
             # Try to count the number of physical cores, not the number of
             # logical ones. If the info is not available, fallback to the
             # logical count
-            if (physical_ids.size == core_count.size) && (physical_ids.size == processor_ids.size)
+            has_consistent_info =
+                (physical_ids.size == core_count.size) &&
+                (physical_ids.size == processor_ids.size)
+            if has_consistent_info
                 info = Array.new
                 while (id = physical_ids.shift)
                     info[id] = core_count.shift
@@ -124,7 +127,8 @@ module Autobuild
             # Hug... What kind of system is it ?
             Autobuild.message "INFO: cannot autodetect the number of CPUs on this sytem"
             Autobuild.message "INFO: turning parallel builds off"
-            Autobuild.message "INFO: you can manually set the number of parallel build processes to N"
+            Autobuild.message "INFO: you can manually set the number of parallel build "\
+                "processes to N"
             Autobuild.message "INFO: (and therefore turn this message off)"
             Autobuild.message "INFO: with"
             Autobuild.message "    Autobuild.parallel_build_level = N"
@@ -136,11 +140,13 @@ module Autobuild
 
     def self.validate_displayed_error_line_count(lines)
         if lines == 'ALL'
-            return Float::INFINITY
+            Float::INFINITY
         elsif lines.to_i > 0
-            return lines.to_i
+            lines.to_i
+        else
+            raise ConfigException.new, 'Autobuild.displayed_error_line_count can only "\
+                "be a positive integer or \'ALL\''
         end
-        raise ConfigException.new, 'Autobuild.displayed_error_line_count can only be a positive integer or \'ALL\''
     end
 end
 
@@ -209,7 +215,11 @@ module Autobuild::Subprocess # rubocop:disable Style/ClassAndModuleChildren
         STDOUT.sync = true
 
         input_streams = []
-        options = Hash[retry: false, env: ENV.to_hash, env_inherit: true, encoding: 'BINARY']
+        options = {
+            retry: false, encoding: 'BINARY',
+            env: ENV.to_hash, env_inherit: true
+        }
+
         if command.last.kind_of?(Hash)
             options = command.pop
             options = Kernel.validate_options options,
@@ -245,7 +255,8 @@ module Autobuild::Subprocess # rubocop:disable Style/ClassAndModuleChildren
             options[:working_directory] ||= target.working_directory
         end
 
-        logname = File.join(logdir, "#{target_name.gsub(/[:]/, '_')}-#{phase.to_s.gsub(/[:]/, '_')}.log")
+        logname = File.join(logdir, "#{target_name.gsub(/[:]/, '_')}-"\
+            "#{phase.to_s.gsub(/[:]/, '_')}.log")
         unless File.directory?(File.dirname(logname))
             FileUtils.mkdir_p File.dirname(logname)
         end
@@ -312,10 +323,7 @@ module Autobuild::Subprocess # rubocop:disable Style/ClassAndModuleChildren
 
             pid = fork do
                 begin
-                    if options[:working_directory] && (options[:working_directory] != Dir.pwd)
-                        Dir.chdir(options[:working_directory])
-                    end
-                    logfile.puts "in directory #{Dir.pwd}"
+                    logfile.puts "in directory #{options[:working_directory] || Dir.pwd}"
 
                     cwrite.sync = true
                     if Autobuild.nice
@@ -331,14 +339,18 @@ module Autobuild::Subprocess # rubocop:disable Style/ClassAndModuleChildren
                         $stdin.reopen(pread)
                     end
 
-                    exec(env, *command, close_others: false)
+                    exec(env, *command,
+                        chdir: options[:working_directory] || Dir.pwd,
+                        close_others: false)
                 rescue Errno::ENOENT
                     cwrite.write([CONTROL_COMMAND_NOT_FOUND].pack('I'))
                     exit(100)
                 rescue Interrupt
                     cwrite.write([CONTROL_INTERRUPT].pack('I'))
                     exit(100)
-                rescue ::Exception
+                rescue ::Exception => e
+                    STDERR.puts e
+                    STDERR.puts e.backtrace.join("\n  ")
                     cwrite.write([CONTROL_UNEXPECTED].pack('I'))
                     exit(100)
                 end
@@ -352,7 +364,9 @@ module Autobuild::Subprocess # rubocop:disable Style/ClassAndModuleChildren
                 begin
                     input_streams.each do |instream|
                         instream.each_line do |line|
-                            readbuffer.write(outread.readpartial(128)) while IO.select([outread], nil, nil, 0)
+                            while IO.select([outread], nil, nil, 0)
+                                readbuffer.write(outread.readpartial(128))
+                            end
                             pwrite.write(line)
                         end
                     end
@@ -422,6 +436,7 @@ module Autobuild::Subprocess # rubocop:disable Style/ClassAndModuleChildren
             if status.termsig == 2 # SIGINT == 2
                 raise Interrupt, "subcommand #{command.join(' ')} interrupted"
             end
+
             if status.termsig
                 raise Failed.new(status.exitstatus, nil),
                     "'#{command.join(' ')}' terminated by signal #{status.termsig}"
@@ -442,7 +457,8 @@ module Autobuild::Subprocess # rubocop:disable Style/ClassAndModuleChildren
         target.add_stat(phase, duration) if target.respond_to?(:add_stat)
         subcommand_output
     rescue Failed => e
-        error = Autobuild::SubcommandFailed.new(target, command.join(" "), logname, e.status, subcommand_output)
+        error = Autobuild::SubcommandFailed.new(target, command.join(" "),
+            logname, e.status, subcommand_output)
         error.retry = if e.retry?.nil? then options[:retry]
                       else e.retry?
                       end

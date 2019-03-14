@@ -2,10 +2,11 @@ inherit_gem:
   rubocop-rock: defaults.yml
 
 AllCops:
-    TargetRubyVersion: "2.1"
+    TargetRubyVersion: "2.3"
     Exclude:
-        - vendor/**/*
-        - pkg/**/*
+    - lib/autobuild/packages/genom.rb
+    - vendor/**/*
+    - pkg/**/*
 
 Style/ClassVars:
     Enabled: false
@@ -19,6 +20,15 @@ Naming/PredicateName:
 Lint/SplatKeywordArguments:
     Enabled: false
 
+Style/FrozenStringLiteralComment:
+    Enabled: false
+
+Style/AccessModifierDeclarations:
+    EnforcedStyle: inline
+
+Naming/FileName:
+    Exclude:
+      - lib/autobuild/import/git-lfs.rb
 
 
 
@@ -86,8 +96,12 @@ Style/PerlBackrefs:
 Style/StringLiterals:
     Enabled: false
 
-Metrics/LineLength:
-    Enabled: false
-
 Layout/IndentHeredoc:
     Enabled: false
+
+Metrics/LineLength:
+    Max: 90
+    Exclude:
+    - test/**/*
+
+

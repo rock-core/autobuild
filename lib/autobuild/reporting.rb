@@ -91,7 +91,9 @@ module Autobuild
             rescue Interrupt => e
                 interrupted = e
             rescue Autobuild::Exception => e
-                return report_finish_on_error([e], on_package_failures: on_package_failures, interrupted_by: interrupted)
+                return report_finish_on_error([e],
+                    on_package_failures: on_package_failures,
+                    interrupted_by: interrupted)
             end
 
             # If ignore_erorrs is true, check if some packages have failed
@@ -102,7 +104,9 @@ module Autobuild
                 errors.concat(pkg.failures)
             end
 
-            report_finish_on_error(errors, on_package_failures: on_package_failures, interrupted_by: interrupted)
+            report_finish_on_error(errors,
+                on_package_failures: on_package_failures,
+                interrupted_by: interrupted)
         end
 
         # @api private
@@ -123,13 +127,16 @@ module Autobuild
         #
         # @param [Symbol] on_package_failures how does the reporting should behave.
         #
-        def self.report_finish_on_error(errors, on_package_failures: default_report_on_package_failures, interrupted_by: nil)
+        def self.report_finish_on_error(errors,
+            on_package_failures: default_report_on_package_failures, interrupted_by: nil)
             if (not_package_error = errors.find { |e| !e.respond_to?(:fatal?) })
                 raise not_package_error
             end
+
             unless %i[raise report_silent exit_silent].include?(on_package_failures)
                 errors.each { |e| error(e) }
             end
+
             fatal = errors.any?(&:fatal?)
             unless fatal
                 if interrupted_by
@@ -155,7 +162,8 @@ module Autobuild
             elsif %i[exit exit_silent].include?(on_package_failures)
                 exit 1
             else
-                raise ArgumentError, "unexpected value for on_package_failures: #{on_package_failures}"
+                raise ArgumentError, "unexpected value for on_package_failures: "\
+                    "#{on_package_failures}"
             end
         end
 

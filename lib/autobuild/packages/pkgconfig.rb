@@ -19,6 +19,7 @@ module Autobuild
             unless File.file?(pcfile)
                 raise "cannot find the .pc file for #{name}, tried #{pcfile}"
             end
+
             pcfile
         end
     end

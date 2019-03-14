@@ -1,6 +1,6 @@
 module Autobuild
     ## Base class for all Autobuild exceptions
-    class Exception < RuntimeError
+    class PhaseException < RuntimeError
         # If the error should be reported by mail
         def mail?
             false
@@ -45,8 +45,11 @@ module Autobuild
         end
     end
 
+    # Backward compatibility
+    Exception = PhaseException
+
     ## There is an error/inconsistency in the configuration
-    class ConfigException < RuntimeError
+    class ConfigException < PhaseException
         def initialize(target = nil, phase = nil, options = Hash.new)
             options, other_options = Kernel.filter_options options,
                 retry: false
@@ -54,7 +57,7 @@ module Autobuild
         end
     end
     ## An error occured in a package
-    class PackageException < RuntimeError
+    class PackageException < PhaseException
         def mail?
             true
         end
@@ -71,10 +74,10 @@ module Autobuild
     class ImporterCannotReset < PackageException
     end
 
-    ## The subcommand is not found
-    class CommandNotFound  < RuntimeError; end
-    ## An error occured while running a subcommand
-    class SubcommandFailed < RuntimeError
+    # The subcommand is not found
+    class CommandNotFound  < PhaseException; end
+    # An error occured while running a subcommand
+    class SubcommandFailed < PhaseException
         def mail?
             true
         end

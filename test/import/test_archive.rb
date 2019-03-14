@@ -124,8 +124,8 @@ module Autobuild
         end
 
         def stop_web_server
-            @webrick_server.shutdown if @webrick_server
-            @webrick_thread.join if @webrick_thread
+            @webrick_server&.shutdown
+            @webrick_thread&.join
         end
 
         def web_server(redirect_code: 301, redirect_to: '/files/data/tarimport.tar.gz')

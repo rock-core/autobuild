@@ -63,7 +63,8 @@ module Autobuild
 
         class << self
             attr_accessor :default_type_export_policy
-            # The list of enabled transports as an array of strings (default: typelib, corba)
+            # The list of enabled transports as an array of strings (default:
+            # typelib, corba)
             attr_reader :transports
 
             attr_reader :orogen_options
@@ -126,7 +127,8 @@ module Autobuild
                 Dir.glob(File.join(srcdir, '*.orogen')) do |path|
                     return File.basename(path)
                 end
-                raise ArgumentError, "cannot find an oroGen specification file in #{srcdir}"
+                raise ArgumentError,
+                    "cannot find an oroGen specification file in #{srcdir}"
             end
         end
 
@@ -266,9 +268,11 @@ module Autobuild
             needs_regen ||= !generation_uptodate?
 
             if needs_regen
-                progress_start "generating oroGen %s", :done_message => 'generated oroGen %s' do
+                progress_start "generating oroGen %s",
+                               done_message: 'generated oroGen %s' do
                     in_dir(srcdir) do
-                        run 'orogen', Autobuild.tool('ruby'), '-S', orogen_tool_path, *cmdline
+                        run 'orogen', Autobuild.tool('ruby'), '-S',
+                            orogen_tool_path, *cmdline
                         File.open(genstamp, 'w') do |io|
                             io.print cmdline.join("\n")
                         end
@@ -284,7 +288,8 @@ module Autobuild
             if !File.file?(genstamp)
                 true
             elsif File.file?(File.join(builddir, 'Makefile'))
-                system("#{Autobuild.tool('make')} -C #{builddir} check-uptodate > /dev/null 2>&1")
+                make = Autobuild.tool('make')
+                system("#{make} -C #{builddir} check-uptodate > /dev/null 2>&1")
             else
                 true
             end

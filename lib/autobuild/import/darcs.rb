@@ -4,8 +4,8 @@ require 'autobuild/importer'
 
 module Autobuild
     class DarcsImporter < Importer
-        # Creates a new importer which gets the source from the Darcs repository
-        # +source+ # The following values are allowed in +options+:
+        # Creates a new importer which gets the source from the Darcs
+        # repository +source+ # The following values are allowed in +options+:
         # [:get] options to give to 'darcs get'.
         # [:pull] options to give to 'darcs pull'.
         #
@@ -20,11 +20,10 @@ module Autobuild
             @get  = [*options[:get]]
         end
 
-        private
-
         def update(package, options = Hash.new) # :nodoc:
             if options[:only_local]
-                package.warn "%s: the darcs importer does not support local updates, skipping"
+                package.warn "%s: the darcs importer does not support "\
+                    "local updates, skipping"
                 return false
             end
             unless File.directory?(File.join(package.srcdir, '_darcs'))
@@ -32,8 +31,9 @@ module Autobuild
                     "#{package.srcdir} is not a Darcs repository"
             end
 
-            package.run(:import, @program,
-               'pull', '--all', "--repodir=#{package.srcdir}", '--set-scripts-executable', @source, *@pull, retry: true)
+            package.run(:import, @program, 'pull', '--all',
+                "--repodir=#{package.srcdir}", '--set-scripts-executable',
+                @source, *@pull, retry: true)
             true # no easy to know if package was updated, keep previous behavior
         end
 
@@ -41,8 +41,8 @@ module Autobuild
             basedir = File.dirname(package.srcdir)
             FileUtils.mkdir_p(basedir) unless File.directory?(basedir)
 
-            package.run(:import, @program,
-               'get', '--set-scripts-executable', @source, package.srcdir, *@get, retry: true)
+            package.run(:import, @program, 'get', '--set-scripts-executable',
+                @source, package.srcdir, *@get, retry: true)
         end
     end
 

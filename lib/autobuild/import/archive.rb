@@ -84,7 +84,8 @@ module Autobuild
             if (mode = find_mode_from_filename(filename))
                 mode
             else
-                raise "cannot infer the archive type from '#{filename}', use the mode: option"
+                raise "cannot infer the archive type from '#{filename}', "\
+                    "provide it explicitely with the mode: option"
             end
         end
 
@@ -160,7 +161,8 @@ module Autobuild
                             user: user, password: password, current_time: current_time)
                     else
                         raise PackageException.new(package, 'import'),
-                            "failed download of #{package.name} from #{uri}: #{resp.class}"
+                            "failed download of #{package.name} from #{uri}: "\
+                            "#{resp.class}"
                     end
                 end
             end
@@ -204,13 +206,16 @@ module Autobuild
             if mtime && size
                 return size != cached_size || mtime > cached_mtime
             elsif mtime
-                package.warn "%s: archive size is not available for #{@url}, relying on modification time"
+                package.warn "%s: archive size is not available for #{@url}, "\
+                    "relying on modification time"
                 return mtime > cached_mtime
             elsif size
-                package.warn "%s: archive modification time is not available for #{@url}, relying on size"
+                package.warn "%s: archive modification time "\
+                    "is not available for #{@url}, relying on size"
                 return size != cached_size
             else
-                package.warn "%s: neither the archive size nor its modification time available for #{@url}, will always update"
+                package.warn "%s: neither the archive size nor its modification time "\
+                    "are available for #{@url}, will always update"
                 return true
             end
         end
@@ -221,18 +226,22 @@ module Autobuild
                 if %w[http https].include?(@url.scheme)
                     if File.file?(cachefile)
                         return false unless update_cached_file?
+
                         cached_mtime = File.lstat(cachefile).mtime
                     end
+
                     updated = download_http(package, @url, "#{cachefile}.partial",
                         user: @user, password: @password,
                         current_time: cached_mtime)
                     return false unless updated
                 elsif Autobuild.bsd?
                     return false unless update_needed?(package)
+
                     package.run(:import, Autobuild.tool('curl'),
                                 '-Lso', "#{cachefile}.partial", @url)
                 else
                     return false unless update_needed?(package)
+
                     additional_options = []
                     if (timeout = self.timeout)
                         additional_options << "--timeout" << timeout
@@ -240,7 +249,9 @@ module Autobuild
                     if (retries = self.retries)
                         additional_options << "--tries" << retries
                     end
-                    package.run(:import, Autobuild.tool('wget'), '-q', '-P', cachedir, *additional_options, @url, '-O', "#{cachefile}.partial", retry: true)
+                    package.run(:import, Autobuild.tool('wget'), '-q', '-P', cachedir,
+                        *additional_options, @url, '-O', "#{cachefile}.partial",
+                        retry: true)
                 end
             rescue Exception
                 FileUtils.rm_f "#{cachefile}.partial"
@@ -326,8 +337,8 @@ module Autobuild
             !@options[:no_subdirectory]
         end
 
-        # Creates a new importer which downloads +url+ in +cachedir+ and unpacks it. The following options
-        # are allowed:
+        # Creates a new importer which downloads +url+ in +cachedir+ and
+        # unpacks it. The following options are allowed:
         # [:cachedir] the cache directory. Defaults to "#{Autobuild.prefix}/cache"
         # [:archive_dir] the directory contained in the archive file. If set,
         #       the importer will rename that directory to make it match
@@ -335,7 +346,8 @@ module Autobuild
         # [:no_subdirectory] the archive does not have the custom archive
         #       subdirectory.
         # [:retries] The number of retries for downloading
-        # [:timeout] The timeout (in seconds) used during downloading, it defaults to 10s
+        # [:timeout] The timeout (in seconds) used during downloading, it
+        #       defaults to 10s
         # [:filename] Rename the archive to this filename (in cache) -- will be
         #       also used to infer the mode
         # [:mode] The unpack mode: one of Zip, Bzip, Gzip or Plain, this is
@@ -371,17 +383,26 @@ module Autobuild
             @repository_id = options[:repository_id] || parsed_url.to_s
             @source_id     = options[:source_id] || parsed_url.to_s
 
-            @filename = options[:filename] || @filename || File.basename(url).gsub(/\?.*/, '')
+            @filename =
+                options[:filename] ||
+                @filename ||
+                File.basename(url).gsub(/\?.*/, '')
             @update_cached_file = options[:update_cached_file]
 
-            @mode = options[:mode] || ArchiveImporter.find_mode_from_filename(filename) || @mode
+            @mode =
+                options[:mode] ||
+                ArchiveImporter.find_mode_from_filename(filename) ||
+                @mode
+
             if Autobuild.windows? && (mode != Gzip)
-                raise ConfigException, "only gzipped tar archives are supported on Windows"
+                raise ConfigException, "only gzipped tar archives "\
+                    "are supported on Windows"
             end
             @user = options[:user]
             @password = options[:password]
             if @user && !%w[http https].include?(@url.scheme)
-                raise ConfigException, "authentication is only supported for http and https URIs"
+                raise ConfigException, "authentication is only supported for "\
+                    "http and https URIs"
             end
 
             @cachefile =
@@ -394,7 +415,8 @@ module Autobuild
 
         def update(package, options = Hash.new) # :nodoc:
             if options[:only_local]
-                package.warn "%s: the archive importer does not support local updates, skipping"
+                package.warn "%s: the archive importer does not support local updates, "\
+                    "skipping"
                 return false
             end
             needs_update = update_cache(package)
@@ -405,8 +427,9 @@ module Autobuild
 
             if needs_update || archive_changed?(package)
                 return checkout(package, allow_interactive: options[:allow_interactive])
+            else
+                false
             end
-            false
         end
 
         def checkout_digest_stamp(package)
@@ -439,11 +462,17 @@ module Autobuild
                     response = 'yes'
                 elsif options[:allow_interactive]
                     package.progress_done
-                    package.message "The archive #{@url} is different from the one currently checked out at #{package.srcdir}", :bold
-                    package.message "I will have to delete the current folder to go on with the update"
-                    response = TTY::Prompt.new.ask "  Continue (yes or no) ? If no, this update will be ignored, which can lead to build problems.", convert: :bool
+                    package.message "The archive #{@url} is different from "\
+                        "the one currently checked out at #{package.srcdir}", :bold
+                    package.message "I will have to delete the current folder to go on "\
+                        "with the update"
+                    response = TTY::Prompt.new.ask "  Continue (yes or no) ? "\
+                        "If no, this update will be ignored, "\
+                        "which can lead to build problems.", convert: :bool
                 else
-                    raise Autobuild::InteractionRequired, "importing #{package.name} would have required user interaction and allow_interactive is false"
+                    raise Autobuild::InteractionRequired, "importing #{package.name} "\
+                        "would have required user interaction and "\
+                        "allow_interactive is false"
                 end
 
                 if !response
@@ -477,7 +506,9 @@ module Autobuild
                     FileUtils.rm_rf File.join(package.srcdir)
                     FileUtils.mv File.join(base_dir, archive_dir), package.srcdir
                 elsif !File.directory?(package.srcdir)
-                    raise Autobuild::Exception, "#{cachefile} does not contain directory called #{File.basename(package.srcdir)}. Did you forget to use the :archive_dir option ?"
+                    raise Autobuild::Exception, "#{cachefile} does not contain "\
+                        "directory called #{File.basename(package.srcdir)}. "\
+                        "Did you forget to use the archive_dir option ?"
                 end
             else
                 FileUtils.mkdir_p package.srcdir

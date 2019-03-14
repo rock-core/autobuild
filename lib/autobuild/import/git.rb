@@ -29,7 +29,9 @@ module Autobuild
             def default_alternates
                 if @default_alternates then @default_alternates
                 elsif (cache_dirs = Importer.cache_dirs('git'))
-                    @default_alternates = cache_dirs.map { |path| File.join(File.expand_path(path), '%s') }
+                    @default_alternates = cache_dirs.map do |path|
+                        File.join(File.expand_path(path), '%s')
+                    end
                 else Array.new
                 end
             end
@@ -45,11 +47,13 @@ module Autobuild
         #
         # @return [String]
         def self.version
-            version = Subprocess.run('git', 'setup', Autobuild.tool(:git), '--version').first
+            version = Subprocess.run('git', 'setup', Autobuild.tool(:git), '--version').
+                first
             if version =~ /^git version (\d[\d\.]+)/
                 $1.split(".").map { |i| Integer(i) }
             else
-                raise ArgumentError, "cannot parse git version string #{version}, was expecting something looking like 'git version 2.1.0'"
+                raise ArgumentError, "cannot parse git version string #{version}, "\
+                    "was expecting something looking like 'git version 2.1.0'"
             end
         end
 
@@ -89,18 +93,19 @@ module Autobuild
         # @param [String] branch deprecated, use the 'branch' named option
         #   instead
         #
-        # @option options [String] push_to (repository) the URL to set up as push_to URL in
-        #   the remote(s). Note that it is not used internally by this class
-        # @option options [String] branch (master) the branch we should track. It is used
-        #   both as {#local_branch} and {#remote_branch}
+        # @option options [String] push_to (repository) the URL to set up as
+        #   push_to URL in the remote(s). Note that it is not used internally by
+        #   this class
+        # @option options [String] branch (master) the branch we should track.
+        #   It is used both as {#local_branch} and {#remote_branch}
         # @option options [String] tag (nil) a tag at which we should pin the
         #   checkout. Cannot be given at the same time than :commit
         # @option options [String] commit (nil) a commit ID at which we should pin the
         #   checkout. Cannot be given at the same time than :tag
-        # @option options [String] repository_id (git:#{repository}) a string that allows to
-        #   uniquely identify a repository. The meaning is caller-specific. For
-        #   instance, autoproj uses repository_id to check whether two Git
-        #   importers fetches from the same repository.
+        # @option options [String] repository_id (git:#{repository}) a string
+        #   that allows to uniquely identify a repository. The meaning is
+        #   caller-specific. For instance, autoproj uses repository_id to check
+        #   whether two Git importers fetches from the same repository.
         # @option options [Boolean] with_submodules (false) whether the importer should
         #   checkout and update submodules. Note that in an autobuild-based
         #   workflow, it is recommended to not use submodules but checkout all
@@ -119,11 +124,14 @@ module Autobuild
             end
 
             if branch
-                Autobuild.warn "the git importer now expects you to provide the branch as a named option"
+                Autobuild.warn "the git importer now expects you to provide the branch "\
+                    "as a named option"
                 Autobuild.warn "this form is deprecated:"
-                Autobuild.warn "   Autobuild.git 'git://gitorious.org/rock/buildconf.git', 'master'"
+                Autobuild.warn "Autobuild.git 'git://gitorious.org/rock/buildconf.git',"
+                Autobuild.warn "    'master'"
                 Autobuild.warn "and should be replaced by"
-                Autobuild.warn "   Autobuild.git 'git://gitorious.org/rock/buildconf.git', :branch => 'master'"
+                Autobuild.warn "Autobuild.git 'git://gitorious.org/rock/buildconf.git',"
+                Autobuild.warn "    branch: 'master'"
             end
 
             gitopts, common = Kernel.filter_options options,
@@ -138,7 +146,8 @@ module Autobuild
                 with_submodules: false,
                 single_branch: false
             if gitopts[:branch] && branch
-                raise ConfigException, "git branch specified with both the option hash and the explicit parameter"
+                raise ConfigException, "git branch specified with both the option hash "\
+                    "and the explicit parameter"
             end
             gitopts[:branch] ||= branch
 
@@ -278,14 +287,16 @@ module Autobuild
         # @return [(String,Symbol),nil] either the path to the git folder and
         #  :bare or :normal, or nil if path is not a git repository.
         def self.resolve_git_dir(path)
-            dir = File.join(path, '.git')
-            dir = path unless File.exist?(dir)
+            gitdir = File.join(path, '.git')
+            path = gitdir if File.exist?(gitdir)
 
-            result = `#{Autobuild.tool(:git)} --git-dir="#{dir}" rev-parse --is-bare-repository 2>&1`
+            result = `#{Autobuild.tool(:git)} --git-dir="#{path}" rev-parse \
+                --is-bare-repository 2>&1`
             if $CHILD_STATUS.success?
                 if result.strip == "true"
-                    return dir, :bare
-                else return dir, :normal
+                    [path, :bare]
+                else
+                    [path, :normal]
                 end
             end
         end
@@ -340,10 +351,12 @@ module Autobuild
         def self.validate_git_dir(package, require_working_copy, _dir, style)
             if !style
                 raise ConfigException.new(package, 'import', retry: false),
-                    "while importing #{package.name}, #{package.importdir} does not point to a git repository"
+                    "while importing #{package.name}, #{package.importdir} "\
+                    "does not point to a git repository"
             elsif require_working_copy && (style == :bare)
                 raise ConfigException.new(package, 'import', retry: false),
-                    "while importing #{package.name}, #{package.importdir} points to a bare git repository but a working copy was required"
+                    "while importing #{package.name}, #{package.importdir} "\
+                    "points to a bare git repository but a working copy was required"
             end
         end
 
@@ -356,10 +369,12 @@ module Autobuild
         def delta_between_tags(package, from_tag, to_tag)
             pkg_tags = tags(package)
             unless pkg_tags.key?(from_tag)
-                raise ArgumentError, "tag '#{from_tag}' is unknown to #{package.name} -- known tags are: #{pkg_tags.keys}"
+                raise ArgumentError, "tag '#{from_tag}' is unknown to #{package.name} "\
+                    "-- known tags are: #{pkg_tags.keys}"
             end
             unless pkg_tags.key?(to_tag)
-                raise ArgumentError, "tag '#{to_tag}' is unknown to #{package.name} -- known tags are: #{pkg_tags.keys}"
+                raise ArgumentError, "tag '#{to_tag}' is unknown to #{package.name} "\
+                    "-- known tags are: #{pkg_tags.keys}"
             end
 
             from_commit = pkg_tags[from_tag]
@@ -414,7 +429,8 @@ module Autobuild
 
             working_directory = File.dirname(git_dir(package, true))
             package.run(:import, Autobuild.tool(:git), *args,
-                        Hash[resolved_env: Hash.new, working_directory: working_directory].merge(options))
+                        Hash[resolved_env: Hash.new,
+                             working_directory: working_directory].merge(options))
         end
 
         # @api private
@@ -446,14 +462,21 @@ module Autobuild
         #
         # Set a remote up in the repositorie's configuration
         def setup_remote(package, remote_name, repository, push_to = repository)
-            run_git_bare(package, 'config', '--replace-all', "remote.#{remote_name}.url", repository)
-            run_git_bare(package, 'config', '--replace-all', "remote.#{remote_name}.pushurl", push_to || repository)
-            run_git_bare(package, 'config', '--replace-all', "remote.#{remote_name}.fetch", "+refs/heads/*:refs/remotes/#{remote_name}/*")
+            run_git_bare(package, 'config', '--replace-all',
+                "remote.#{remote_name}.url", repository)
+            run_git_bare(package, 'config', '--replace-all',
+                "remote.#{remote_name}.pushurl", push_to || repository)
+            run_git_bare(package, 'config', '--replace-all',
+                "remote.#{remote_name}.fetch",
+                "+refs/heads/*:refs/remotes/#{remote_name}/*")
 
             if remote_branch && local_branch
-                run_git_bare(package, 'config', '--replace-all', "remote.#{remote_name}.push",  "refs/heads/#{local_branch}:#{remote_branch_to_ref(remote_branch)}")
+                run_git_bare(package, 'config', '--replace-all',
+                    "remote.#{remote_name}.push",
+                    "refs/heads/#{local_branch}:#{remote_branch_to_ref(remote_branch)}")
             else
-                run_git_bare(package, 'config', '--replace-all', "remote.#{remote_name}.push",  "refs/heads/*:refs/heads/*")
+                run_git_bare(package, 'config', '--replace-all',
+                    "remote.#{remote_name}.push", "refs/heads/*:refs/heads/*")
             end
         end
 
@@ -478,14 +501,17 @@ module Autobuild
             end
 
             if local_branch
-                run_git_bare(package, 'config', '--replace-all', "branch.#{local_branch}.remote", remote_name)
-                run_git_bare(package, 'config', '--replace-all', "branch.#{local_branch}.merge", remote_branch_to_ref(local_branch))
+                run_git_bare(package, 'config', '--replace-all',
+                    "branch.#{local_branch}.remote", remote_name)
+                run_git_bare(package, 'config', '--replace-all',
+                    "branch.#{local_branch}.merge", remote_branch_to_ref(local_branch))
             end
         end
 
         # Resolve a commit ref to a tag or commit ID
         def describe_rev(package, rev)
-            tag = run_git_bare(package, 'describe', '--tags', '--exact-match', rev).first.strip
+            tag = run_git_bare(package, 'describe',
+                '--tags', '--exact-match', rev).first.strip
             [true, tag.encode('UTF-8')]
         rescue Autobuild::SubcommandFailed
             commit = rev_parse(package, rev)
@@ -498,6 +524,7 @@ module Autobuild
         # @yieldparam [String] commit_id the ref's commit ID
         def each_remote_ref(package)
             return enum_for(__method__, package) unless block_given?
+
             run_git_bare(package, 'ls-remote', repository).each do |line|
                 commit_id, ref_name = line.split(/\s+/)
                 yield(ref_name, commit_id) if ref_name !~ /\^/
@@ -598,7 +625,8 @@ module Autobuild
                 begin
                     run_git_bare(package, 'show-ref', '-s', refspec).first.strip
                 rescue SubcommandFailed
-                    raise PackageException.new(package, "import"), "cannot resolve #{refspec}"
+                    raise PackageException.new(package, "import"),
+                        "cannot resolve #{refspec}"
                 end
             else
                 refspec =
@@ -623,16 +651,20 @@ module Autobuild
                 end
 
             validate_importdir(package)
-            _pinned_state, target_commit, = determine_target_state(package, only_local: only_local)
+            _pinned_state, target_commit, = determine_target_state(
+                package, only_local: only_local)
 
             status = merge_status(package, target_commit)
             status.uncommitted_code = self.class.has_uncommitted_changes?(package)
             if (current_branch = self.current_branch(package))
                 if current_branch != "refs/heads/#{local_branch}"
-                    status.unexpected_working_copy_state << "working copy is on branch #{current_branch}, the autoproj configuration expected it to be on #{local_branch}"
+                    status.unexpected_working_copy_state <<
+                        "working copy is on branch #{current_branch}, "\
+                        "the autoproj configuration expected it to be on #{local_branch}"
                 end
             else
-                status.unexpected_working_copy_state << "working copy is on a detached HEAD"
+                status.unexpected_working_copy_state <<
+                    "working copy is on a detached HEAD"
             end
             status
         end
@@ -648,7 +680,8 @@ module Autobuild
         end
 
         def has_branch?(package, branch_name)
-            run_git_bare(package, 'show-ref', '-q', '--verify', remote_branch_to_ref(branch_name))
+            run_git_bare(package, 'show-ref', '-q', '--verify',
+                remote_branch_to_ref(branch_name))
             true
         rescue SubcommandFailed => e
             if e.status == 1
@@ -726,7 +759,9 @@ module Autobuild
             end
 
             def log(package, from, to)
-                log = package.importer.run_git_bare(package, 'log', '--encoding=UTF-8', "--pretty=format:%h %cr %cn %s", "#{from}..#{to}")
+                log = package.importer.run_git_bare(
+                    package, 'log', '--encoding=UTF-8',
+                    "--pretty=format:%h %cr %cn %s", "#{from}..#{to}")
                 log.map do |line|
                     line.strip.encode
                 end
@@ -746,7 +781,9 @@ module Autobuild
             name = "#{name}^{#{object_type}}" if object_type
             run_git_bare(package, 'rev-parse', '-q', '--verify', name).first
         rescue Autobuild::SubcommandFailed
-            raise PackageException.new(package, 'import'), "failed to resolve #{name}. Are you sure this commit, branch or tag exists ?"
+            raise PackageException.new(package, 'import'),
+                "failed to resolve #{name}. "\
+                "Are you sure this commit, branch or tag exists ?"
         end
 
         # Returns the file's conents at a certain commit
@@ -758,7 +795,8 @@ module Autobuild
         def show(package, commit, path)
             run_git_bare(package, 'show', "#{commit}:#{path}").join("\n")
         rescue Autobuild::SubcommandFailed
-            raise PackageException.new(package, 'import'), "failed to either resolve commit #{commit} or file #{path}"
+            raise PackageException.new(package, 'import'),
+                "failed to either resolve commit #{commit} or file #{path}"
         end
 
         # Tests whether a commit is already present in a given history
@@ -775,7 +813,9 @@ module Autobuild
                 merge_base = run_git_bare(package, 'merge-base', commit, reference).first
                 merge_base == commit
             rescue Exception
-                raise PackageException.new(package, 'import'), "failed to find the merge-base between #{rev} and #{reference}. Are you sure these commits exist ?"
+                raise PackageException.new(package, 'import'), "failed to find "\
+                    "the merge-base between #{rev} and #{reference}. "\
+                    "Are you sure these commits exist ?"
             end
         end
 
@@ -821,8 +861,11 @@ module Autobuild
 
             remote_refs.delete_if do |rev_name, rev_id|
                 begin
-                    return rev_name if commit_present_in?(package, commit_id, rev_id)
-                    true
+                    if commit_present_in?(package, commit_id, rev_id)
+                        return rev_name
+                    else
+                        true
+                    end
                 rescue PackageException
                     false
                 end
@@ -835,7 +878,8 @@ module Autobuild
                 end
             end
 
-            raise PackageException.new(package), "current HEAD (#{commit_id}) does not seem to be present on the remote"
+            raise PackageException.new(package), "current HEAD (#{commit_id}) does not "\
+                "seem to be present on the remote"
         end
 
         # Computes the update status to update a branch whose tip is at
@@ -849,9 +893,12 @@ module Autobuild
         #
         def merge_status(package, fetch_commit, reference_commit = "HEAD")
             begin
-                common_commit = run_git_bare(package, 'merge-base', reference_commit, fetch_commit).first.strip
+                common_commit = run_git_bare(package, 'merge-base',
+                    reference_commit, fetch_commit).first.strip
             rescue Exception
-                raise PackageException.new(package, 'import'), "failed to find the merge-base between #{reference_commit} and #{fetch_commit}. Are you sure these commits exist ?"
+                raise PackageException.new(package, 'import'), "failed to find "\
+                    "the merge-base between #{reference_commit} and #{fetch_commit}. "\
+                    "Are you sure these commits exist ?"
             end
             remote_commit = rev_parse(package, fetch_commit)
             head_commit   = rev_parse(package, reference_commit)
@@ -879,10 +926,13 @@ module Autobuild
         # @param [Package] package the already checked-out package
         # @return [void]
         def update_alternates(package)
-            alternates_path = File.join(git_dir(package, false), 'objects', 'info', 'alternates')
+            alternates_path = File.join(git_dir(package, false),
+                'objects', 'info', 'alternates')
             current_alternates =
                 if File.file?(alternates_path)
-                    File.readlines(alternates_path).map(&:strip).find_all { |l| !l.empty? }
+                    File.readlines(alternates_path)
+                        .map(&:strip)
+                        .find_all { |l| !l.empty? }
                 else Array.new
                 end
 
@@ -893,9 +943,11 @@ module Autobuild
             unless (current_alternates.sort - alternates.sort).empty?
                 # Warn that something is fishy, but assume that the user knows
                 # what he is doing
-                package.warn "%s: the list of git alternates listed in the repository differs from the one set up in autobuild."
+                package.warn "%s: the list of git alternates listed in the repository "\
+                    "differs from the one set up in autobuild."
                 package.warn "%s: I will update, but that is dangerous"
-                package.warn "%s: using git alternates is for advanced users only, who know git very well."
+                package.warn "%s: using git alternates is for advanced users only, "\
+                    "who know git very well."
                 package.warn "%s: Don't complain if something breaks"
             end
             if alternates.empty?
@@ -961,7 +1013,8 @@ module Autobuild
             resolved_target_commit = rev_parse(package, "#{target_commit}^{commit}")
             begin
                 run_git(package, 'checkout', target_commit)
-                run_git(package, 'update-ref', "refs/heads/#{local_branch}", resolved_target_commit)
+                run_git(package, 'update-ref', "refs/heads/#{local_branch}",
+                    resolved_target_commit)
                 run_git(package, 'symbolic-ref', "HEAD", "refs/heads/#{local_branch}")
             rescue ::Exception
                 run_git(package, 'symbolic-ref', "HEAD", target_commit)
@@ -1057,7 +1110,11 @@ module Autobuild
             status = merge_status(package, target_commit)
             if status.needs_update?
                 if !merge? && status.status == Status::NEEDS_MERGE
-                    raise PackageException.new(package, 'import'), "the local branch '#{local_branch}' and the remote branch #{branch} of #{package.name} have diverged, and I therefore refuse to update automatically. Go into #{package.importdir} and either reset the local branch or merge the remote changes"
+                    raise PackageException.new(package, 'import'), "the local branch "\
+                        "'#{local_branch}' and the remote branch #{branch} of "\
+                        "#{package.name} have diverged, and I therefore refuse "\
+                        "to update automatically. Go into #{package.importdir} "\
+                        "and either reset the local branch or merge the remote changes"
                 end
                 run_git(package, 'merge', target_commit)
                 return true
@@ -1098,6 +1155,7 @@ module Autobuild
 
         def self.lfs_installed?
             return @lfs_installed unless @lfs_installed.nil?
+
             _, _, status = Open3.capture3('git lfs env')
             @lfs_installed = status.success?
         end
@@ -1122,7 +1180,8 @@ module Autobuild
                 clone_options << "--config=#{key}=#{value}"
             end
             package.run(:import,
-                Autobuild.tool('git'), 'clone', '-o', remote_name, *clone_options, repository, package.importdir, retry: true)
+                Autobuild.tool('git'), 'clone', '-o', remote_name, *clone_options,
+                    repository, package.importdir, retry: true)
 
             update_remotes_configuration(package)
             update(package, only_local: !remote_branch.start_with?("refs/"), reset: true)
@@ -1133,8 +1192,12 @@ module Autobuild
         def relocate(repository, options = Hash.new)
             options = Hash[options.map { |k, v| [k.to_sym, v] }]
 
-            local_branch  = options[:local_branch]  || options[:branch] || self.local_branch || 'master'
-            remote_branch = options[:remote_branch] || options[:branch] || self.remote_branch || 'master'
+            local_branch  =
+                options[:local_branch] || options[:branch] ||
+                self.local_branch || 'master'
+            remote_branch =
+                options[:remote_branch] || options[:branch] ||
+                self.remote_branch || 'master'
             if local_branch.start_with?("refs/")
                 raise ArgumentError, "you cannot provide a full ref for"\
                   " the local branch, only for the remote branch"

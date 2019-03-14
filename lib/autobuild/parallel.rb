@@ -1,5 +1,3 @@
-require 'thread'
-
 module Autobuild
     # This is a rewrite of the Rake task invocation code to use parallelism
     #
@@ -47,9 +45,12 @@ module Autobuild
             if error
                 if available_workers.size != workers.size
                     if finished_task.respond_to?(:package) && finished_task.package
-                        Autobuild.error "got an error processing #{finished_task.package.name}, waiting for pending jobs to end"
+                        Autobuild.error "got an error processing "\
+                            "#{finished_task.package.name}, "\
+                            "waiting for pending jobs to end"
                     else
-                        Autobuild.error "got an error doing parallel processing, waiting for pending jobs to end"
+                        Autobuild.error "got an error doing parallel processing, "\
+                            "waiting for pending jobs to end"
                     end
                 end
                 begin
@@ -65,6 +66,7 @@ module Autobuild
         def discover_dependencies(all_tasks, reverse_dependencies, task)
             return if task.already_invoked?
             return if all_tasks.include?(task) # already discovered or being discovered
+
             all_tasks << task
 
             task.prerequisite_tasks.each do |dep_t|
@@ -144,7 +146,8 @@ module Autobuild
             end
 
             def trivial_task?(task)
-                (task.kind_of?(Autobuild::SourceTreeTask) || task.kind_of?(Rake::FileTask)) && task.actions.empty?
+                (task.kind_of?(Autobuild::SourceTreeTask) ||
+                    task.kind_of?(Rake::FileTask)) && task.actions.empty?
             end
         end
 
@@ -237,9 +240,11 @@ module Autobuild
                     end
                 end
                 unless next_task
-                    Autobuild.fatal "parallel processing stopped prematurely, but no cycle is present in the remaining tasks"
+                    Autobuild.fatal "parallel processing stopped prematurely, "\
+                        "but no cycle is present in the remaining tasks"
                     Autobuild.fatal "remaining tasks: #{cycle.map(&:name).join(', ')}"
-                    Autobuild.fatal "known dependencies at initialization time that could block the processing of the remaining tasks"
+                    Autobuild.fatal "known dependencies at initialization time that "\
+                        "could block the processing of the remaining tasks"
                     reverse_dependencies.each do |parent_task, parents|
                         if cycle.include?(parent_task)
                             parents.each do |p|
@@ -247,7 +252,8 @@ module Autobuild
                             end
                         end
                     end
-                    Autobuild.fatal "known dependencies right now that could block the processing of the remaining tasks"
+                    Autobuild.fatal "known dependencies right now that could block "\
+                        "the processing of the remaining tasks"
                     all_tasks.each do |p|
                         (cycle & p.prerequisite_tasks).each do |t|
                             Autobuild.fatal "  #{p}: #{t}"

@@ -18,7 +18,8 @@ end
 # do_rebuild:: if we should cleanly rebuild every packages
 # do_doc:: if we should produce the documentation
 # doc_errors:: if errors during the documentation generation are treated as errors
-# daemonize:: if the build should go into daemon mode (only if the daemons gem is available)
+# daemonize:: if the build should go into daemon mode (only if the daemons gem
+#   is available)
 # clean_log:: remove all logs before starting the build
 # packages:: a list of packages to build specifically
 # default_packages:: the list of packages to build if Autobuild.packages is empty.
@@ -46,11 +47,13 @@ module Autobuild
         # @return [void]
         def each_utility
             return enum_for(__method__) unless block_given?
+
             utilities.each { |name, (utl, options)| yield(name, utl, options) }
         end
 
         def register_utility_class(name, klass, disabled_by_default: false, **options)
-            utilities[name] = [klass, Hash[disabled_by_default: disabled_by_default], options]
+            creation_options = { disabled_by_default: disabled_by_default }
+            utilities[name] = [klass, creation_options, options]
             singleton_class.class_eval do
                 attr_accessor "only_#{name}"
                 attr_accessor "do_#{name}"
@@ -133,8 +136,9 @@ module Autobuild
     @mail = Hash.new
     class << self
         # Mailing configuration. It is a hash with the following keys (as symbols)
-        # [:to] the mail destination. Defaults to USER@HOSTNAME, where USER is the username
-        #       of autobuild's caller, and HOSTNAME the hostname of the current machine.
+        # [:to] the mail destination. Defaults to USER@HOSTNAME, where USER is
+        #     the username of autobuild's caller, and HOSTNAME the hostname of the
+        #     current machine.
         # [:from] the mail origin. Defaults to the same value than +:to+
         # [:smtp] the hostname of the SMTP server, defaults to localhost
         # [:port] the port of the SMTP server, defauts to 22
@@ -234,7 +238,7 @@ module Autobuild
                 opts.on("--[no-]verbose", "display output of commands on stdout") do |v|
                     Autobuild.verbose = v
                 end
-                opts.on("--[no-]debug", "debug information (for debugging purposes)") do |v|
+                opts.on("--[no-]debug", "debug information") do |v|
                     Autobuild.debug = v
                 end
                 opts.on("--keep-oldlogs", "old logs will be kept, "\
@@ -266,6 +270,7 @@ module Autobuild
                     unless smtp =~ /^([^:]+)(?::(\d+))?$/
                         raise "invalid SMTP specification #{smtp}"
                     end
+
                     mail[:smtp] = $1
                     mail[:port] = Integer($2) if $2 && !$2.empty?
                 end

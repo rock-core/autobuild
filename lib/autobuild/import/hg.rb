@@ -29,8 +29,12 @@ module Autobuild
         # Changes the repository this importer is pointing to
         def relocate(repository, options = Hash.new)
             @repository = repository
-            @repository_id = options[:repository_id] || "hg:#{@repository}"
-            @source_id = options[:source_id] || "#{repository_id} branch=#{branch}"
+            @repository_id =
+                options[:repository_id] ||
+                "hg:#{@repository}"
+            @source_id =
+                options[:source_id] ||
+                "#{repository_id} branch=#{branch}"
         end
 
         # The remote repository URL.
@@ -43,18 +47,23 @@ module Autobuild
         # repository
         def validate_importdir(package)
             unless File.directory?(File.join(package.importdir, '.hg'))
-                raise ConfigException.new(package, 'import'), "while importing #{package.name}, #{package.importdir} is not a hg repository"
+                raise ConfigException.new(package, 'import'),
+                    "while importing #{package.name}, "\
+                    "#{package.importdir} is not a hg repository"
             end
         end
 
         def update(package, options = Hash.new)
             if options[:only_local]
-                package.warn "%s: the Mercurial importer does not support local updates, skipping"
+                package.warn "%s: the Mercurial importer does not support "\
+                    "local updates, skipping"
                 return false
             end
             validate_importdir(package)
-            package.run(:import, Autobuild.tool('hg'), 'pull', repository, retry: true, working_directory: package.importdir)
-            package.run(:import, Autobuild.tool('hg'), 'update', branch, working_directory: package.importdir)
+            package.run(:import, Autobuild.tool('hg'), 'pull',
+                repository, retry: true, working_directory: package.importdir)
+            package.run(:import, Autobuild.tool('hg'), 'update',
+                branch, working_directory: package.importdir)
             true # no easy to know if package was updated, keep previous behavior
         end
 
@@ -62,12 +71,13 @@ module Autobuild
             base_dir = File.expand_path('..', package.importdir)
             FileUtils.mkdir_p(base_dir) unless File.directory?(base_dir)
 
-            package.run(:import, Autobuild.tool('hg'), 'clone', '-u', branch, repository, package.importdir, retry: true)
+            package.run(:import, Autobuild.tool('hg'), 'clone',
+                '-u', branch, repository, package.importdir, retry: true)
         end
     end
 
-    # Creates a hg importer which gets the source for the given repository and branch
-    # URL +source+.
+    # Creates a hg importer which gets the source for the given repository and
+    # branch URL +source+.
     #
     # @param (see Hg#initialize)
     def self.hg(repository, options = {})

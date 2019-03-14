@@ -37,7 +37,8 @@ module Autobuild
         end
     SHELL_CONDITIONAL_SET_COMMAND =
         if windows? then "set %s=%s".freeze
-        else "if test -z \"$%1$s\"; then\n  %1$s=\"%3$s\"\nelse\n  %1$s=\"%2$s\"\nfi".freeze
+        else "if test -z \"$%1$s\"; then\n  %1$s=\"%3$s\"\n"\
+            "else\n  %1$s=\"%2$s\"\nfi".freeze
         end
     SHELL_UNSET_COMMAND = "unset %s".freeze
     SHELL_EXPORT_COMMAND =
@@ -136,17 +137,17 @@ module Autobuild
         def initialize_copy(old)
             super
             @inherited_environment = @inherited_environment.
-                map_value { |_k, v| v.dup if v }
+                map_value { |_k, v| v&.dup }
             @environment = @environment.
-                map_value { |_k, v| v.dup if v }
+                map_value { |_k, v| v&.dup }
             @source_before = Marshal.load(Marshal.dump(@source_before)) # deep copy
             @source_after = Marshal.load(Marshal.dump(@source_after)) # deep copy
             @inherited_variables = @inherited_variables.dup
 
             @system_env = @system_env.
-                map_value { |_k, v| v.dup if v }
+                map_value { |_k, v| v&.dup }
             @original_env = @original_env.
-                map_value { |_k, v| v.dup if v }
+                map_value { |_k, v| v&.dup }
         end
 
         def [](name)
@@ -389,7 +390,7 @@ module Autobuild
             paths = paths.map { |p| expand(p) }
 
             oldpath = (environment[name] ||= Array.new)
-            paths.reverse.each do |path|
+            paths.reverse_each do |path|
                 path = path.to_str
                 next if oldpath.include?(path)
 
@@ -482,7 +483,10 @@ module Autobuild
                 elsif value_with_inheritance == value_without_inheritance # no inheritance
                     export.set[name] = value_with_inheritance
                 else
-                    export.update[name] = [value_with_inheritance, value_without_inheritance]
+                    export.update[name] = [
+                        value_with_inheritance,
+                        value_without_inheritance
+                    ]
                 end
             end
             export
@@ -631,13 +635,21 @@ module Autobuild
             add_prefix(newprefix, includes)
         end
 
+        # rubocop:disable Metrics/LineLength
+        PKGCONFIG_INFO = [
+            %r{Scanning directory (?:#\d+ )?'(.*/)((?:lib|lib64|share)/.*)'$},
+            %r{Cannot open directory (?:#\d+ )?'.*/((?:lib|lib64|share)/.*)' in package search path:.*}
+        ].freeze
+        # rubocop:enable Metrics/LineLength
+
         # Returns the system-wide search path that is embedded in pkg-config
         def default_pkgconfig_search_suffixes
-            found_path_rx = %r{Scanning directory (?:#\d+ )?'(.*/)((?:lib|lib64|share)/.*)'$}
-            nonexistent_path_rx = %r{Cannot open directory (?:#\d+ )?'.*/((?:lib|lib64|share)/.*)' in package search path:.*}
+            found_path_rx = PKGCONFIG_INFO[0]
+            nonexistent_path_rx = PKGCONFIG_INFO[1]
 
             unless @default_pkgconfig_search_suffixes
-                output = `LANG=C PKG_CONFIG_PATH= #{Autobuild.tool("pkg-config")} --debug 2>&1`.split("\n")
+                pkg_config = Autobuild.tool("pkg-config")
+                output = `LANG=C PKG_CONFIG_PATH= #{pkg_config} --debug 2>&1`.split("\n")
                 found_paths = output.grep(found_path_rx).
                     map { |l| l.gsub(found_path_rx, '\2') }.
                     to_set
@@ -658,7 +670,8 @@ module Autobuild
             end
 
             if !includes || includes.include?('PKG_CONFIG_PATH')
-                each_env_search_path(newprefix, default_pkgconfig_search_suffixes) do |path|
+                each_env_search_path(newprefix,
+                                     default_pkgconfig_search_suffixes) do |path|
                     add_path('PKG_CONFIG_PATH', path)
                 end
             end
@@ -666,8 +679,9 @@ module Autobuild
             if !includes || includes.include?(LIBRARY_PATH)
                 ld_library_search = ['lib', 'lib/ARCH', 'libARCHSIZE']
                 each_env_search_path(newprefix, ld_library_search) do |path|
-                    has_sofile = Dir.enum_for(:glob, File.join(path, "lib*.#{LIBRARY_SUFFIX}")).
-                        find { true }
+                    glob_path = File.join(path, "lib*.#{LIBRARY_SUFFIX}")
+                    has_sofile = Dir.enum_for(:glob, glob_path)
+                        .find { true }
                     add_path(LIBRARY_PATH, path) if has_sofile
                 end
             end
@@ -675,9 +689,12 @@ module Autobuild
             # Validate the new rubylib path
             if !includes || includes.include?('RUBYLIB')
                 new_rubylib = "#{newprefix}/lib"
-                if File.directory?(new_rubylib) && !File.directory?(File.join(new_rubylib, "ruby")) && !Dir["#{new_rubylib}/**/*.rb"].empty?
-                    add_path('RUBYLIB', new_rubylib)
-                end
+
+                standalone_ruby_package =
+                    File.directory?(new_rubylib) &&
+                    !File.directory?(File.join(new_rubylib, "ruby")) &&
+                    !Dir["#{new_rubylib}/**/*.rb"].empty?
+                add_path('RUBYLIB', new_rubylib) if standalone_ruby_package
 
                 %w[rubylibdir archdir sitelibdir sitearchdir vendorlibdir vendorarchdir].
                     map { |key| RbConfig::CONFIG[key] }.
@@ -859,12 +876,14 @@ module Autobuild
     end
 
     def self.arch_size
-        Autobuild.warn 'Autobuild.arch_size is deprecated, use Autobuild.env.arch_size instead'
+        Autobuild.warn 'Autobuild.arch_size is deprecated, "\
+            "use Autobuild.env.arch_size instead'
         env.arch_size
     end
 
     def self.arch_names
-        Autobuild.warn 'Autobuild.arch_names is deprecated, use Autobuild.env.arch_names instead'
+        Autobuild.warn 'Autobuild.arch_names is deprecated, "\
+            "use Autobuild.env.arch_names instead'
         env.arch_names
     end
 end

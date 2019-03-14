@@ -38,7 +38,11 @@ class PkgConfig
         end
     end
 
-    def method_missing(varname, *args, &proc) # rubocop:disable Style/MissingRespondToMissing
+    def respond_to_missing?(varname, _include_all)
+        varname =~ /^\w+$/
+    end
+
+    def method_missing(varname, *args, &proc)
         if args.empty?
             unless (value = @variables[varname])
                 value = `pkg-config --variable=#{varname} #{name}`.chomp.strip

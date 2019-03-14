@@ -60,7 +60,9 @@ module Autobuild
         # @return [String,nil]
         def target_dir
             if @target_dir
-                File.expand_path(@target_dir, File.expand_path(Autobuild.send("#{name}_prefix") || name, package.prefix))
+                utility_prefix = Autobuild.send("#{name}_prefix") || name
+                File.expand_path(@target_dir,
+                    File.expand_path(utility_prefix, package.prefix))
             else
                 File.join(package.logdir, "#{name}-results", package.name)
             end
@@ -77,6 +79,7 @@ module Autobuild
         # @return [Rake::Task]
         def task(&block)
             return if @task
+
             @task = package.task task_name do
                 # This flag allows to disable this utility's task
                 # once {task} has been called
@@ -158,7 +161,8 @@ module Autobuild
             FileUtils.rm_rf   target_dir
             FileUtils.mkdir_p File.dirname(target_dir)
             FileUtils.cp_r    source_dir, target_dir
-            Autoproj.message "  copied #{name} results for #{package.name} from #{source_dir} to #{target_dir}"
+            Autoproj.message "  copied #{name} results for #{package.name} "\
+                "from #{source_dir} to #{target_dir}"
 
             @installed = true
         end

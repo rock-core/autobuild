@@ -20,6 +20,7 @@ module Autobuild
                 if new.nil? || new.empty?
                     raise ConfigException, "builddir must be non-nil and non-empty"
                 end
+
                 @builddir = new
             end
 
@@ -84,9 +85,7 @@ module Autobuild
         # Makefiles. If not set for this package explicitely, it is using the
         # global value CMake.generator.
         def generator
-            if @generator then @generator
-            else CMake.generator
-            end
+            @generator || CMake.generator
         end
 
         # If true, we always remove the CMake cache before reconfiguring. This
@@ -114,7 +113,8 @@ module Autobuild
         def initialize(options)
             @defines = Hash.new
             super
-            @delete_obsolete_files_in_prefix = self.class.delete_obsolete_files_in_prefix?
+            @delete_obsolete_files_in_prefix = self.class.
+                delete_obsolete_files_in_prefix?
         end
 
         # (see CMake.delete_obsolete_files_in_prefix?)
@@ -256,7 +256,9 @@ module Autobuild
                     "cannot use the internal doxygen support"
             end
             doxyfile_data = File.readlines(doxyfile_in).map do |line|
-                line.gsub(/@[^@]+@/) { |match| DOXYGEN_ACCEPTED_VARIABLES[match].call(self) }
+                line.gsub(/@[^@]+@/) do |match|
+                    DOXYGEN_ACCEPTED_VARIABLES[match].call(self)
+                end
             end
             doxyfile = File.join(builddir, "Doxyfile")
             File.open(doxyfile, 'w') do |io|
@@ -362,10 +364,13 @@ module Autobuild
                 value = value.to_s
                 if !old_value || !equivalent_option_value?(old_value, value)
                     if Autobuild.debug
-                        message "%s: option '#{name}' changed value: '#{old_value}' => '#{value}'"
+                        message "%s: option '#{name}' changed value: "\
+                            "'#{old_value}' => '#{value}'"
                     end
+
                     if old_value
-                        message "%s: changed value of #{name} from #{old_value} to #{value}"
+                        message "%s: changed value of #{name} "\
+                            "from #{old_value} to #{value}"
                     else
                         message "%s: setting value of #{name} to #{value}"
                     end
@@ -380,7 +385,9 @@ module Autobuild
             # but no Makefile.
             #
             # Delete the CMakeCache to force reconfiguration
-            FileUtils.rm_f(cmake_cache) unless File.exist?(File.join(builddir, 'Makefile'))
+            unless File.exist?(File.join(builddir, 'Makefile'))
+                FileUtils.rm_f(cmake_cache)
+            end
 
             doc_utility.source_ref_dir = builddir
 
@@ -419,7 +426,8 @@ module Autobuild
                     command << Array(generator).map { |g| "-G#{g}" } if generator
                     command << srcdir
 
-                    progress_start "configuring CMake for %s", :done_message => "configured CMake for %s" do
+                    progress_start "configuring CMake for %s",
+                                   done_message: "configured CMake for %s" do
                         FileUtils.rm_f cmake_cache if full_reconfigures?
                         run('configure', *command)
                     end
@@ -446,7 +454,7 @@ module Autobuild
 
         # Do the build in builddir
         def build
-            current_message = String.new
+            current_message = +""
             in_dir(builddir) do
                 progress_start "building %s" do
                     if always_reconfigure || !File.file?('Makefile')
@@ -476,7 +484,8 @@ module Autobuild
                         message "%s: #{l}", :magenta
                     end
                     if warning_count > 0
-                        progress_done "built %s #{Autoproj.color("(#{warning_count} warnings)", :bold)}"
+                        msg_warning = Autoproj.color("(#{warning_count} warnings)", :bold)
+                        progress_done "built %s #{msg_warning}"
                     else
                         progress_done "built %s"
                     end
@@ -496,8 +505,9 @@ module Autobuild
         # in the prefix but not in CMake's install manifest will be removed.
         def install
             in_dir(builddir) do
-                progress_start "installing %s", :done_message => 'installed %s' do
-                    run('install', Autobuild.tool(:make), "-j#{parallel_build_level}", 'install')
+                progress_start "installing %s", done_message: 'installed %s' do
+                    run('install', Autobuild.tool(:make),
+                        "-j#{parallel_build_level}", 'install')
                 end
 
                 delete_obsolete_files if delete_obsolete_files_in_prefix?
@@ -516,7 +526,8 @@ module Autobuild
         def delete_obsolete_files
             # The expand_path is required to sanitize the paths, which can
             # contain e.g. double //
-            manifest_contents = File.readlines(File.join(builddir, 'install_manifest.txt')).
+            cmake_install_manifest = File.join(builddir, 'install_manifest.txt')
+            manifest_contents = File.readlines(cmake_install_manifest).
                 map { |p| File.expand_path(p.chomp) }.to_set
             logdir = self.logdir
             counter = 0

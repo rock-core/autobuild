@@ -160,7 +160,10 @@ module Autobuild
 
             name = name.to_s
             @name = name
-            raise ConfigException, "package #{name} is already defined" if Autobuild::Package[name]
+            if Autobuild::Package[name]
+                raise ConfigException, "package #{name} is already defined"
+            end
+
             @@packages[name] = self
 
             # Call the config block (if any)
@@ -317,6 +320,7 @@ module Autobuild
         def apply_env(env, set = Hash.new, ops = Array.new)
             self.env.each do |env_op|
                 next if ops.last == env_op
+
                 if env_op.type == :set
                     if (last = set[env_op.name])
                         last_pkg, last_values = *last
@@ -412,8 +416,10 @@ module Autobuild
             # Don't do anything if we already have failed
             if failed?
                 unless options[:ignore_errors]
-                    raise AlreadyFailedError, "attempting to do an operation on a failed package"
+                    raise AlreadyFailedError, "attempting to do an operation "\
+                        "on a failed package"
                 end
+
                 return
             end
 
@@ -497,7 +503,8 @@ module Autobuild
             elsif prefix_style.empty?
                 return (prefix + suffix).join(" ")
             else
-                return [Autobuild.color(prefix.join(" "), *prefix_style), *suffix].join(" ")
+                colorized_prefix = Autobuild.color(prefix.join(" "), *prefix_style)
+                return [colorized_prefix, *suffix].join(" ")
             end
         end
 
@@ -679,8 +686,10 @@ module Autobuild
                 unless p.respond_to?(:to_str)
                     raise ArgumentError, "#{p.inspect} should be a string"
                 end
+
                 p = p.to_str
                 next if p == name
+
                 unless (pkg = Package[p])
                     raise ConfigException.new(self), "package #{p}, "\
                         "listed as a dependency of #{name}, is not defined"
@@ -704,6 +713,7 @@ module Autobuild
                 unless p.respond_to?(:to_str)
                     raise ArgumentError, "#{p.inspect} should be a string"
                 end
+
                 p = p.to_str
                 next if p == name
                 next if @provides.include?(name)
@@ -811,9 +821,11 @@ module Autobuild
             case name.to_s
             when /(\w+)_utility$/
                 utility_name = $1
+
                 unless args.empty?
                     raise ArgumentError, "expected 0 arguments and got #{args.size}"
                 end
+
                 begin
                     return utility(utility_name)
                 rescue ArgumentError => e

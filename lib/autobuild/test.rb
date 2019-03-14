@@ -76,7 +76,8 @@ module Autobuild
 
         def build_config(bind, template)
             bind.local_variable_set(:basedir, tempdir.to_s)
-            ryml = File.open(File.join(data_dir, "#{template}.ryml"), &:readlines).join('')
+            ryml = File.open(File.join(data_dir, "#{template}.ryml"), &:readlines)
+                .join('')
             result = ERB.new(ryml).result(bind)
 
             yml = File.join(tempdir, "#{template}.yml")

@@ -39,7 +39,8 @@ module Autobuild
             io = args.pop if args.last.respond_to?(:to_io)
 
             @display_lock.synchronize do
-                io.print "#{@cursor.column(1)}#{@cursor.clear_screen_down}#{@color.call(message, *args)}\n"
+                io.print "#{@cursor.column(1)}#{@cursor.clear_screen_down}"\
+                    "#{@color.call(message, *args)}\n"
                 io.flush if @io != io
                 display_progress
                 @io.flush
@@ -115,7 +116,8 @@ module Autobuild
         def display_progress
             return unless progress_enabled?
 
-            formatted = format_grouped_messages(@progress_messages.map(&:last), indent: "  ")
+            formatted = format_grouped_messages(@progress_messages.map(&:last),
+                indent: "  ")
             @io.print @cursor.clear_screen_down
             @io.print formatted.join("\n")
             if formatted.size > 1
@@ -154,10 +156,11 @@ module Autobuild
 
                     if grouping
                         break if prefix != groups.last[0]
+
                         groups.last[1] << other_idx
                     else
                         current_prefix, current_group = groups.last
-                        if prefix.size > current_prefix.size # create a new group from there
+                        if prefix.size > current_prefix.size # create a new group
                             group_end_index = [idx - 1, current_group.last].min
                             groups.last[1] = (current_group.first..group_end_index)
                             groups << [prefix, [idx, other_idx]]
@@ -174,6 +177,7 @@ module Autobuild
             groups.map do |prefix, indexes|
                 indexes = indexes.to_a
                 next if indexes.empty?
+
                 range = (prefix.size)..-1
                 [prefix, indexes.map { |i| messages[i][range] }]
             end.compact
@@ -193,7 +197,7 @@ module Autobuild
                     margin = messages.empty? ? 1 : 2
                     if lines.last.size + margin + msg.size > width
                         lines.last << ","
-                        lines << "".dup
+                        lines << +""
                         lines.last << indent << indent << msg
                     else
                         lines.last << ", " << msg

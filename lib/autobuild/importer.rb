@@ -338,7 +338,8 @@ module Autobuild
                 cur_patches = currently_applied_patches(package)
                 unless cur_patches.empty?
                     package.progress_done
-                    package.message "update failed and some patches are applied, removing all patches and retrying"
+                    package.message "update failed and some patches are applied, "\
+                        "removing all patches and retrying"
                     begin
                         patch(package, [])
                         return perform_update(package, only_local)
@@ -351,7 +352,9 @@ module Autobuild
 
                 retry_count = update_retry_count(original_error, retry_count)
                 raise unless retry_count
-                package.message "update failed in #{package.importdir}, retrying (#{retry_count}/#{self.retry_count})"
+
+                package.message "update failed in #{package.importdir}, "\
+                    "retrying (#{retry_count}/#{self.retry_count})"
                 retry
             ensure
                 package.progress_done "#{message} %s"
@@ -380,7 +383,9 @@ module Autobuild
                     retry_count = update_retry_count(original_error, retry_count)
                     raise unless retry_count
 
-                    package.message "checkout of %s failed, deleting the source directory #{package.importdir} and retrying (#{retry_count}/#{self.retry_count})"
+                    package.message "checkout of %s failed, "\
+                        "deleting the source directory #{package.importdir} "\
+                        "and retrying (#{retry_count}/#{self.retry_count})"
                     FileUtils.rm_rf package.importdir
                     retry
                 end
@@ -388,10 +393,11 @@ module Autobuild
 
             patch(package)
             package.updated = true
-        rescue Interrupt # rubocop:disable Lint/ShadowedException
+        rescue Interrupt
             raise
-        rescue ::Exception
-            package.message "checkout of %s failed, deleting the source directory #{package.importdir}"
+        rescue ::Exception # rubocop:disable Lint/ShadowedException
+            package.message "checkout of %s failed, "\
+                "deleting the source directory #{package.importdir}"
             FileUtils.rm_rf package.importdir
             raise
         rescue Autobuild::Exception => e
@@ -422,7 +428,8 @@ module Autobuild
             # Backward compatibility
             unless options.kind_of?(Hash)
                 options = options
-                Autoproj.warn "calling #import with a boolean as second argument is deprecated, switch to the named argument interface instead"
+                Autoproj.warn "calling #import with a boolean as second argument "\
+                    "is deprecated, switch to the named argument interface instead"
                 Autoproj.warn "   e.g. call import(package, only_local: #{options})"
                 Autoproj.warn "   #{caller(1..1).first}"
                 options = Hash[only_local: options]
@@ -438,7 +445,8 @@ module Autobuild
 
             importdir = package.importdir
             if File.directory?(importdir)
-                package.isolate_errors(mark_as_failed: false, ignore_errors: ignore_errors) do
+                package.isolate_errors(mark_as_failed: false,
+                                       ignore_errors: ignore_errors) do
                     if !options[:checkout_only] && package.update?
                         perform_update(package, options)
                     elsif Autobuild.verbose
@@ -447,10 +455,13 @@ module Autobuild
                 end
 
             elsif File.exist?(importdir)
-                raise ConfigException.new(package, 'import'), "#{importdir} exists but is not a directory"
+                raise ConfigException.new(package, 'import'),
+                    "#{importdir} exists but is not a directory"
             else
-                package.isolate_errors(mark_as_failed: true, ignore_errors: ignore_errors) do
-                    perform_checkout(package, allow_interactive: options[:allow_interactive])
+                package.isolate_errors(mark_as_failed: true,
+                                       ignore_errors: ignore_errors) do
+                    perform_checkout(package,
+                        allow_interactive: options[:allow_interactive])
                     true
                 end
             end
@@ -538,7 +549,8 @@ module Autobuild
                 apply_count = (patches - cur_patches).size
                 unapply_count = (cur_patches - patches).size
                 if apply_count > 0 && unapply_count > 0
-                    package.message "patching %s: applying #{apply_count} and unapplying #{unapply_count} patch(es)"
+                    package.message "patching %s: applying #{apply_count} and "\
+                        "unapplying #{unapply_count} patch(es)"
                 elsif apply_count > 0
                     package.message "patching %s: applying #{apply_count} patch(es)"
                 elsif unapply_count > 0
@@ -565,13 +577,14 @@ module Autobuild
         def save_patch_state(package, cur_patches)
             patch_dir = patchdir(package)
             FileUtils.mkdir_p patch_dir
-            cur_patches = cur_patches.each_with_index.map do |(_path, level, content), idx|
-                path = File.join(patch_dir, idx.to_s)
-                File.open(path, 'w') do |patch_io|
-                    patch_io.write content
+            cur_patches = cur_patches.each_with_index.
+                map do |(_path, level, content), idx|
+                    path = File.join(patch_dir, idx.to_s)
+                    File.open(path, 'w') do |patch_io|
+                        patch_io.write content
+                    end
+                    [path, level]
                 end
-                [path, level]
-            end
             File.open(patchlist(package), 'w') do |f|
                 patch_state = cur_patches.map do |path, level|
                     path = Pathname.new(path).

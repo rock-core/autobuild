@@ -17,14 +17,18 @@ if Autobuild::HAS_RMAIL
                         end
 
                 raise "FATAL: cannot find a user with uid=#{Process.uid}" unless uname
+
                 "#{pwent.name}@#{Socket.gethostname}"
             end
 
-            attr_reader :from_email, :to_email, :smtp_hostname, :smtp_port, :subject, :only_errors
+            attr_reader :from_email, :to_email, :smtp_hostname, :smtp_port,
+                :subject, :only_errors
             def initialize(config)
                 @from_email = (config[:from] || default_mail)
                 @to_email   = (config[:to]   || default_mail)
-                @subject = (config[:subject] || "Build %result% on #{Socket.gethostname} at %time%")
+                @subject =
+                    config[:subject] ||
+                    "Build %result% on #{Socket.gethostname} at %time%"
                 @only_errors = config[:only_errors]
                 @smtp_hostname = (config[:smtp] || "localhost")
                 @smtp_port = Integer(config[:port] || Socket.getservbyname('smtp'))
@@ -73,7 +77,8 @@ if Autobuild::HAS_RMAIL
                     smtp.start do
                         to_email.each do |email|
                             mail.header.to = email
-                            smtp.send_mail RMail::Serialize.write('', mail), from_email, email
+                            smtp.send_mail(RMail::Serialize.write('', mail),
+                                from_email, email)
                         end
                     end
 

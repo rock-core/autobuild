@@ -66,7 +66,8 @@ module Autobuild
             svninfo = svn_info(package)
             revision = svninfo.grep(/^Revision: /).first
             unless revision
-                raise ConfigException.new(package, 'import'), "cannot get SVN information for #{package.importdir}"
+                raise ConfigException.new(package, 'import'),
+                    "cannot get SVN information for #{package.importdir}"
             end
             revision =~ /Revision: (\d+)/
             Integer($1)
@@ -82,7 +83,8 @@ module Autobuild
             svninfo = svn_info(package)
             url = svninfo.grep(/^URL: /).first
             unless url
-                raise ConfigException.new(package, 'import'), "cannot get SVN information for #{package.importdir}"
+                raise ConfigException.new(package, 'import'),
+                    "cannot get SVN information for #{package.importdir}"
             end
             url.chomp =~ /URL: (.+)/
             $1
@@ -126,13 +128,14 @@ module Autobuild
             else
                 log = run_svn(package, 'log', '-r', 'BASE:HEAD', '--xml', '.')
                 log = REXML::Document.new(log.join("\n"))
-                missing_revisions = log.elements.enum_for(:each, 'log/logentry').map do |l|
-                    rev = l.attributes['revision']
-                    date = l.elements['date'].first.to_s
-                    author = l.elements['author'].first.to_s
-                    msg = l.elements['msg'].first.to_s.split("\n").first
-                    "#{rev} #{DateTime.parse(date)} #{author} #{msg}" # rubocop:disable Style/DateTime
-                end
+                missing_revisions = log.elements.enum_for(:each, 'log/logentry').
+                    map do |l|
+                        rev = l.attributes['revision']
+                        date = l.elements['date'].first.to_s
+                        author = l.elements['author'].first.to_s
+                        msg = l.elements['msg'].first.to_s.split("\n").first
+                        "#{rev} #{DateTime.parse(date)} #{author} #{msg}"
+                    end
                 status.remote_commits = missing_revisions[1..-1]
                 status.status =
                     if missing_revisions.empty?
@@ -200,13 +203,16 @@ module Autobuild
 
         def update(package, options = Hash.new) # :nodoc:
             if options[:only_local]
-                package.warn "%s: the svn importer does not support local updates, skipping"
+                package.warn "%s: the svn importer does not support local updates, "\
+                    "skipping"
                 return false
             end
 
             url = svn_url(package)
             if url != svnroot
-                raise ConfigException.new(package, 'import'), "current checkout found at #{package.importdir} is from #{url}, was expecting #{svnroot}"
+                raise ConfigException.new(package, 'import'), "current checkout "\
+                    "found at #{package.importdir} is from #{url}, "\
+                    "was expecting #{svnroot}"
             end
 
             options_up = @options_up.dup
@@ -225,8 +231,9 @@ module Autobuild
         end
 
         def checkout(package, _options = Hash.new) # :nodoc:
-            run_svn(package, 'co', "--non-interactive", *@options_co, svnroot, package.importdir,
-                    working_directory: nil)
+            run_svn(package, 'co', "--non-interactive", *@options_co,
+                svnroot, package.importdir,
+                working_directory: nil)
         end
     end
 

@@ -51,6 +51,7 @@ module Autobuild
                 if Pathname.new(new).absolute?
                     raise ConfigException, "absolute builddirs are not supported"
                 end
+
                 @builddir = new
             end
         end
@@ -58,6 +59,7 @@ module Autobuild
 
         def builddir=(new)
             raise ConfigException.new(self), "builddir must be non-empty" if new.empty?
+
             @builddir = new
         end
 
@@ -94,8 +96,12 @@ module Autobuild
 
         def prepare
             source_tree srcdir do |pkg|
-                pkg.exclude << Regexp.new("^#{Regexp.quote(builddir)}") if builddir != srcdir
-                pkg.exclude << Regexp.new("^#{Regexp.quote(doc_dir)}") if doc_dir && (doc_dir != srcdir)
+                if builddir != srcdir
+                    pkg.exclude << Regexp.new("^#{Regexp.quote(builddir)}")
+                end
+                if doc_dir && (doc_dir != srcdir)
+                    pkg.exclude << Regexp.new("^#{Regexp.quote(doc_dir)}")
+                end
                 pkg.exclude.concat(source_tree_excludes)
             end
 
@@ -125,8 +131,10 @@ module Autobuild
         # Configure the builddir directory before starting make
         def configure
             if File.exist?(builddir) && !File.directory?(builddir)
-                raise ConfigException.new(self, 'configure'), "#{builddir} already exists but is not a directory"
+                raise ConfigException.new(self, 'configure'),
+                    "#{builddir} already exists but is not a directory"
             end
+
             FileUtils.mkdir_p builddir unless File.directory?(builddir)
 
             yield if block_given?

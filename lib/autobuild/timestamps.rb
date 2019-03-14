@@ -36,7 +36,9 @@ module Autobuild
             Find.prune if File.basename(p) =~ /^\./
             exclude.each do |pattern|
                 if pattern === p
-                    Autobuild.message "  excluding #{p} because of #{pattern}" if Autobuild.debug
+                    if Autobuild.debug
+                        Autobuild.message "  excluding #{p} because of #{pattern}"
+                    end
                     Find.prune
                 end
             end
@@ -68,13 +70,14 @@ module Autobuild
             return @newest_time if @newest_time
 
             @newest_file, @newest_time =
-                Autobuild.tree_timestamp(name, %r{(?:^|/)(?:CVS|_darcs|\.svn)$}, *@exclude)
+                Autobuild.tree_timestamp(name,
+                    %r{(?:^|/)(?:CVS|_darcs|\.svn)$}, *@exclude)
             @newest_time
         end
     end
     def self.source_tree(path, &block)
         task = SourceTreeTask.define_task(path)
-        block.call(task) if block
+        block&.call(task)
         task
     end
 
@@ -105,6 +108,7 @@ module Autobuild
         elsif !File.exist?(dir)
             FileUtils.mkdir_p dir
         end
+
         FileUtils.touch(stampfile)
 
         unless hires_modification_time?
