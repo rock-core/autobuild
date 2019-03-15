@@ -13,6 +13,8 @@ module Autobuild
             FileUtils.cp(File.join(data_dir, 'tarimport.tar.gz'), @tarfile)
 
             @cachedir = File.join(tempdir, 'cache')
+            @wrong_expected_digest = Digest::SHA1.hexdigest 'test'
+            @correct_expected_digest = 'aa06e469fdfbeb3b3a556be0b45a0554feaf9226'
         end
 
         describe "http downloads" do
@@ -99,6 +101,54 @@ module Autobuild
                     ArchiveImporter.auto_update = true
                     TTY::Prompt.new_instances.should_receive(:ask).never
                     assert @importer.update(@pkg, allow_interactive: false)
+                end
+            end
+        end
+
+        describe "wrong digest" do
+            before do
+                @pkg = Package.new 'tarimport'
+                @pkg.srcdir = File.join(tempdir, 'tarimport')
+                @importer = ArchiveImporter.new \
+                    'http://localhost:2000//files/data/tarimport.tar.gz',
+                    cachedir: @cachedir,
+                    expected_digest: @wrong_expected_digest
+            end
+
+            describe "when setting a wrong expected digest" do
+                before do
+                    start_web_server
+                end
+                after do
+                    stop_web_server
+                end
+                it "raises exception" do
+                    assert_raises(Autobuild::ConfigException) do
+                        @importer.checkout(@pkg)
+                    end
+                end
+            end
+        end
+
+        describe "correct digest" do
+            before do
+                @pkg = Package.new 'tarimport'
+                @pkg.srcdir = File.join(tempdir, 'tarimport')
+                @importer = ArchiveImporter.new \
+                    'http://localhost:2000//files/data/tarimport.tar.gz',
+                    cachedir: @cachedir,
+                    expected_digest: @correct_expected_digest
+            end
+
+            describe "when setting an expected digest" do
+                before do
+                    start_web_server
+                end
+                after do
+                    stop_web_server
+                end
+                it "checkout is done normally" do
+                    assert @importer.checkout(@pkg)
                 end
             end
         end

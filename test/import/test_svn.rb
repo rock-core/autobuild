@@ -140,5 +140,17 @@ describe Autobuild::SVN do
             assert importer.status(pkg_svn).uncommitted_code
         end
     end
+
+    describe "fingerprint generation" do
+        it "returns the expected value" do
+            current_revision = 2
+            importer = Autobuild.svn(svnroot, revision: current_revision)
+            importer.import(pkg_svn)
+            expected_source_string = "Revision: "+current_revision+"\nURL: "+svnroot
+            expected_fingerprint = Digest::SHA1.hexdigest(expected_source_string)
+            assert_equal expected_fingerprint, importer.fingerprint(pkg_svn)
+        end
+    end
+
 end
  

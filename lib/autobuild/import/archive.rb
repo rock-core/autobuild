@@ -257,6 +257,7 @@ module Autobuild
         # Updates the downloaded file in cache only if it is needed
         #
         # @return [Boolean] true if a new file was downloaded, false otherwise
+        # @raises ConfigException if a expected digest was given in the source.yml file and it doesn't match
         def update_cache(package)
             updated = download_from_url(package)
             @cachefile_digest = read_cachefile_digest

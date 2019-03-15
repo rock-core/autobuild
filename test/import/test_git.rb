@@ -648,6 +648,14 @@ describe Autobuild::Git do
         end
     end
 
+    describe "fingerprint generation" do
+        it "returns the expected commit ID of HEAD" do
+            importer.import(pkg)
+            expected_fingerprint = importer.rev_parse(pkg, 'HEAD')
+            assert_equal expected_fingerprint, importer.fingerprint(pkg)
+        end
+    end
+
     def assert_checkout_file_exist(*file)
         assert File.exist?(checkout_path(*file))
     end
