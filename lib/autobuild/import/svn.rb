@@ -76,8 +76,7 @@ module Autobuild
         # @return [String]
         # @raises (see svn_info)
         def fingerprint(package)
-            url = svn_url(package)
-            return Digest::SHA1.hexdigest url + svn_revision(package).to_s
+            Digest::SHA1.hexdigest(svn_info(package).grep(/^(URL|Revision):/).sort.join("\n"))
         end
 
         # Returns the URL of the remote SVN repository
