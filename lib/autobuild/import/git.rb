@@ -152,7 +152,7 @@ module Autobuild
             @additional_remotes = Array.new
         end
 
-        def fingerprint(package)
+        def vcs_fingerprint(package)
             rev_parse(package, 'HEAD')
         end
 

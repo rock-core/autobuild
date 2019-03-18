@@ -276,7 +276,7 @@ module Autobuild
         # Fingerprint for archive importer, we are using
         # its digest whether is calculated or expected
         # @raises ConfigException if no digest is present
-        def fingerprint(package)
+        def vcs_fingerprint(package)
             if @cachefile_digest
                 @cachefile_digest
             elsif File.file?(cachefile)

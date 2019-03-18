@@ -75,7 +75,7 @@ module Autobuild
         # @param [Package] package
         # @return [String]
         # @raises (see svn_info)
-        def fingerprint(package)
+        def vcs_fingerprint(package)
             Digest::SHA1.hexdigest(svn_info(package).grep(/^(URL|Revision):/).sort.join("\n"))
         end
 

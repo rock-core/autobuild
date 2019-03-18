@@ -142,13 +142,32 @@ describe Autobuild::SVN do
     end
 
     describe "fingerprint generation" do
-        it "returns the expected value" do
-            current_revision = 2
-            importer = Autobuild.svn(svnroot, revision: current_revision)
-            importer.import(pkg_svn)
+        before do
+            current_revision = '2'
+            @importer = Autobuild.svn(svnroot, revision: current_revision)
             expected_source_string = "Revision: "+current_revision+"\nURL: "+svnroot
-            expected_fingerprint = Digest::SHA1.hexdigest(expected_source_string)
-            assert_equal expected_fingerprint, importer.fingerprint(pkg_svn)
+            @expected_vcs_fingerprint = Digest::SHA1.hexdigest(expected_source_string)
+            @importer.import(pkg_svn)
+        end
+        it "returns the expected value" do
+            assert_equal @expected_vcs_fingerprint, @importer.fingerprint(pkg_svn)
+        end
+        it "computes also the patches' fingerprint" do
+            test_patches = [['/path/to/patch', 1, 'source_test'],['other/path', 2, 'source2_test']]
+            # we expect paths will be ignored and the patches array to be
+            # flatenned into a string
+            expected_patch_fingerprint = Digest::SHA1.hexdigest('1source_test2source2_test')
+            flexmock(@importer).
+                should_receive(:currently_applied_patches).
+                and_return(test_patches)
+            flexmock(@importer).
+                should_receive(:patches).
+                and_return(test_patches)
+            
+            expected_fingerprint = Digest::SHA1.hexdigest(@expected_vcs_fingerprint + 
+                expected_patch_fingerprint)
+
+            assert_equal expected_fingerprint, @importer.fingerprint(pkg_svn)
         end
     end
 
