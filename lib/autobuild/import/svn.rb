@@ -73,6 +73,15 @@ module Autobuild
             Integer($1)
         end
 
+        # fingerprint method returns an unique hash to identify this package,
+        # for SVN the revision and URL will be used
+        # @param [Package] package
+        # @return [String]
+        # @raises (see svn_info)
+        def vcs_fingerprint(package)
+            Digest::SHA1.hexdigest(svn_info(package).grep(/^(URL|Revision):/).sort.join("\n"))
+        end
+
         # Returns the URL of the remote SVN repository
         #
         # @param [Package] package

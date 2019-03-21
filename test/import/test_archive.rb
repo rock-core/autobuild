@@ -13,6 +13,9 @@ module Autobuild
             FileUtils.cp(File.join(data_dir, 'tarimport.tar.gz'), @tarfile)
 
             @cachedir = File.join(tempdir, 'cache')
+            @wrong_expected_digest = Digest::SHA1.hexdigest 'test'
+            # expected from the local test file used
+            @correct_expected_digest = 'aa06e469fdfbeb3b3a556be0b45a0554feaf9226'
         end
 
         describe "http downloads" do
@@ -99,6 +102,92 @@ module Autobuild
                     ArchiveImporter.auto_update = true
                     TTY::Prompt.new_instances.should_receive(:ask).never
                     assert @importer.update(@pkg, allow_interactive: false)
+                end
+            end
+        end
+
+        describe "wrong digest" do
+            before do
+                @pkg = Package.new 'tarimport'
+                @pkg.srcdir = File.join(tempdir, 'tarimport')
+                @importer = ArchiveImporter.new \
+                    'http://localhost:2000//files/data/tarimport.tar.gz',
+                    cachedir: @cachedir,
+                    expected_digest: @wrong_expected_digest
+            end
+
+            describe "when setting a wrong expected digest" do
+                before do
+                    start_web_server
+                end
+                after do
+                    stop_web_server
+                end
+                it "raises exception" do
+                    assert_raises(Autobuild::ConfigException) do
+                        @importer.checkout(@pkg)
+                    end
+                end
+            end
+        end
+
+        describe "correct digest" do
+            before do
+                @pkg = Package.new 'tarimport'
+                @pkg.srcdir = File.join(tempdir, 'tarimport')
+                @importer = ArchiveImporter.new \
+                    'http://localhost:2000//files/data/tarimport.tar.gz',
+                    cachedir: @cachedir,
+                    expected_digest: @correct_expected_digest
+            end
+
+            describe "when setting an expected digest" do
+                before do
+                    start_web_server
+                end
+                after do
+                    stop_web_server
+                end
+                it "checkout is done normally" do
+                    assert @importer.checkout(@pkg)
+                end
+            end
+            describe "fingerprint generation" do
+                before do
+                    @expected_vcs_fingerprint = @correct_expected_digest
+                    start_web_server
+                end
+                after do
+                    stop_web_server
+                end
+                it "returns the expected value" do
+                    @importer.import(@pkg)
+                    assert_equal @expected_vcs_fingerprint, @importer.fingerprint(@pkg)
+                end
+                it "computes also the patches' fingerprint" do
+                    test_patches = [['/path/to/patch', 1, 'source_test'],['other/path', 2, 'source2_test']]
+                    # we expect paths will be ignored and the patches array to be
+                    # flattened into a string
+                    expected_patch_fingerprint = Digest::SHA1.hexdigest('1source_test2source2_test')
+
+                    @importer.import(@pkg)
+
+                    flexmock(@importer).
+                        should_receive(:currently_applied_patches).
+                        and_return(test_patches)
+                    flexmock(@importer).
+                        should_receive(:patches).
+                        and_return(test_patches)
+                    # archive applies and unapplies patches, we are not testing 
+                    # this so we will mock it
+                    flexmock(@importer).
+                        should_receive(:call_patch).
+                        and_return(true)
+
+                    expected_fingerprint = Digest::SHA1.hexdigest(@expected_vcs_fingerprint + 
+                        expected_patch_fingerprint)
+        
+                    assert_equal expected_fingerprint, @importer.fingerprint(@pkg)
                 end
             end
         end

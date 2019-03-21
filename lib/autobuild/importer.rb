@@ -191,6 +191,34 @@ module Autobuild
             @options[:retry_count] || 0
         end
 
+        # Returns a unique hash representing the state of the imported package
+        # as a whole unit, including its dependencies and patches
+        def fingerprint(package)
+            vcs_fingerprint_string = vcs_fingerprint(package)
+            return unless vcs_fingerprint_string
+
+            patches_fingerprint_string = patches_fingerprint(package)
+            if patches_fingerprint_string
+                Digest::SHA1.hexdigest(vcs_fingerprint_string + patches_fingerprint_string)
+            elsif patches.empty?
+                vcs_fingerprint_string
+            end
+        end
+
+        # basic fingerprint of the package and its dependencies
+        def vcs_fingerprint(package)
+            #each importer type should implement its own 
+            Autoproj.warn "Fingerprint in #{package.name} has not been implemented for this type of packages, results should be discarded"
+            return nil
+        end
+
+        # fingerprint for patches associated to this package
+        def patches_fingerprint(package)
+            cur_patches = currently_applied_patches(package)
+            cur_patches.map(&:shift) #leave only level and source information
+            Digest::SHA1.hexdigest(cur_patches.sort.flatten.join("")) if !patches.empty? && cur_patches
+        end
+
         # Sets the number of times update / checkout should be retried before giving
         # up. 0 (the default) disables retrying.
         #

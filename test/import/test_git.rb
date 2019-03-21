@@ -650,6 +650,34 @@ describe Autobuild::Git do
         end
     end
 
+    describe "fingerprint generation" do
+        before do
+            importer.import(pkg)
+            @expected_vcs_fingerprint = importer.rev_parse(pkg, 'HEAD')
+        end
+        it "returns the expected commit ID of HEAD" do
+            assert_equal @expected_vcs_fingerprint, importer.fingerprint(pkg)
+        end
+        it "computes also the patches' fingerprint" do
+            test_patches = [['/path/to/patch', 1, 'source_test'],['other/path', 2, 'source2_test']]
+            flexmock(importer).
+                should_receive(:currently_applied_patches).
+                and_return(test_patches)
+            flexmock(importer).
+                should_receive(:patches).
+                and_return(test_patches)
+
+            # we expect paths will be ignored and the patches array to be
+            # flatenned into a string
+            expected_patch_fingerprint = Digest::SHA1.hexdigest('1source_test2source2_test')
+
+            expected_fingerprint = Digest::SHA1.hexdigest(@expected_vcs_fingerprint + 
+                expected_patch_fingerprint)
+
+            assert_equal expected_fingerprint, importer.fingerprint(pkg)
+        end
+    end
+
     def assert_checkout_file_exist(*file)
         assert File.exist?(checkout_path(*file))
     end
