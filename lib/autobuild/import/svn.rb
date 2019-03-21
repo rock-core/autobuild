@@ -70,6 +70,12 @@ module Autobuild
             Integer($1)
         end
 
+        # fingerprint method returns an unique hash to identify this package,
+        # for SVN the revision will be used
+        def fingerprint(package)
+            svn_revision(package).to_s
+        end
+
         # Returns the URL of the remote SVN repository
         #
         # @param [Package] package
