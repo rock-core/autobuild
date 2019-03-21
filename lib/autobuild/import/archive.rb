@@ -257,10 +257,35 @@ module Autobuild
         # Updates the downloaded file in cache only if it is needed
         #
         # @return [Boolean] true if a new file was downloaded, false otherwise
+        # @raises ConfigException if a expected digest was given in the source.yml file and it doesn't match
         def update_cache(package)
             updated = download_from_url(package)
-            @cachefile_digest = Digest::SHA1.hexdigest File.read(cachefile)
+            @cachefile_digest = read_cachefile_digest
+
+            if @expected_digest && @expected_digest != @cachefile_digest
+                raise ConfigException, "The archive #{@url.to_s} does not match the digest provided"
+            end
+
             updated
+        end
+
+        def read_cachefile_digest
+            Digest::SHA1.hexdigest File.read(cachefile)
+        end
+        
+        # Fingerprint for archive importer, we are using
+        # its digest whether is calculated or expected
+        # @raises ConfigException if no digest is present
+        def vcs_fingerprint(package)
+            if @cachefile_digest
+                @cachefile_digest
+            elsif File.file?(cachefile)
+                read_cachefile_digest
+            elsif @expected_digest
+                @expected_digest
+            else
+                raise ConfigException, "There is no digest for archive #{@url.to_s}, make sure cache directories are configured correctly"
+            end
         end
 
         # The source URL
@@ -344,7 +369,7 @@ module Autobuild
         def initialize(url, options = Hash.new)
             sourceopts, options = Kernel.filter_options options,
                 :source_id, :repository_id, :filename, :mode, :update_cached_file,
-                :user, :password
+                :user, :password, :expected_digest
             super(options)
 
             @filename = nil
@@ -371,6 +396,7 @@ module Autobuild
 
             @repository_id = options[:repository_id] || parsed_url.to_s
             @source_id     = options[:source_id] || parsed_url.to_s
+            @expected_digest = options[:expected_digest]
 
             @filename = options[:filename] || @filename || File.basename(url).gsub(/\?.*/, '')
             @update_cached_file = options[:update_cached_file]

@@ -618,6 +618,30 @@ module Autobuild
             end
         end
 
+        # Returns a unique hash representing a state of the package and
+        # its dependencies, if any dependency can't calculate its own
+        # fingerprint the result will be nil
+        # @return [String]
+        def fingerprint(recursive: true, memo: {})
+            self_fingerprint = importer.fingerprint(self)
+            return unless self_fingerprint
+
+            memo[name] = self_fingerprint
+            return self_fingerprint if !recursive || dependencies.empty?
+
+            dependency_fingerprints = dependencies.sort.map do |pkg_name|
+                pkg = Autobuild::Package[pkg_name]
+                unless (fingerprint = memo[pkg.name])
+                    fingerprint = pkg.fingerprint(recursive: true, memo: memo)
+                    return unless fingerprint
+                    memo[pkg.name] = fingerprint
+                end
+                fingerprint
+            end
+
+            Digest::SHA1.hexdigest(self_fingerprint + dependency_fingerprints.join(""))
+        end
+
         # Returns the name of all the packages +self+ depends on
         def all_dependencies(result = Set.new)
             dependencies.each do |pkg_name|

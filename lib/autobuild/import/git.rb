@@ -152,6 +152,10 @@ module Autobuild
             @additional_remotes = Array.new
         end
 
+        def vcs_fingerprint(package)
+            rev_parse(package, 'HEAD')
+        end
+
         # The name of the remote that should be set up by the importer
         #
         # Defaults to 'autobuild'
