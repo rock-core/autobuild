@@ -618,13 +618,26 @@ module Autobuild
             end
         end
 
-        def fingerprint(recursive: true)
-            concatenate_fingerprints = importer.fingerprint(self)
-            dependencies.each do |pkg_name|
-                pkg = Autobuild::Package[pkg_name]
-                concatenate_fingerprints += pkg.importer.fingerprint(pkg)
+        # Returns a unique hash representing a state of the package and
+        # its dependencies
+        def fingerprint(recursive: true, memo: {})
+            self_fingerprint = importer.fingerprint(self)
+            if self_fingerprint.nil?
+                return nil
             end
-            Digest::SHA1.hexdigest concatenate_fingerprints
+            memo[name] = self_fingerprint
+            return self_fingerprint unless recursive
+
+            fingerprints = dependencies.sort.map do |pkg_name|
+                pkg = Autobuild::Package[pkg_name]
+                if pkg.fingerprint.nil?
+                    return nil
+                end
+                memo[pkg.name] ||= pkg.fingerprint(memo: memo)
+            end
+            combined = self_fingerprint + fingerprints.join("")
+
+            Digest::SHA1.hexdigest combined
         end
 
         # Returns the name of all the packages +self+ depends on

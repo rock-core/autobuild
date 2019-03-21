@@ -201,10 +201,11 @@ class Importer
         @options[:retry_count] = Integer(count)
     end
 
+    # Returns a unique hash representing the state of the imported package
     def fingerprint(package)
         #each importer type should implement its own 
-        Autoproj.warn "Fingerprint has not been implemented for this type of packages, results should be discarded"
-        return ""
+        Autoproj.warn "Fingerprint in #{package.name} has not been implemented for this type of packages, results should be discarded"
+        return nil
     end
 
     def patches
