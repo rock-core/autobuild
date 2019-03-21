@@ -627,12 +627,12 @@ module Autobuild
             return unless self_fingerprint
 
             memo[name] = self_fingerprint
-            return self_fingerprint unless recursive
+            return self_fingerprint if !recursive || dependencies.empty?
 
             dependency_fingerprints = dependencies.sort.map do |pkg_name|
                 pkg = Autobuild::Package[pkg_name]
                 unless (fingerprint = memo[pkg.name])
-                    fingerprint = pkg.fingerprint(memo: memo)
+                    fingerprint = pkg.fingerprint(recursive: true, memo: memo)
                     return unless fingerprint
                     memo[pkg.name] = fingerprint
                 end
