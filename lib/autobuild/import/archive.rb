@@ -271,14 +271,19 @@ module Autobuild
         def read_cachefile_digest
             Digest::SHA1.hexdigest File.read(cachefile)
         end
-
+        
+        # Fingerprint for archive importer, we are using
+        # its digest whether is calculated or expected
+        # @raises ConfigException if no digest is present
         def fingerprint(package)
             if @cachefile_digest
                 @cachefile_digest
             elsif File.file?(cachefile)
                 read_cachefile_digest
-            else
+            elsif @expected_digest
                 @expected_digest
+            else
+                raise ConfigException, "There is no digest for archive #{@url.to_s}, make sure cache directories are configured correctly"
             end
         end
 
