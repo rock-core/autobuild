@@ -36,7 +36,7 @@ module Autobuild
                     @builddir
                 else
                     ancestors.each do |klass|
-                        if result = klass.instance_variable_get(:@builddir)
+                        if (result = klass.instance_variable_get(:@builddir))
                             return result
                         end
                     end
@@ -45,8 +45,13 @@ module Autobuild
             end
 
             def builddir=(new)
-                raise ConfigException, "absolute builddirs are not supported" if (Pathname.new(new).absolute?)
-                raise ConfigException, "builddir must be non-nil and non-empty" if (new.nil? || new.empty?)
+                if new.nil? || new.empty?
+                    raise ConfigException, "builddir must be non-nil and non-empty"
+                end
+                if Pathname.new(new).absolute?
+                    raise ConfigException, "absolute builddirs are not supported"
+                end
+
                 @builddir = new
             end
         end
@@ -54,15 +59,21 @@ module Autobuild
 
         def builddir=(new)
             raise ConfigException.new(self), "builddir must be non-empty" if new.empty?
+
             @builddir = new
         end
+
         # Returns the absolute builddir
-        def builddir; File.expand_path(@builddir || self.class.builddir, srcdir) end
+        def builddir
+            File.expand_path(@builddir || self.class.builddir, srcdir)
+        end
 
         # Build stamp
         # This returns the name of the file which marks when the package has been
         # successfully built for the last time. The path is absolute
-        def buildstamp; "#{builddir}/#{STAMPFILE}" end
+        def buildstamp
+            "#{builddir}/#{STAMPFILE}"
+        end
 
         def prepare_for_forced_build
             super
@@ -74,9 +85,7 @@ module Autobuild
         def prepare_for_rebuild
             super
 
-            if File.exist?(builddir) && builddir != srcdir
-                FileUtils.rm_rf builddir
-            end
+            FileUtils.rm_rf(builddir) if File.exist?(builddir) && builddir != srcdir
         end
 
         def ensure_dependencies_installed
@@ -87,9 +96,13 @@ module Autobuild
 
         def prepare
             source_tree srcdir do |pkg|
-                pkg.exclude << Regexp.new("^#{Regexp.quote(builddir)}") if builddir != srcdir
-                pkg.exclude << Regexp.new("^#{Regexp.quote(doc_dir)}") if doc_dir && (doc_dir != srcdir)
-                pkg.exclude.concat(self.source_tree_excludes)
+                if builddir != srcdir
+                    pkg.exclude << Regexp.new("^#{Regexp.quote(builddir)}")
+                end
+                if doc_dir && (doc_dir != srcdir)
+                    pkg.exclude << Regexp.new("^#{Regexp.quote(doc_dir)}")
+                end
+                pkg.exclude.concat(source_tree_excludes)
             end
 
             super
@@ -104,7 +117,7 @@ module Autobuild
             end
             task "#{name}-prepare" => configurestamp
 
-            file buildstamp => [ srcdir, configurestamp ] do
+            file buildstamp => [srcdir, configurestamp] do
                 isolate_errors do
                     ensure_dependencies_installed
                     build
@@ -118,9 +131,11 @@ module Autobuild
         # Configure the builddir directory before starting make
         def configure
             if File.exist?(builddir) && !File.directory?(builddir)
-                raise ConfigException.new(self, 'configure'), "#{builddir} already exists but is not a directory"
+                raise ConfigException.new(self, 'configure'),
+                    "#{builddir} already exists but is not a directory"
             end
-            FileUtils.mkdir_p builddir if !File.directory?(builddir)
+
+            FileUtils.mkdir_p builddir unless File.directory?(builddir)
 
             yield if block_given?
 
@@ -128,9 +143,6 @@ module Autobuild
         end
 
         # Do the build in builddir
-        def build
-        end
+        def build; end
     end
 end
-
-

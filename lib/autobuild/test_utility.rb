@@ -29,16 +29,14 @@ module Autobuild
         end
 
         def coverage_available?
-            !!@coverage_source_dir
+            @coverage_source_dir
         end
 
         # Controls whether code coverage should be measured
         #
         # @param [Boolean,nil] flag enable or disable code coverage. If set to
         #   nil, will use the default from {TestUtility.coverage?}
-        def coverage_enabled=(flag)
-            @coverage_enabled = flag
-        end
+        attr_writer :coverage_enabled
 
         # Where the code coverage will be generated
         #
@@ -85,21 +83,24 @@ module Autobuild
             if !coverage_enabled?
                 return
             elsif !coverage_available?
-                package.warn "%s: #coverage_source_dir not set on #test_utility, skipping installation of the code coverage results"
+                package.warn "%s: #coverage_source_dir not set on #test_utility, "\
+                    "skipping installation of the code coverage results"
             end
 
             coverage_target_dir  = self.coverage_target_dir
             coverage_source_dir  = self.coverage_source_dir
             if "#{coverage_source_dir}/".start_with?("#{source_dir}/")
-                raise ArgumentError, "#coverage_source_dir cannot be a subdirectory of #source_dir in #{package.name}"
+                raise ArgumentError, "#coverage_source_dir cannot be a subdirectory "\
+                    "of #source_dir in #{package.name}"
             elsif target_dir == coverage_target_dir
-                raise ArgumentError, "#coverage_target_dir cannot be the same than of #target_dir in #{package.name}"
+                raise ArgumentError, "#coverage_target_dir cannot be the same than of "\
+                    "#target_dir in #{package.name}"
             end
 
             FileUtils.mkdir_p File.dirname(coverage_target_dir)
             FileUtils.cp_r coverage_source_dir, coverage_target_dir
-            package.message "%s: copied test coverage results for #{package.name} from #{coverage_source_dir} to #{coverage_target_dir}"
+            package.message "%s: copied test coverage results for #{package.name} from "\
+                "#{coverage_source_dir} to #{coverage_target_dir}"
         end
     end
 end
-

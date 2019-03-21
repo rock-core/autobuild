@@ -2,12 +2,14 @@
 
 begin
     require 'daemons'
-rescue LoadError
+rescue LoadError # rubocop:disable Lint/HandleExceptions
 end
 
 require 'autobuild'
 
+# rubocop:disable Style/MixinUsage
 include Autobuild
+# rubocop:enable Style/MixinUsage
 
 DEFAULT_HTTP_PORT = 2000
 
@@ -20,7 +22,7 @@ Autobuild.packages = packages
 conffile = File.expand_path(conffile, Dir.pwd)
 if Autobuild.daemonize
     puts "Going into daemon mode ..."
-    Daemons.daemonize 
+    Daemons.daemonize
 end
 
 Reporting << StdoutReporter.new
@@ -40,4 +42,3 @@ rescue ThreadError
 rescue Interrupt
     STDERR.puts "interrupted"
 end
- 

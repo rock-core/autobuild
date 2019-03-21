@@ -16,6 +16,7 @@ module Autobuild
         def color?
             @colorizer.enabled?
         end
+
         def color(message, *style)
             @colorizer.decorate(message, *style)
         end
@@ -31,6 +32,7 @@ module Autobuild
         def silent?
             @display.silent?
         end
+
         def silent=(flag)
             @display.silent = flag
         end
@@ -80,7 +82,7 @@ module Autobuild
     #
     # It does not use a logging framework like Log4r, but it should ;-)
     module Reporting
-        @@reporters = Array.new
+        @reporters = Array.new
 
         ## Run a block and report known exception
         # If an exception is fatal, the program is terminated using exit()
@@ -89,18 +91,22 @@ module Autobuild
             rescue Interrupt => e
                 interrupted = e
             rescue Autobuild::Exception => e
-                return report_finish_on_error([e], on_package_failures: on_package_failures, interrupted_by: interrupted)
+                return report_finish_on_error([e],
+                    on_package_failures: on_package_failures,
+                    interrupted_by: interrupted)
             end
 
             # If ignore_erorrs is true, check if some packages have failed
             # on the way. If so, raise an exception to inform the user about
             # it
             errors = []
-            Autobuild::Package.each do |name, pkg|
+            Autobuild::Package.each do |_name, pkg|
                 errors.concat(pkg.failures)
             end
 
-            report_finish_on_error(errors, on_package_failures: on_package_failures, interrupted_by: interrupted)
+            report_finish_on_error(errors,
+                on_package_failures: on_package_failures,
+                interrupted_by: interrupted)
         end
 
         # @api private
@@ -121,15 +127,18 @@ module Autobuild
         #
         # @param [Symbol] on_package_failures how does the reporting should behave.
         #
-        def self.report_finish_on_error(errors, on_package_failures: default_report_on_package_failures, interrupted_by: nil)
-            if not_package_error = errors.find { |e| !e.respond_to?(:fatal?) }
+        def self.report_finish_on_error(errors,
+            on_package_failures: default_report_on_package_failures, interrupted_by: nil)
+            if (not_package_error = errors.find { |e| !e.respond_to?(:fatal?) })
                 raise not_package_error
             end
-            if ![:raise, :report_silent, :exit_silent].include?(on_package_failures)
+
+            unless %i[raise report_silent exit_silent].include?(on_package_failures)
                 errors.each { |e| error(e) }
             end
+
             fatal = errors.any?(&:fatal?)
-            if !fatal
+            unless fatal
                 if interrupted_by
                     raise interrupted_by
                 else
@@ -138,30 +147,29 @@ module Autobuild
             end
 
             if on_package_failures == :raise
-                if interrupted_by
-                    raise interrupted_by
-                end
+                raise interrupted_by if interrupted_by
 
                 e = if errors.size == 1 then errors.first
-                else CompositeException.new(errors)
-                end
+                    else CompositeException.new(errors)
+                    end
                 raise e
-            elsif [:report_silent, :report].include?(on_package_failures)
+            elsif %i[report_silent report].include?(on_package_failures)
                 if interrupted_by
                     raise interrupted_by
                 else
                     return errors
                 end
-            elsif [:exit, :exit_silent].include?(on_package_failures)
+            elsif %i[exit exit_silent].include?(on_package_failures)
                 exit 1
             else
-                raise ArgumentError, "unexpected value for on_package_failures: #{on_package_failures}"
+                raise ArgumentError, "unexpected value for on_package_failures: "\
+                    "#{on_package_failures}"
             end
         end
 
         ## Reports a successful build to the user
         def self.success
-            each_reporter { |rep| rep.success }
+            each_reporter(&:success)
         end
 
         ## Reports that the build failed to the user
@@ -171,19 +179,19 @@ module Autobuild
 
         ## Add a new reporter
         def self.<<(reporter)
-            @@reporters << reporter
+            @reporters << reporter
         end
 
         def self.remove(reporter)
-            @@reporters.delete(reporter)
+            @reporters.delete(reporter)
         end
 
         def self.clear_reporters
-            @@reporters.clear
+            @reporters.clear
         end
 
         def self.each_reporter(&iter)
-            @@reporters.each(&iter)
+            @reporters.each(&iter)
         end
 
         ## Iterate on all log files
@@ -195,6 +203,7 @@ module Autobuild
     ## Base class for reporters
     class Reporter
         def error(error); end
+
         def success; end
     end
 
@@ -203,11 +212,10 @@ module Autobuild
         def error(error)
             STDERR.puts "Build failed: #{error}"
         end
+
         def success
             puts "Build finished successfully at #{Time.now}"
-            if Autobuild.post_success_message
-                puts Autobuild.post_success_message
-            end
+            puts Autobuild.post_success_message if Autobuild.post_success_message
         end
     end
 
@@ -216,12 +224,16 @@ module Autobuild
         [1_000_000.0, "M"],
         [1_000.0, "k"],
         [1.0, ""]
-    ]
+    ].freeze
 
     def self.human_readable_size(size)
         HUMAN_READABLE_SIZES.each do |scale, name|
             scaled_size = (size / scale)
-            return format("%3.1f%s", scaled_size, name) if scaled_size > 1
+            if scaled_size > 1
+                return format("%3.1<scaled>f%<scale_name>s",
+                    scaled: scaled_size,
+                    scale_name: name)
+            end
         end
     end
 end

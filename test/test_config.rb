@@ -78,5 +78,3 @@ describe Autobuild do
         end
     end
 end
-
-

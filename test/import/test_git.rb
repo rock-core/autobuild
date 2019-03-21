@@ -10,7 +10,7 @@ describe Autobuild::Git do
         @importer = Autobuild.git(gitrepo)
         pkg.importer = importer
     end
-    
+
     describe "#initialize" do
         it "allows passing the branch as second argument for backward-compatibility way" do
             Autobuild.silent = true
@@ -109,12 +109,12 @@ describe Autobuild::Git do
     end
 
     describe "at_least_version" do
-        Autobuild::Git.stub :version, [1,9,1] do
+        Autobuild::Git.stub :version, [1, 9, 1] do
             it "should be true if required version is smaller" do
-                assert_equal( true, Autobuild::Git.at_least_version( 1,8,1 ) ) 
+                assert_equal(true, Autobuild::Git.at_least_version(1, 8, 1))
             end
             it "should be false if required version is greater" do
-                assert_equal( false, Autobuild::Git.at_least_version( 50,0,1 ) )
+                assert_equal(false, Autobuild::Git.at_least_version(50, 0, 1))
             end
         end
     end
@@ -260,13 +260,13 @@ describe Autobuild::Git do
         it "returns true if some files is modified and staged" do
             file = File.join(tempdir, 'git', 'test')
             File.open(file, 'a') { |io| io.puts "newline" }
-            importer.run_git(pkg, 'add', file) 
+            importer.run_git(pkg, 'add', file)
             assert Autobuild::Git.has_uncommitted_changes?(pkg)
         end
         it "returns true if a new file is added" do
             newfile = File.join(tempdir, 'git', 'blabla')
             FileUtils.touch newfile
-            importer.run_git(pkg, 'add', newfile) 
+            importer.run_git(pkg, 'add', newfile)
             assert Autobuild::Git.has_uncommitted_changes?(pkg)
         end
         it "returns true if a file has been removed" do
@@ -276,7 +276,7 @@ describe Autobuild::Git do
         it "returns true if a file has been removed and staged" do
             delfile = File.join(tempdir, 'git', 'test')
             FileUtils.rm_f delfile
-            importer.run_git(pkg, 'rm', delfile) 
+            importer.run_git(pkg, 'rm', delfile)
             assert Autobuild::Git.has_uncommitted_changes?(pkg)
         end
     end
@@ -287,7 +287,8 @@ describe Autobuild::Git do
             importer.import(pkg)
             @commits = [
                 importer.rev_parse(pkg, 'HEAD'),
-                importer.rev_parse(pkg, 'HEAD~1')]
+                importer.rev_parse(pkg, 'HEAD~1')
+            ]
         end
 
         it "returns true if the revision is in the provided branch" do
@@ -307,15 +308,14 @@ describe Autobuild::Git do
             assert importer.commit_present_in?(pkg, 'tag0', 'master')
         end
     end
-    
+
     describe "#tags" do
         before do
             importer.import(pkg)
-
         end
 
         it "lists the tags from the repository and returns their name and commit" do
-            assert_equal Hash["third_commit"=>"1ddb20665622279700770be09f9a291b37c9b631"],
+            assert_equal Hash["third_commit" => "1ddb20665622279700770be09f9a291b37c9b631"],
                 importer.tags(pkg)
         end
         it "fetches new tags by default" do
@@ -500,11 +500,13 @@ describe Autobuild::Git do
             before do
                 @commits = nil
             end
+
             def assert_on_commit(id)
                 assert_equal commits[id], importer.rev_parse(pkg, 'HEAD')
             end
+
             def commits
-                if !@commits
+                unless @commits
                     importer = Autobuild.git(gitrepo)
                     pkg = Autobuild::Package.new 'commits'
                     pkg.srcdir = gitrepo
@@ -528,7 +530,7 @@ describe Autobuild::Git do
                 extra_repo = File.join(tempdir, 'gitrepo-with-extra-commit-and-tag.git')
                 importer.relocate(extra_repo, commit: 'ba9ec170be55ba4675e2980b6e2da29a4c5797aa')
                 assert importer.import(pkg, reset: false)
-                assert_equal  'ba9ec170be55ba4675e2980b6e2da29a4c5797aa', importer.rev_parse(pkg, 'HEAD')
+                assert_equal 'ba9ec170be55ba4675e2980b6e2da29a4c5797aa', importer.rev_parse(pkg, 'HEAD')
             end
 
             common_commit_and_tag_behaviour
@@ -679,27 +681,26 @@ describe Autobuild::Git do
     def assert_checkout_file_exist(*file)
         assert File.exist?(checkout_path(*file))
     end
+
     def refute_checkout_file_exist(*file)
         refute File.exist?(checkout_path(*file))
     end
+
     def checkout_path(*file)
         File.join(pkg.srcdir, *file)
     end
+
     def checkout_read(*file)
         File.read(checkout_path(*file))
     end
+
     def force_reset(**options)
-        if !options.empty?
-            importer.relocate(importer.repository, **options)
-        end
+        importer.relocate(importer.repository, **options) unless options.empty?
         importer.import(pkg, reset: :force)
     end
 
     def import(**options)
-        if !options.empty?
-            importer.relocate(importer.repository, **options)
-        end
+        importer.relocate(importer.repository, **options) unless options.empty?
         importer.import(pkg)
     end
 end
-

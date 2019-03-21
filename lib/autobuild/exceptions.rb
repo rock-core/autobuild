@@ -1,28 +1,34 @@
 module Autobuild
     ## Base class for all Autobuild exceptions
-    class Exception < RuntimeError
-        ## If the error should be reported by mail
-        def mail?;  false end
-        ## If the error is fatal
-        def fatal?; true end
-        ## If the error can be retried
-        def retry?; @retry end
+    class PhaseException < RuntimeError
+        # If the error should be reported by mail
+        def mail?
+            false
+        end
+
+        # If the error is fatal
+        def fatal?
+            true
+        end
+
+        # If the error can be retried
+        def retry?
+            @retry
+        end
         attr_accessor :target, :phase
 
-        ## Creates a new exception which occured while doing *phase* 
+        ## Creates a new exception which occured while doing *phase*
         # in *target*
         def initialize(target = nil, phase = nil, options = Hash.new)
             options = Kernel.validate_options options, retry: true
-            @target, @phase = target, phase
-            @retry = options[:retry]
+            @target = target
+            @phase  = phase
+            @retry  = options[:retry]
         end
 
-        alias :exception_message :to_s 
+        alias exception_message to_s
         def to_s
-            dir =
-                if target.respond_to?(:srcdir)
-                    "(#{target.srcdir})"
-                end
+            dir = "(#{target.srcdir})" if target.respond_to?(:srcdir)
             target_name =
                 if target.respond_to?(:name)
                     target.name
@@ -39,8 +45,11 @@ module Autobuild
         end
     end
 
+    # Backward compatibility
+    Exception = PhaseException
+
     ## There is an error/inconsistency in the configuration
-    class ConfigException  < Exception
+    class ConfigException < PhaseException
         def initialize(target = nil, phase = nil, options = Hash.new)
             options, other_options = Kernel.filter_options options,
                 retry: false
@@ -48,8 +57,10 @@ module Autobuild
         end
     end
     ## An error occured in a package
-    class PackageException < Exception
-        def mail?; true end
+    class PackageException < PhaseException
+        def mail?
+            true
+        end
 
         def initialize(target = nil, phase = nil, options = Hash.new)
             options, other_options = Kernel.filter_options options,
@@ -63,18 +74,24 @@ module Autobuild
     class ImporterCannotReset < PackageException
     end
 
-    ## The subcommand is not found
-    class CommandNotFound  < Exception; end
-    ## An error occured while running a subcommand
-    class SubcommandFailed < Exception
-        def mail?; true end
+    # The subcommand is not found
+    class CommandNotFound  < PhaseException; end
+    # An error occured while running a subcommand
+    class SubcommandFailed < PhaseException
+        def mail?
+            true
+        end
+
         attr_writer :retry
         attr_reader :command, :logfile, :status, :output
         def initialize(*args)
             if args.size == 1
                 sc = args[0]
-                target, command, logfile, status, output = 
-                    sc.target, sc.command, sc.logfile, sc.status, sc.output
+                target = sc.target
+                command = sc.command
+                logfile = sc.logfile
+                status = sc.status
+                output = sc.output
                 @orig_message = sc.exception_message
             elsif args.size == 4 || args.size == 5
                 target, command, logfile, status, output = *args
@@ -91,15 +108,13 @@ module Autobuild
 
         def to_s
             msg = super
-            if @orig_message
-                msg << "\n     #{@orig_message}"
-            end
+            msg << "\n     #{@orig_message}" if @orig_message
             msg << "\n    see #{logfile} for details"
 
             # If we do not have a status, it means an error occured in the
             # launching process. More importantly, it means we already have a
             # proper explanation for it. Don't display the logfile at all.
-            if status 
+            if status
                 lines = @output
                 logsize = Autobuild.displayed_error_line_count
                 if logsize != Float::INFINITY && lines.size > logsize
@@ -134,12 +149,14 @@ module Autobuild
             @original_errors = original_errors
         end
 
-        def mail?; true end
+        def mail?
+            true
+        end
 
         def to_s
             result = ["#{original_errors.size} errors occured"]
             original_errors.each_with_index do |e, i|
-                result << "(#{i}) #{e.to_s}"
+                result << "(#{i}) #{e}"
             end
             result.join("\n")
         end

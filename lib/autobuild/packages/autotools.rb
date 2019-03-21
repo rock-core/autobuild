@@ -10,18 +10,17 @@ module Autobuild
     def self.autotools(opts, &proc)
         Autotools.new(opts, &proc)
     end
-        
-    if Autobuild.macos?
-        Autobuild.programs['libtoolize'] = "glibtoolize"
-    end
 
-    # 
+    Autobuild.programs['libtoolize'] = "glibtoolize" if Autobuild.macos?
+
+    #
     # ==== Handles autotools-based packages
     #
     # == Used programs (see <tt>Autobuild.programs</tt>)
-    # Autotools will use the 'aclocal', 'autoheader', 'autoconf', 'automake' and 'bear'
-    # programs defined on Autobuild.programs. autoheader and bear are disabled by default,
-    # aclocal, autoconf and automake use are autodetected.
+    # Autotools will use the 'aclocal', 'autoheader', 'autoconf', 'automake'
+    # and 'bear' programs defined on Autobuild.programs. autoheader and bear
+    # are disabled by default, aclocal, autoconf and automake use are
+    # autodetected.
     #
     # To override this default behaviour on a per-package basis, use Autotools#use
     #
@@ -47,10 +46,13 @@ module Autobuild
 
         def using_bear?
             return Autotools.enable_bear_globally? if using[:bear].nil?
+
             using[:bear]
         end
 
-        def configurestamp; "#{builddir}/config.status" end
+        def configurestamp
+            "#{builddir}/config.status"
+        end
 
         def initialize(options)
             @using = Hash.new
@@ -66,11 +68,14 @@ module Autobuild
 
         def common_utility_handling(utility, target)
             utility.task do
-                progress_start "generating documentation for %s", :done_message => 'generated documentation for %s' do
+                progress_start "generating documentation for %s",
+                               done_message: 'generated documentation for %s' do
                     if internal_doxygen_mode?
                         run_doxygen
                     else
-                        run(utility.name, Autobuild.tool(:make), "-j#{parallel_build_level}", target, :working_directory => builddir)
+                        run(utility.name,
+                            Autobuild.tool(:make), "-j#{parallel_build_level}",
+                            target, working_directory: builddir)
                     end
                     yield if block_given?
                 end
@@ -117,10 +122,9 @@ module Autobuild
                     programs
                 end
 
-            if !programs.kind_of?(Hash)
-                programs = Array[*programs].inject({}) do |progs, spec|
+            unless programs.kind_of?(Hash)
+                programs = Array[*programs].each_with_object({}) do |spec, progs|
                     progs[spec.first] = spec.last
-                    progs
                 end
             end
             programs.each do |name, opt|
@@ -140,9 +144,7 @@ module Autobuild
 
             if using[:automake]
                 Find.find(srcdir) do |path|
-                    if File.basename(path) == "Makefile.in"
-                        FileUtils.rm_f path
-                    end
+                    FileUtils.rm_f(path) if File.basename(path) == "Makefile.in"
                 end
             end
 
@@ -161,7 +163,6 @@ module Autobuild
             is_checking_out = !File.directory?(srcdir)
 
             super
-
         ensure
             if is_checking_out && File.directory?(srcdir)
                 FileUtils.touch File.join(srcdir, ".fresh_checkout")
@@ -190,7 +191,9 @@ module Autobuild
                 if output && (match = /with options "(.*)"/.match(output))
                     options = Shellwords.shellwords(match[1])
                 else
-                    raise UnexpectedConfigStatusOutput, "invalid output of config.status --version, expected a line with `with options \"OPTIONS\"`"
+                    raise UnexpectedConfigStatusOutput, "invalid output of "\
+                        "config.status --version, expected a line with "\
+                        "`with options \"OPTIONS\"`"
                 end
 
                 # Add the --prefix option to the configureflags array
@@ -205,8 +208,8 @@ module Autobuild
                     else
                         # This is an envvar entry. Ignore it if it is not
                         # explicitely given in configureflags
-                        varname, value = o.split("=").first
-                        if current_flag = testflags.find { |fl| fl =~ /^#{varname}=/ }
+                        varname, = o.split("=").first
+                        if (current_flag = testflags.find { |fl| fl =~ /^#{varname}=/ })
                             current_flag != o
                         else false
                         end
@@ -215,7 +218,8 @@ module Autobuild
                 new_opt = testflags.find { |o| !options.include?(o) }
                 if old_opt || new_opt
                     if Autobuild.verbose
-                        Autobuild.message "forcing reconfiguration of #{name} (#{old_opt} != #{new_opt})"
+                        Autobuild.message "forcing reconfiguration of #{name} "\
+                            "(#{old_opt} != #{new_opt})"
                     end
                     FileUtils.rm_f configurestamp # to force reconfiguration
                 end
@@ -240,16 +244,15 @@ module Autobuild
         # In general, you should not need that.
         attr_accessor :force_config_status
 
-    private
-        def autodetect_needed_stages
+        private def autodetect_needed_stages
             # Autodetect autoconf/aclocal/automake
             #
             # Let the user disable the use of autoconf explicitely by using 'false'.
             # 'nil' means autodetection
             if using[:autoconf].nil?
-                if File.file?(File.join(srcdir, 'configure.in')) || File.file?(File.join(srcdir, 'configure.ac'))
-                    using[:autoconf] = true 
-                end
+                has_configure_in = %w[configure.in configure.ac].
+                    any? { |p| File.file?(File.join(srcdir, p)) }
+                using[:autoconf] = true if has_configure_in
             end
             using[:aclocal] = using[:autoconf] if using[:aclocal].nil?
             if using[:automake].nil?
@@ -261,7 +264,8 @@ module Autobuild
             end
 
             if using[:autogen].nil?
-                using[:autogen] = %w{autogen autogen.sh}.find { |f| File.exist?(File.join(srcdir, f)) }
+                using[:autogen] = %w[autogen autogen.sh]
+                    .find { |f| File.exist?(File.join(srcdir, f)) }
             end
         end
 
@@ -270,21 +274,23 @@ module Autobuild
             conffile = "#{srcdir}/configure"
             if confsource
                 file conffile => confsource
-            elsif confext = %w{.ac .in}.find { |ext| File.exist?("#{conffile}#{ext}") }
+            elsif (confext = %w[.ac .in].find { |ext| File.exist?("#{conffile}#{ext}") })
                 file conffile => "#{conffile}#{confext}"
             elsif using[:autoconf]
-                raise PackageException.new(self, 'prepare'), "neither configure.ac nor configure.in present in #{srcdir}"
+                raise PackageException.new(self, 'prepare'),
+                    "neither configure.ac nor configure.in present in #{srcdir}"
             end
 
             file conffile do
                 isolate_errors do
-                    progress_start "generating autotools for %s", :done_message => 'generated autotools for %s' do
+                    progress_start "generating autotools for %s",
+                                   done_message: 'generated autotools for %s' do
                         regen
                     end
                 end
             end
 
-            return conffile
+            conffile
         end
 
         def regen
@@ -296,8 +302,9 @@ module Autobuild
                 run 'configure', File.expand_path(using[:autogen], srcdir),
                     working_directory: srcdir
             else
-                [ :aclocal, :autoconf, :autoheader, :automake ].each do |tool|
+                %i[aclocal autoconf autoheader automake].each do |tool|
                     next unless using[tool]
+
                     run 'configure', tool_program(tool), *send("#{tool}_flags"),
                         working_directory: srcdir
                 end
@@ -307,14 +314,13 @@ module Autobuild
         # Configure the builddir directory before starting make
         def configure
             super do
-                command = [ "#{srcdir}/configure"]
-                if force_config_status
-                    command << "--no-create"
-                end
+                command = ["#{srcdir}/configure"]
+                command << "--no-create" if force_config_status
                 command << "--prefix=#{prefix}"
                 command += configureflags.flatten
 
-                progress_start "configuring autotools for %s", done_message: 'configured autotools for %s' do
+                progress_start "configuring autotools for %s",
+                               done_message: 'configured autotools for %s' do
                     run('configure', *command, working_directory: builddir)
                 end
             end
@@ -323,10 +329,9 @@ module Autobuild
         # Do the build in builddir
         def build
             in_dir(builddir) do
-                progress_start "building %s [progress not available]", :done_message => 'built %s' do
-                    if force_config_status
-                        run('build', './config.status')
-                    end
+                progress_start "building %s [progress not available]",
+                               done_message: 'built %s' do
+                    run('build', './config.status') if force_config_status
 
                     build_options = []
                     if using_bear?

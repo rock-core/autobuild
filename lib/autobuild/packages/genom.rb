@@ -74,7 +74,7 @@ module Autobuild
             end
         end
 
-        # Alias this package to the ones defined in the EXTRA_PKGCONFIG 
+        # Alias this package to the ones defined in the EXTRA_PKGCONFIG
         # flag in configure.ac.user
         def get_provides
             configure_ac_user = File.join(srcdir, 'configure.ac.user')

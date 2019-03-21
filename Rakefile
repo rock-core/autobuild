@@ -8,9 +8,6 @@ Rake::TestTask.new(:test) do |t|
     t.libs << "lib" << Dir.pwd
 
     test_files = Rake::FileList['test/**/test_*.rb']
-    if !File.executable?('/usr/bin/cvs')
-        test_files.exclude('test/import/test_cvs.rb')
-    end
+    test_files.exclude('test/import/test_cvs.rb') unless File.executable?('/usr/bin/cvs')
     t.test_files = test_files
 end
-

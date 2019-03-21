@@ -56,13 +56,17 @@ module Autobuild
                 raise "Unable to set PYTHONPATH: #{e.message}"
             end
 
-            return output.read.chomp if ret.value.success?
-            raise 'Unable to set PYTHONPATH: user site directory disabled?'
+            if ret.value.success?
+                output.read.chomp
+            else
+                raise 'Unable to set PYTHONPATH: user site directory disabled?'
+            end
         end
 
         # Do the build in builddir
         def build
             return unless @install_mode
+
             command = generate_build_command
             command << '--force' if @forced
             progress_start 'building %s [progress not available]',
@@ -75,6 +79,7 @@ module Autobuild
         # Install the result in prefix
         def install
             return unless @install_mode
+
             command = generate_install_command
             command << '--force' if @forced
             progress_start 'installing %s',

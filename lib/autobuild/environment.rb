@@ -3,12 +3,12 @@ require 'rbconfig'
 require 'utilrb/hash/map_value'
 
 module Autobuild
-    @windows = RbConfig::CONFIG["host_os"] =~%r!(msdos|mswin|djgpp|mingw|[Ww]indows)!
+    @windows = RbConfig::CONFIG["host_os"] =~ /(msdos|mswin|djgpp|mingw|[Ww]indows)/
     def self.windows?
         @windows
     end
 
-    @macos =  RbConfig::CONFIG["host_os"] =~%r!([Dd]arwin)!
+    @macos = RbConfig::CONFIG["host_os"] =~ /([Dd]arwin)/
     def self.macos?
         @macos
     end
@@ -19,43 +19,41 @@ module Autobuild
     end
 
     def self.bsd?
-        @freebsd || @macos #can be extended to some other OSes liek NetBSD
+        @freebsd || @macos # can be extended to some other OSes liek NetBSD
     end
 
-    @msys =  RbConfig::CONFIG["host_os"] =~%r!(msys)!
+    @msys = RbConfig::CONFIG["host_os"] =~ /(msys)/
     def self.msys?
         @msys
     end
 
     SHELL_VAR_EXPANSION =
-        if windows? then "%%%s%%"
-        else "$%s"
+        if windows? then "%%%s%%".freeze
+        else "$%s".freeze
         end
     SHELL_SET_COMMAND =
-        if windows? then "set %s=%s"
-        else "%s=\"%s\""
+        if windows? then "set %s=%s".freeze
+        else "%s=\"%s\"".freeze
         end
     SHELL_CONDITIONAL_SET_COMMAND =
-        if windows? then "set %s=%s"
-        else "if test -z \"$%1$s\"; then\n  %1$s=\"%3$s\"\nelse\n  %1$s=\"%2$s\"\nfi"
+        if windows? then "set %s=%s".freeze
+        else "if test -z \"$%1$s\"; then\n  %1$s=\"%3$s\"\n"\
+            "else\n  %1$s=\"%2$s\"\nfi".freeze
         end
-    SHELL_UNSET_COMMAND =
-        if windows? then "unset %s"
-        else "unset %s"
-        end
+    SHELL_UNSET_COMMAND = "unset %s".freeze
     SHELL_EXPORT_COMMAND =
-        if windows? then "set %s"
-        else "export %s"
+        if windows? then "set %s".freeze
+        else "export %s".freeze
         end
     SHELL_SOURCE_SCRIPT =
-        if windows? then "%s"
-        else ". \"%s\""
+        if windows? then "%s".freeze
+        else '. "%s"'.freeze
         end
 
     LIBRARY_PATH =
-        if macos? then 'DYLD_LIBRARY_PATH'
-        elsif windows? then 'PATH'
-        else 'LD_LIBRARY_PATH'
+        if macos? then 'DYLD_LIBRARY_PATH'.freeze
+        elsif windows? then 'PATH'.freeze
+        else 'LD_LIBRARY_PATH'.freeze
         end
 
     LIBRARY_SUFFIX =
@@ -139,17 +137,17 @@ module Autobuild
         def initialize_copy(old)
             super
             @inherited_environment = @inherited_environment.
-                map_value { |k, v| v.dup if v }
+                map_value { |_k, v| v&.dup }
             @environment = @environment.
-                map_value { |k, v| v.dup if v }
+                map_value { |_k, v| v&.dup }
             @source_before = Marshal.load(Marshal.dump(@source_before)) # deep copy
             @source_after = Marshal.load(Marshal.dump(@source_after)) # deep copy
             @inherited_variables = @inherited_variables.dup
 
             @system_env = @system_env.
-                map_value { |k, v| v.dup if v }
+                map_value { |_k, v| v&.dup }
             @original_env = @original_env.
-                map_value { |k, v| v.dup if v }
+                map_value { |_k, v| v&.dup }
         end
 
         def [](name)
@@ -266,20 +264,21 @@ module Autobuild
             @inherit
         end
 
-        def filter_original_env(name, parent_env)
+        def filter_original_env(_name, parent_env)
             parent_env.dup
         end
 
         def init_from_env(name)
-            if inherit?(name) && (parent_env = original_env[name])
-                inherited_environment[name] = filter_original_env(name, parent_env.split(File::PATH_SEPARATOR))
-            else
-                inherited_environment[name] = Array.new
-            end
+            inherited_environment[name] =
+                if inherit?(name) && (parent_env = original_env[name])
+                    filter_original_env(name, parent_env.split(File::PATH_SEPARATOR))
+                else
+                    Array.new
+                end
         end
 
         def push(name, *values)
-            if current = environment[name]
+            if (current = environment[name])
                 current = current.dup
                 set(name, *values)
                 add(name, *current)
@@ -292,13 +291,8 @@ module Autobuild
         def add(name, *values)
             values = values.map { |v| expand(v) }
 
-            set = if environment.has_key?(name)
-                      environment[name]
-                  end
-
-            if !inherited_environment.has_key?(name)
-                init_from_env(name)
-            end
+            set = environment[name] if environment.key?(name)
+            init_from_env(name) unless inherited_environment.key?(name)
 
             if !set
                 set = Array.new
@@ -325,12 +319,13 @@ module Autobuild
         #   actual value is OS-specific, and not handled by this method
         def value(name, options = Hash.new)
             # For backward compatibility only
-            if !options.respond_to?(:to_hash)
-                if options
-                    options = Hash[:inheritance_mode => :expand]
-                else
-                    options = Hash[:inheritance_mode => :keep]
-                end
+            unless options.respond_to?(:to_hash)
+                options =
+                    if options
+                        Hash[:inheritance_mode => :expand]
+                    else
+                        Hash[:inheritance_mode => :keep]
+                    end
             end
             options = Kernel.validate_options options,
                 inheritance_mode: :expand
@@ -349,13 +344,10 @@ module Autobuild
                     else []
                     end
 
-
                 value = []
                 [environment[name], inherited, system_env[name]].each do |paths|
                     (paths || []).each do |p|
-                        if !value.include?(p)
-                            value << p
-                        end
+                        value << p unless value.include?(p)
                     end
                 end
                 value
@@ -364,16 +356,14 @@ module Autobuild
 
         # Whether this object manages the given environment variable
         def include?(name)
-            environment.has_key?(name)
+            environment.key?(name)
         end
 
         def resolved_env
             resolved_env = Hash.new
             environment.each_key do |name|
-                if value = value(name)
-                    if path_variable?(name)
-                        value = value.find_all { |p| File.exist?(p) }
-                    end
+                if (value = value(name))
+                    value = value.find_all { |p| File.exist?(p) } if path_variable?(name)
                     resolved_env[name] = value.join(File::PATH_SEPARATOR)
                 else
                     resolved_env[name] = nil
@@ -400,15 +390,13 @@ module Autobuild
             paths = paths.map { |p| expand(p) }
 
             oldpath = (environment[name] ||= Array.new)
-            paths.reverse.each do |path|
+            paths.reverse_each do |path|
                 path = path.to_str
                 next if oldpath.include?(path)
 
                 add(name, path)
                 oldpath << path
-                if name == 'RUBYLIB'
-                    $LOAD_PATH.unshift path
-                end
+                $LOAD_PATH.unshift path if name == 'RUBYLIB'
             end
         end
 
@@ -428,7 +416,7 @@ module Autobuild
         # @see push_path
         def push_path(name, *values)
             declare_path_variable(name)
-            if current = environment.delete(name)
+            if (current = environment.delete(name))
                 current = current.dup
                 add_path(name, *values)
                 add_path(name, *current)
@@ -495,7 +483,10 @@ module Autobuild
                 elsif value_with_inheritance == value_without_inheritance # no inheritance
                     export.set[name] = value_with_inheritance
                 else
-                    export.update[name] = [value_with_inheritance, value_without_inheritance]
+                    export.update[name] = [
+                        value_with_inheritance,
+                        value_without_inheritance
+                    ]
                 end
             end
             export
@@ -509,21 +500,23 @@ module Autobuild
         def export_env_sh(io, shell: 'sh')
             export = exported_environment
             source_before(shell: shell).each do |path|
-                io.puts SHELL_SOURCE_SCRIPT % path
+                io.puts format(SHELL_SOURCE_SCRIPT, path)
             end
             export.unset.each do |name|
-                io.puts SHELL_UNSET_COMMAND % [name]
+                io.puts format(SHELL_UNSET_COMMAND, name)
             end
             export.set.each do |name, value|
-                io.puts SHELL_SET_COMMAND % [name, value.join(File::PATH_SEPARATOR)]
-                io.puts SHELL_EXPORT_COMMAND % [name]
+                io.puts format(SHELL_SET_COMMAND, name, value.join(File::PATH_SEPARATOR))
+                io.puts format(SHELL_EXPORT_COMMAND, name)
             end
             export.update.each do |name, (with_inheritance, without_inheritance)|
-                io.puts SHELL_CONDITIONAL_SET_COMMAND % [name, with_inheritance.join(File::PATH_SEPARATOR), without_inheritance.join(File::PATH_SEPARATOR)]
-                io.puts SHELL_EXPORT_COMMAND % [name]
+                io.puts format(SHELL_CONDITIONAL_SET_COMMAND, name,
+                    with_inheritance.join(File::PATH_SEPARATOR),
+                    without_inheritance.join(File::PATH_SEPARATOR))
+                io.puts format(SHELL_EXPORT_COMMAND, name)
             end
             source_after(shell: shell).each do |path|
-                io.puts SHELL_SOURCE_SCRIPT % [path]
+                io.puts format(SHELL_SOURCE_SCRIPT, path)
             end
         end
 
@@ -597,30 +590,22 @@ module Autobuild
         end
 
         def arch_size
-            if @arch_size
-                return @arch_size
-            end
+            return @arch_size if @arch_size
 
             if File.file?('/usr/bin/dpkg-architecture')
                 cmdline = ['/usr/bin/dpkg-architecture']
-                if target_arch
-                    cmdline << "-T" << target_arch
-                end
+                cmdline << "-T" << target_arch if target_arch
                 out = `#{cmdline.join(" ")}`.split
                 arch = out.grep(/DEB_TARGET_ARCH_BITS/).first ||
                        out.grep(/DEB_BUILD_ARCH_BITS/).first
-                if arch
-                    @arch_size = Integer(arch.chomp.split('=').last)
-                end
+                @arch_size = Integer(arch.chomp.split('=').last) if arch
             end
 
-            if !@arch_size
-                @arch_size =
-                    if RbConfig::CONFIG['host_cpu'] =~ /64/
-                        64
-                    else 32
-                    end
-            end
+            @arch_size ||=
+                if RbConfig::CONFIG['host_cpu'] =~ /64/
+                    64
+                else 32
+                end
             @arch_size
         end
 
@@ -632,22 +617,16 @@ module Autobuild
         attr_reader :target_arch
 
         def arch_names
-            if @arch_names
-                return @arch_names
-            end
+            return @arch_names if @arch_names
 
             result = Set.new
             if File.file?('/usr/bin/dpkg-architecture')
                 cmdline = ['/usr/bin/dpkg-architecture']
-                if target_arch
-                    cmdline << "-T" << target_arch
-                end
+                cmdline << "-T" << target_arch if target_arch
                 out = `#{cmdline.join(" ")}`.split
                 arch = out.grep(/DEB_TARGET_MULTIARCH/).first ||
                        out.grep(/DEB_BUILD_MULTIARCH/).first
-                if arch
-                    result << arch.chomp.split('=').last
-                end
+                result << arch.chomp.split('=').last if arch
             end
             @arch_names = result
         end
@@ -656,13 +635,21 @@ module Autobuild
             add_prefix(newprefix, includes)
         end
 
+        # rubocop:disable Metrics/LineLength
+        PKGCONFIG_INFO = [
+            %r{Scanning directory (?:#\d+ )?'(.*/)((?:lib|lib64|share)/.*)'$},
+            %r{Cannot open directory (?:#\d+ )?'.*/((?:lib|lib64|share)/.*)' in package search path:.*}
+        ].freeze
+        # rubocop:enable Metrics/LineLength
+
         # Returns the system-wide search path that is embedded in pkg-config
         def default_pkgconfig_search_suffixes
-            found_path_rx = /Scanning directory (?:#\d+ )?'(.*\/)((?:lib|lib64|share)\/.*)'$/
-            nonexistent_path_rx = /Cannot open directory (?:#\d+ )?'.*\/((?:lib|lib64|share)\/.*)' in package search path:.*/
+            found_path_rx = PKGCONFIG_INFO[0]
+            nonexistent_path_rx = PKGCONFIG_INFO[1]
 
-            if !@default_pkgconfig_search_suffixes
-                output = `LANG=C PKG_CONFIG_PATH= #{Autobuild.tool("pkg-config")} --debug 2>&1`.split("\n")
+            unless @default_pkgconfig_search_suffixes
+                pkg_config = Autobuild.tool("pkg-config")
+                output = `LANG=C PKG_CONFIG_PATH= #{pkg_config} --debug 2>&1`.split("\n")
                 found_paths = output.grep(found_path_rx).
                     map { |l| l.gsub(found_path_rx, '\2') }.
                     to_set
@@ -671,7 +658,7 @@ module Autobuild
                     to_set
                 @default_pkgconfig_search_suffixes = found_paths | not_found
             end
-            return @default_pkgconfig_search_suffixes
+            @default_pkgconfig_search_suffixes
         end
 
         # Updates the environment when a new prefix has been added
@@ -683,7 +670,8 @@ module Autobuild
             end
 
             if !includes || includes.include?('PKG_CONFIG_PATH')
-                each_env_search_path(newprefix, default_pkgconfig_search_suffixes) do |path|
+                each_env_search_path(newprefix,
+                                     default_pkgconfig_search_suffixes) do |path|
                     add_path('PKG_CONFIG_PATH', path)
                 end
             end
@@ -691,24 +679,26 @@ module Autobuild
             if !includes || includes.include?(LIBRARY_PATH)
                 ld_library_search = ['lib', 'lib/ARCH', 'libARCHSIZE']
                 each_env_search_path(newprefix, ld_library_search) do |path|
-                    has_sofile = Dir.enum_for(:glob, File.join(path, "lib*.#{LIBRARY_SUFFIX}")).
-                        find { true }
-                    if has_sofile
-                        add_path(LIBRARY_PATH, path)
-                    end
+                    glob_path = File.join(path, "lib*.#{LIBRARY_SUFFIX}")
+                    has_sofile = Dir.enum_for(:glob, glob_path)
+                        .find { true }
+                    add_path(LIBRARY_PATH, path) if has_sofile
                 end
             end
 
             # Validate the new rubylib path
             if !includes || includes.include?('RUBYLIB')
                 new_rubylib = "#{newprefix}/lib"
-                if File.directory?(new_rubylib) && !File.directory?(File.join(new_rubylib, "ruby")) && !Dir["#{new_rubylib}/**/*.rb"].empty?
-                    add_path('RUBYLIB', new_rubylib)
-                end
 
-                %w{rubylibdir archdir sitelibdir sitearchdir vendorlibdir vendorarchdir}.
+                standalone_ruby_package =
+                    File.directory?(new_rubylib) &&
+                    !File.directory?(File.join(new_rubylib, "ruby")) &&
+                    !Dir["#{new_rubylib}/**/*.rb"].empty?
+                add_path('RUBYLIB', new_rubylib) if standalone_ruby_package
+
+                %w[rubylibdir archdir sitelibdir sitearchdir vendorlibdir vendorarchdir].
                     map { |key| RbConfig::CONFIG[key] }.
-                    map { |path| path.gsub(/.*lib(?:32|64)?\//, '\\1') }.
+                    map { |path| path.gsub(%r{.*lib(?:32|64)?/}, '\\1') }.
                     each do |subdir|
                         if File.directory?("#{newprefix}/lib/#{subdir}")
                             add_path("RUBYLIB", "#{newprefix}/lib/#{subdir}")
@@ -726,10 +716,8 @@ module Autobuild
                 full = File.join(dir, file)
                 begin
                     stat = File.stat(full)
-                    if stat.file? && stat.executable?
-                        return full
-                    end
-                rescue ::Exception
+                    return full if stat.file? && stat.executable?
+                rescue ::Exception # rubocop:disable Lint/HandleExceptions
                 end
             end
             nil
@@ -742,9 +730,7 @@ module Autobuild
         def self.find_in_path(file, entries)
             entries.each do |dir|
                 full = File.join(dir, file)
-                if File.file?(full)
-                    return full
-                end
+                return full if File.file?(full)
             end
             nil
         end
@@ -774,7 +760,7 @@ module Autobuild
     @env = nil
 
     def self.env
-        if !@env
+        unless @env
             @env = Environment.new
             @env.prepare
         end
@@ -785,77 +771,95 @@ module Autobuild
     def self.env_reset(name = nil)
         env.reset(name)
     end
+
     # @deprecated, use the API on {env} instead
     def self.env_clear(name = nil)
         env.clear(name)
     end
+
     # @deprecated, use the API on {env} instead
     def self.env_set(name, *values)
         env.set(name, *values)
     end
+
     # @deprecated, use the API on {env} instead
     def self.env_inherit?(name = nil)
         env.inherit?(name)
     end
+
     # @deprecated, use the API on {env} instead
     def self.env_inherit=(value)
         env.inherit = value
     end
+
     # @deprecated, use the API on {env} instead
     def self.env_inherit(*names)
         env.inherit(*names)
     end
+
     # @deprecated, use the API on {env} instead
     def self.env_init_from_env(name)
         env.init_from_env(name)
     end
+
     # @deprecated, use the API on {env} instead
     def self.env_push(name, *values)
         env.push(name, *values)
     end
+
     # @deprecated, use the API on {env} instead
     def self.env_add(name, *values)
         env.add(name, *values)
     end
+
     # @deprecated, use the API on {env} instead
     def self.env_value(name, options = Hash.new)
         env.value(name, options)
     end
+
     # @deprecated, there is no corresponding API on the {Environment}
-    def self.env_update_var(name)
-    end
+    def self.env_update_var(name); end
+
     # @deprecated, use the API on {env} instead
     def self.env_add_path(name, *paths)
         env.add_path(name, *paths)
     end
+
     # @deprecated, use the API on {env} instead
     def self.env_remove_path(name, *paths)
         env.remove_path(name, *paths)
     end
+
     # @deprecated, use the API on {env} instead
     def self.env_push_path(name, *values)
         env.push_path(name, *values)
     end
+
     # @deprecated, use the API on {env} instead
     def self.env_source_file(file, shell: 'sh')
         env.source_after(file, shell: shell)
     end
+
     # @deprecated, use the API on {env} instead
     def self.env_source_before(file = nil, shell: 'sh')
         env.source_before(file, shell: shell)
     end
+
     # @deprecated, use the API on {env} instead
     def self.env_source_after(file = nil, shell: 'sh')
         env.source_after(file, shell: shell)
     end
+
     # @deprecated, use the API on {env} instead
     def self.export_env_sh(io)
         env.export_env_sh(io)
     end
+
     # @deprecated, use the API on {env} instead
     def self.each_env_search_path(prefix, patterns)
         env.each_env_search_path(prefix, patterns)
     end
+
     # @deprecated, use the API on {env} instead
     def self.update_environment(newprefix, includes = nil)
         env.update_environment(newprefix, includes)
@@ -872,12 +876,14 @@ module Autobuild
     end
 
     def self.arch_size
-        Autobuild.warn 'Autobuild.arch_size is deprecated, use Autobuild.env.arch_size instead'
+        Autobuild.warn 'Autobuild.arch_size is deprecated, "\
+            "use Autobuild.env.arch_size instead'
         env.arch_size
     end
 
     def self.arch_names
-        Autobuild.warn 'Autobuild.arch_names is deprecated, use Autobuild.env.arch_names instead'
+        Autobuild.warn 'Autobuild.arch_names is deprecated, "\
+            "use Autobuild.env.arch_names instead'
         env.arch_names
     end
 end

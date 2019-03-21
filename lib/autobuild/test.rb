@@ -44,7 +44,7 @@ module Autobuild
             @temp_dirs = Array.new
 
             @tempdir = make_tmpdir
-            FileUtils.mkdir_p(@tempdir, :mode => 0700)
+            FileUtils.mkdir_p(@tempdir, mode: 0o700)
             Autobuild.logdir = "#{tempdir}/log"
             FileUtils.mkdir_p Autobuild.logdir
             Autobuild.silent = true
@@ -75,20 +75,21 @@ module Autobuild
         attr_reader :tempdir
 
         def build_config(bind, template)
-            eval "basedir = '#{self.tempdir}'", bind
-            ryml = File.open(File.join(data_dir, "#{template}.ryml")) { |f| f.readlines }.join('')
+            bind.local_variable_set(:basedir, tempdir.to_s)
+            ryml = File.open(File.join(data_dir, "#{template}.ryml"), &:readlines)
+                .join('')
             result = ERB.new(ryml).result(bind)
 
             yml = File.join(tempdir, "#{template}.yml")
             File.open(yml, 'w+') { |f| f.write(result) }
-            
-            return yml
+
+            yml
         end
 
         def untar(file)
             file = File.expand_path(file, data_dir)
-            dir = self.tempdir
-            Dir.chdir(dir) do 
+            dir = tempdir
+            Dir.chdir(dir) do
                 system("tar xf #{file}")
             end
 

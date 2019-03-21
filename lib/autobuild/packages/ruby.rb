@@ -22,7 +22,7 @@ module Autobuild
         def initialize(*args)
             self.rake_setup_task = "default"
             self.rake_doc_task   = "redocs"
-            self.rake_clean_task   = "clean"
+            self.rake_clean_task = "clean"
             self.rake_test_task  = "test"
             self.rake_test_options = []
 
@@ -36,19 +36,23 @@ module Autobuild
 
         def with_doc
             doc_task do
-                progress_start "generating documentation for %s", :done_message => 'generated documentation for %s' do
+                progress_start "generating documentation for %s",
+                               done_message: 'generated documentation for %s' do
                     run 'doc',
-                        Autobuild.tool_in_path('ruby'), '-S', Autobuild.tool('rake'), rake_doc_task,
-                        :working_directory => srcdir
+                        Autobuild.tool_in_path('ruby'), '-S',
+                            Autobuild.tool('rake'), rake_doc_task,
+                        working_directory: srcdir
                 end
             end
         end
 
         def with_tests
             test_utility.task do
-                progress_start "running tests for %s", :done_message => 'tests passed for %s' do
+                progress_start "running tests for %s",
+                               done_message: 'tests passed for %s' do
                     run 'test',
-                        Autobuild.tool_in_path('ruby'), '-S', Autobuild.tool('rake'), rake_test_task, *rake_test_options,
+                        Autobuild.tool_in_path('ruby'), '-S',
+                            Autobuild.tool('rake'), rake_test_task, *rake_test_options,
                         working_directory: srcdir
                 end
             end
@@ -57,13 +61,15 @@ module Autobuild
         def invoke_rake(setup_task = rake_setup_task)
             if setup_task && File.file?(File.join(srcdir, 'Rakefile'))
                 run 'post-install',
-                    Autobuild.tool_in_path('ruby'), '-S', Autobuild.tool('rake'), setup_task,
-                    :working_directory => srcdir
+                    Autobuild.tool_in_path('ruby'), '-S',
+                        Autobuild.tool('rake'), setup_task,
+                    working_directory: srcdir
             end
         end
 
         def install
-            progress_start "setting up Ruby package %s", :done_message => 'set up Ruby package %s' do
+            progress_start "setting up Ruby package %s",
+                           done_message: 'set up Ruby package %s' do
                 invoke_rake
             end
             super
@@ -71,10 +77,11 @@ module Autobuild
 
         def prepare_for_forced_build # :nodoc:
             super
-            %w{ext tmp}.each do |extdir|
+            %w[ext tmp].each do |extdir|
                 if File.directory?(extdir)
                     Find.find(extdir) do |file|
                         next if file !~ /\<Makefile\>|\<CMakeCache.txt\>$/
+
                         FileUtils.rm_rf file
                     end
                 end
@@ -86,10 +93,11 @@ module Autobuild
             if rake_clean_task && File.file?(File.join(srcdir, 'Rakefile'))
                 begin
                     run 'clean',
-                        Autobuild.tool_in_path('ruby'), '-S', Autobuild.tool('rake'), rake_clean_task,
-                        :working_directory => srcdir
+                        Autobuild.tool_in_path('ruby'), '-S',
+                            Autobuild.tool('rake'), rake_clean_task,
+                        working_directory: srcdir
                 rescue Autobuild::SubcommandFailed => e
-                    warn "%s: cleaning failed. If this package does not need a clean target,"
+                    warn "%s: clean failed. If this package does not need a clean target,"
                     warn "%s: set pkg.rake_clean_task = nil in the package definition."
                     warn "%s: see #{e.logfile} for more details"
                 end
@@ -99,9 +107,7 @@ module Autobuild
         def update_environment
             env_add_prefix srcdir
             libdir = File.join(srcdir, 'lib')
-            if File.directory?(libdir)
-                env_add_path 'RUBYLIB', libdir
-            end
+            env_add_path 'RUBYLIB', libdir if File.directory?(libdir)
         end
     end
 
@@ -109,4 +115,3 @@ module Autobuild
         Ruby.new(spec, &proc)
     end
 end
-

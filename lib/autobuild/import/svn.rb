@@ -10,7 +10,7 @@ module Autobuild
         # [:svnco] options to give to 'svn co'
         #
         # This importer uses the 'svn' tool to perform the import. It defaults
-        # to 'svn' and can be configured by doing 
+        # to 'svn' and can be configured by doing
         #   Autobuild.programs['svn'] = 'my_svn_tool'
         def initialize(svnroot, options = {})
             svnroot = [*svnroot].join("/")
@@ -25,7 +25,9 @@ module Autobuild
         # @deprecated use {svnroot} instead
         #
         # @return [String]
-        def source; svnroot end
+        def source
+            svnroot
+        end
 
         # Returns the SVN root
         #
@@ -63,8 +65,9 @@ module Autobuild
         def svn_revision(package)
             svninfo = svn_info(package)
             revision = svninfo.grep(/^Revision: /).first
-            if !revision
-                raise ConfigException.new(package, 'import'), "cannot get SVN information for #{package.importdir}"
+            unless revision
+                raise ConfigException.new(package, 'import'),
+                    "cannot get SVN information for #{package.importdir}"
             end
             revision =~ /Revision: (\d+)/
             Integer($1)
@@ -88,8 +91,9 @@ module Autobuild
         def svn_url(package)
             svninfo = svn_info(package)
             url = svninfo.grep(/^URL: /).first
-            if !url
-                raise ConfigException.new(package, 'import'), "cannot get SVN information for #{package.importdir}"
+            unless url
+                raise ConfigException.new(package, 'import'),
+                    "cannot get SVN information for #{package.importdir}"
             end
             url.chomp =~ /URL: (.+)/
             $1
@@ -106,10 +110,8 @@ module Autobuild
         def has_local_modifications?(package, with_untracked_files = false)
             status = run_svn(package, 'status', '--xml')
 
-            not_modified = %w{external ignored none normal}
-            if !with_untracked_files
-                not_modified << "unversioned"
-            end
+            not_modified = %w[external ignored none normal]
+            not_modified << "unversioned" unless with_untracked_files
 
             REXML::Document.new(status.join("")).
                 elements.enum_for(:each, '//wc-status').
@@ -135,13 +137,14 @@ module Autobuild
             else
                 log = run_svn(package, 'log', '-r', 'BASE:HEAD', '--xml', '.')
                 log = REXML::Document.new(log.join("\n"))
-                missing_revisions = log.elements.enum_for(:each, 'log/logentry').map do |l|
-                    rev = l.attributes['revision']
-                    date = l.elements['date'].first.to_s
-                    author = l.elements['author'].first.to_s
-                    msg = l.elements['msg'].first.to_s.split("\n").first
-                    "#{rev} #{DateTime.parse(date)} #{author} #{msg}"
-                end
+                missing_revisions = log.elements.enum_for(:each, 'log/logentry').
+                    map do |l|
+                        rev = l.attributes['revision']
+                        date = l.elements['date'].first.to_s
+                        author = l.elements['author'].first.to_s
+                        msg = l.elements['msg'].first.to_s.split("\n").first
+                        "#{rev} #{DateTime.parse(date)} #{author} #{msg}"
+                    end
                 status.remote_commits = missing_revisions[1..-1]
                 status.status =
                     if missing_revisions.empty?
@@ -155,10 +158,13 @@ module Autobuild
 
         # Helper method to run a SVN command on a package's working copy
         def run_svn(package, *args, &block)
-            options = Hash.new
-            if args.last.kind_of?(Hash)
-                options = args.pop
-            end
+            options =
+                if args.last.kind_of?(Hash)
+                    args.pop
+                else
+                    Hash.new
+                end
+
             options, other_options = Kernel.filter_options options,
                 working_directory: package.importdir, retry: true
             options = options.merge(other_options)
@@ -182,7 +188,8 @@ module Autobuild
         # @raises [ConfigException] if the working copy is not a subversion
         #   working copy
         def svn_info(package)
-            old_lang, ENV['LC_ALL'] = ENV['LC_ALL'], 'C'
+            old_lang = ENV['LC_ALL']
+            ENV['LC_ALL'] = 'C'
             begin
                 svninfo = run_svn(package, 'info')
             rescue SubcommandFailed => e
@@ -194,7 +201,7 @@ module Autobuild
                 end
             end
 
-            if !svninfo.grep(/is not a working copy/).empty?
+            unless svninfo.grep(/is not a working copy/).empty?
                 raise ConfigException.new(package, 'import'),
                     "#{package.importdir} does not appear to be a Subversion working copy"
             end
@@ -205,13 +212,16 @@ module Autobuild
 
         def update(package, options = Hash.new) # :nodoc:
             if options[:only_local]
-                package.warn "%s: the svn importer does not support local updates, skipping"
+                package.warn "%s: the svn importer does not support local updates, "\
+                    "skipping"
                 return false
             end
 
             url = svn_url(package)
             if url != svnroot
-                raise ConfigException.new(package, 'import'), "current checkout found at #{package.importdir} is from #{url}, was expecting #{svnroot}"
+                raise ConfigException.new(package, 'import'), "current checkout "\
+                    "found at #{package.importdir} is from #{url}, "\
+                    "was expecting #{svnroot}"
             end
 
             options_up = @options_up.dup
@@ -229,9 +239,10 @@ module Autobuild
             true
         end
 
-        def checkout(package, options = Hash.new) # :nodoc:
-            run_svn(package, 'co', "--non-interactive", *@options_co, svnroot, package.importdir,
-                    working_directory: nil)
+        def checkout(package, _options = Hash.new) # :nodoc:
+            run_svn(package, 'co', "--non-interactive", *@options_co,
+                svnroot, package.importdir,
+                working_directory: nil)
         end
     end
 
@@ -241,4 +252,3 @@ module Autobuild
         SVN.new(source, options)
     end
 end
-

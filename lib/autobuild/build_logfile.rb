@@ -28,9 +28,11 @@ module Autobuild
             result = []
             by_package.each do |pkg_name, phases|
                 other_phases = other.by_package[pkg_name]
-                next if !other_phases
+                next unless other_phases
+
                 phases.each do |phase, duration|
-                    next if !other_phases.has_key?(phase)
+                    next unless other_phases.key?(phase)
+
                     other_duration = other_phases[phase]
                     result << Entry.new(pkg_name, phase, nil, other_duration - duration)
                 end
@@ -44,7 +46,8 @@ module Autobuild
                 next if line.empty?
 
                 cols = line.split(/\s+/)
-                date, time = cols.shift, cols.shift
+                date = cols.shift
+                time = cols.shift
                 start_time = Time.parse("#{date} #{time}")
                 duration = Float(cols.pop)
                 phase = cols.pop
@@ -55,4 +58,3 @@ module Autobuild
         end
     end
 end
-

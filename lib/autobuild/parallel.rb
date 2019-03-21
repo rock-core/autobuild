@@ -1,5 +1,3 @@
-require 'thread'
-
 module Autobuild
     # This is a rewrite of the Rake task invocation code to use parallelism
     #
@@ -23,9 +21,11 @@ module Autobuild
                 wio.fcntl(Fcntl::F_SETFD, 0)
                 put(level)
             end
+
             def get(token_count = 1)
                 @rio.read(token_count)
             end
+
             def put(token_count = 1)
                 @wio.write(" " * token_count)
             end
@@ -36,7 +36,6 @@ module Autobuild
             @available_workers = Array.new
             @finished_workers = Queue.new
             @workers = Array.new
-
         end
 
         def wait_for_worker_to_end(state)
@@ -46,9 +45,12 @@ module Autobuild
             if error
                 if available_workers.size != workers.size
                     if finished_task.respond_to?(:package) && finished_task.package
-                        Autobuild.error "got an error processing #{finished_task.package.name}, waiting for pending jobs to end"
+                        Autobuild.error "got an error processing "\
+                            "#{finished_task.package.name}, "\
+                            "waiting for pending jobs to end"
                     else
-                        Autobuild.error "got an error doing parallel processing, waiting for pending jobs to end"
+                        Autobuild.error "got an error doing parallel processing, "\
+                            "waiting for pending jobs to end"
                     end
                 end
                 begin
@@ -61,16 +63,14 @@ module Autobuild
             state.process_finished_task(finished_task)
         end
 
-        def discover_dependencies(all_tasks, reverse_dependencies, t)
-            if t.already_invoked?
-                return 
-            end
+        def discover_dependencies(all_tasks, reverse_dependencies, task)
+            return if task.already_invoked?
+            return if all_tasks.include?(task) # already discovered or being discovered
 
-            return if all_tasks.include?(t) # already discovered or being discovered
-            all_tasks << t
+            all_tasks << task
 
-            t.prerequisite_tasks.each do |dep_t|
-                reverse_dependencies[dep_t] << t
+            task.prerequisite_tasks.each do |dep_t|
+                reverse_dependencies[dep_t] << task
                 discover_dependencies(all_tasks, reverse_dependencies, dep_t)
             end
         end
@@ -101,7 +101,7 @@ module Autobuild
             end
 
             def find_task
-                if task = queue.sort_by { |t, p| p }.first
+                if (task = queue.min_by { |_t, p| p })
                     priorities[task.first] = task.last
                     task.first
                 end
@@ -146,7 +146,8 @@ module Autobuild
             end
 
             def trivial_task?(task)
-                (task.kind_of?(Autobuild::SourceTreeTask) || task.kind_of?(Rake::FileTask)) && task.actions.empty?
+                (task.kind_of?(Autobuild::SourceTreeTask) ||
+                    task.kind_of?(Rake::FileTask)) && task.actions.empty?
             end
         end
 
@@ -163,11 +164,9 @@ module Autobuild
             # set of tasks that can be queued for execution.
             state = ProcessingState.new(reverse_dependencies)
             tasks.each do |t|
-                if state.ready?(t)
-                    state.push(t)
-                end
+                state.push(t) if state.ready?(t)
             end
-            
+
             # Build a reverse dependency graph (i.e. a mapping from a task to
             # the tasks that depend on it)
 
@@ -175,9 +174,9 @@ module Autobuild
             # topological sort since we would then have to scan all tasks each
             # time for tasks that have no currently running prerequisites
 
-            while true
+            loop do
                 pending_task = state.pop
-                if !pending_task
+                unless pending_task
                     # If we have pending workers, wait for one to be finished
                     # until either they are all finished or the queue is not
                     # empty anymore
@@ -186,9 +185,7 @@ module Autobuild
                         pending_task = state.pop
                     end
 
-                    if !pending_task && available_workers.size == workers.size
-                        break
-                    end
+                    break if !pending_task && available_workers.size == workers.size
                 end
 
                 if state.trivial_task?(pending_task)
@@ -204,9 +201,7 @@ module Autobuild
                 # Get a job server token
                 job_server.get
 
-                while !finished_workers.empty?
-                    wait_for_worker_to_end(state)
-                end
+                wait_for_worker_to_end(state) until finished_workers.empty?
 
                 # We do have a job server token, so we are allowed to allocate a
                 # new worker if none are available
@@ -222,9 +217,9 @@ module Autobuild
             end
 
             not_processed = tasks.find_all { |t| !t.already_invoked? }
-            if !not_processed.empty?
+            unless not_processed.empty?
                 cycle = resolve_cycle(tasks, not_processed, reverse_dependencies)
-                raise "cycle in task graph: #{cycle.map(&:name).sort.join(", ")}"
+                raise "cycle in task graph: #{cycle.map(&:name).sort.join(', ')}"
             end
         end
 
@@ -232,7 +227,7 @@ module Autobuild
             cycle = tasks.dup
             chain = []
             next_task = tasks.first
-            while true
+            loop do
                 task = next_task
                 chain << task
                 tasks.delete(next_task)
@@ -244,10 +239,12 @@ module Autobuild
                         true
                     end
                 end
-                if !next_task
-                    Autobuild.fatal "parallel processing stopped prematurely, but no cycle is present in the remaining tasks"
-                    Autobuild.fatal "remaining tasks: #{cycle.map(&:name).join(", ")}"
-                    Autobuild.fatal "known dependencies at initialization time that could block the processing of the remaining tasks"
+                unless next_task
+                    Autobuild.fatal "parallel processing stopped prematurely, "\
+                        "but no cycle is present in the remaining tasks"
+                    Autobuild.fatal "remaining tasks: #{cycle.map(&:name).join(', ')}"
+                    Autobuild.fatal "known dependencies at initialization time that "\
+                        "could block the processing of the remaining tasks"
                     reverse_dependencies.each do |parent_task, parents|
                         if cycle.include?(parent_task)
                             parents.each do |p|
@@ -255,13 +252,14 @@ module Autobuild
                             end
                         end
                     end
-                    Autobuild.fatal "known dependencies right now that could block the processing of the remaining tasks"
+                    Autobuild.fatal "known dependencies right now that could block "\
+                        "the processing of the remaining tasks"
                     all_tasks.each do |p|
                         (cycle & p.prerequisite_tasks).each do |t|
                             Autobuild.fatal "  #{p}: #{t}"
                         end
                     end
-                    raise "failed to resolve cycle in #{cycle.map(&:name).join(", ")}"
+                    raise "failed to resolve cycle in #{cycle.map(&:name).join(', ')}"
                 end
             end
             chain
@@ -301,7 +299,7 @@ module Autobuild
             end
 
             def last_result
-                return @last_finished_task, @last_error
+                [@last_finished_task, @last_error]
             end
 
             def queue(task)
@@ -321,5 +319,3 @@ module Autobuild
         attr_accessor :parallel_task_manager
     end
 end
-
-

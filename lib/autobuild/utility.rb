@@ -28,7 +28,7 @@ module Autobuild
             @source_ref_dir = nil
             @source_dir = nil
             @target_dir = nil
-            @install_on_error = !!install_on_error
+            @install_on_error = install_on_error
         end
 
         # Directory in which the utility will generate some files The
@@ -43,9 +43,7 @@ module Autobuild
         # Absolute path to where this utulity should output its results. Returns nil if
         # {source_dir} has not been set.
         def source_dir
-            if @source_dir
-                File.expand_path(@source_dir, source_ref_dir || package.srcdir)
-            end
+            File.expand_path(@source_dir, source_ref_dir || package.srcdir) if @source_dir
         end
 
         # Directory in which the utility would install some files.
@@ -62,7 +60,9 @@ module Autobuild
         # @return [String,nil]
         def target_dir
             if @target_dir
-                File.expand_path(@target_dir, File.expand_path(Autobuild.send("#{name}_prefix") || name,  package.prefix))
+                utility_prefix = Autobuild.send("#{name}_prefix") || name
+                File.expand_path(@target_dir,
+                    File.expand_path(utility_prefix, package.prefix))
             else
                 File.join(package.logdir, "#{name}-results", package.name)
             end
@@ -79,6 +79,7 @@ module Autobuild
         # @return [Rake::Task]
         def task(&block)
             return if @task
+
             @task = package.task task_name do
                 # This flag allows to disable this utility's task
                 # once {task} has been called
@@ -92,7 +93,7 @@ module Autobuild
                 end
             end
 
-            package.task name => task_name 
+            package.task name => task_name
             @task
         end
 
@@ -101,16 +102,11 @@ module Autobuild
 
             # Allow the user to install manually in the task
             # block
-            if !@installed && target_dir
-                install
-            end
-
+            install if !@installed && target_dir
         rescue Interrupt
             raise
         rescue ::Exception => e
-            if install_on_error? && !@installed && target_dir
-                install
-            end
+            install if install_on_error? && !@installed && target_dir
 
             if Autobuild.send("pass_#{name}_errors")
                 raise
@@ -154,8 +150,10 @@ module Autobuild
         attr_writer :enabled
 
         def install
-            if !File.directory?(source_dir)
-                raise "#{source_dir} was expected to be a directory, but it is not. Check the package's #{name} generation. The generated #{name} products should be in #{source_dir}"
+            unless File.directory?(source_dir)
+                raise "#{source_dir} was expected to be a directory, but it is not. "\
+                    "Check the package's #{name} generation. "\
+                    "The generated #{name} products should be in #{source_dir}"
             end
 
             target_dir  = self.target_dir
@@ -163,7 +161,8 @@ module Autobuild
             FileUtils.rm_rf   target_dir
             FileUtils.mkdir_p File.dirname(target_dir)
             FileUtils.cp_r    source_dir, target_dir
-            Autoproj.message "  copied #{name} results for #{package.name} from #{source_dir} to #{target_dir}"
+            Autoproj.message "  copied #{name} results for #{package.name} "\
+                "from #{source_dir} to #{target_dir}"
 
             @installed = true
         end
@@ -188,8 +187,7 @@ module Autobuild
         #
         # @return [Boolean]
         def has_task?
-            !!Rake.application.lookup(task_name)
+            Rake.application.lookup(task_name)
         end
     end
 end
-

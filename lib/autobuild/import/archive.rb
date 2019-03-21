@@ -7,6 +7,7 @@ require 'net/https'
 
 module Autobuild
     class ArchiveImporter < Importer
+        # rubocop:disable Naming/ConstantName
         # The tarball is not compressed
         Plain = 0
         # The tarball is compressed with gzip
@@ -15,18 +16,19 @@ module Autobuild
         Bzip  = 2
         # Not a tarball but a zip
         Zip   = 3
+        # rubocop:enable Naming/ConstantName
 
         TAR_OPTION = {
             Plain => '',
             Gzip => 'z',
             Bzip => 'j'
-        }
+        }.freeze
 
         # Known URI schemes for +url+
-        VALID_URI_SCHEMES = ['file', 'http', 'https', 'ftp']
+        VALID_URI_SCHEMES = %w[file http https ftp].freeze
 
         # Known URI schemes for +url+ on windows
-        WINDOWS_VALID_URI_SCHEMES = ['file', 'http', 'https']
+        WINDOWS_VALID_URI_SCHEMES = %w[file http https].freeze
 
         class << self
             # The directory in which downloaded files are saved
@@ -35,7 +37,7 @@ module Autobuild
             # {Importer.cache_dirs} and falls back #{prefix}/cache
             def cachedir
                 if @cachedir then @cachedir
-                elsif cache_dirs = Importer.cache_dirs('archives')
+                elsif (cache_dirs = Importer.cache_dirs('archives'))
                     @cachedir = cache_dirs.first
                 else
                     "#{Autobuild.prefix}/cache"
@@ -70,19 +72,20 @@ module Autobuild
         # @see filename_to_mode
         def self.find_mode_from_filename(filename)
             case filename
-            when /\.zip$/; Zip
-            when /\.tar$/; Plain
-            when /\.tar\.gz$|\.tgz$/;  Gzip
-            when /\.bz2$/; Bzip
+            when /\.zip$/ then Zip
+            when /\.tar$/ then Plain
+            when /\.tar\.gz$|\.tgz$/ then Gzip
+            when /\.bz2$/ then Bzip
             end
         end
 
         # Returns the unpack mode from the file name
         def self.filename_to_mode(filename)
-            if mode = find_mode_from_filename(filename)
+            if (mode = find_mode_from_filename(filename))
                 mode
             else
-                raise "cannot infer the archive type from '#{filename}', use the mode: option"
+                raise "cannot infer the archive type from '#{filename}', "\
+                    "provide it explicitely with the mode: option"
             end
         end
 
@@ -96,6 +99,7 @@ module Autobuild
         def self.auto_update?
             @auto_update
         end
+
         def self.auto_update=(flag)
             @auto_update = flag
         end
@@ -106,15 +110,11 @@ module Autobuild
             @update_cached_file
         end
 
-        def download_http(package, uri, filename, user: nil, password: nil,
-                current_time: nil)
+        def download_http(package, uri, filename, # rubocop:disable Metrics/ParameterLists
+                user: nil, password: nil, current_time: nil)
             request = Net::HTTP::Get.new(uri)
-            if current_time
-                request['If-Modified-Since'] = current_time.rfc2822
-            end
-            if user
-                request.basic_auth user, password
-            end
+            request['If-Modified-Since'] = current_time.rfc2822 if current_time
+            request.basic_auth(user, password) if user
 
             Net::HTTP.start(
                 uri.hostname, uri.port, use_ssl: uri.scheme == 'https') do |http|
@@ -124,10 +124,10 @@ module Autobuild
                     when Net::HTTPNotModified
                         return false
                     when Net::HTTPSuccess
-                        if current_time && (last_modified = resp.header['last-modified'])
+                        if current_time && (last_modified = resp['last-modified'])
                             return false if current_time >= Time.rfc2822(last_modified)
                         end
-                        if (length = resp.header['Content-Length'])
+                        if (length = resp['Content-Length'])
                             length = Integer(length)
                             expected_size = "/#{Autobuild.human_readable_size(length)}"
                         end
@@ -150,9 +150,9 @@ module Autobuild
                                 "(#{formatted_size}#{expected_size})"
                         end
                     when Net::HTTPRedirection
-                        if (location = resp.header['location']).start_with?('/')
+                        if (location = resp['location']).start_with?('/')
                             redirect_uri = uri.dup
-                            redirect_uri.path = resp.header['location']
+                            redirect_uri.path = resp['location']
                         else
                             redirect_uri = location
                         end
@@ -161,7 +161,8 @@ module Autobuild
                             user: user, password: password, current_time: current_time)
                     else
                         raise PackageException.new(package, 'import'),
-                            "failed download of #{package.name} from #{uri}: #{resp.class}"
+                            "failed download of #{package.name} from #{uri}: "\
+                            "#{resp.class}"
                     end
                 end
             end
@@ -171,17 +172,12 @@ module Autobuild
         def extract_tar_gz(io, target)
             Gem::Package::TarReader.new(io).each do |entry|
                 newname = File.join(
-                    target,
-                    entry.full_name.slice(entry.full_name.index('/'), entry.full_name.size))
-                if(entry.directory?)
-                    FileUtils.mkdir_p(newname)
-                end
-                if(entry.file?)
-                    dir = newname.slice(0,newname.rindex('/'))
-                    if(!File.directory?(dir))
-                        FileUtils.mkdir_p(dir)
-                    end
-                    open(newname, "wb") do |file|
+                    target, File.basename(entry.full_name))
+                FileUtils.mkdir_p(newname) if entry.directory?
+                if entry.file?
+                    dir = File.dirname(newname)
+                    FileUtils.mkdir_p(dir) unless File.directory?(dir)
+                    File.open(newname, "wb") do |file|
                         file.write(entry.read)
                     end
                 end
@@ -200,21 +196,26 @@ module Autobuild
                 size  = File.stat(@url.path).size
                 mtime = File.stat(@url.path).mtime
             else
-                open @url, :content_length_proc => lambda { |v| size = v } do |file|
+                # rubocop:disable Security/Open
+                open @url, :content_length_proc => ->(v) { size = v } do |file|
                     mtime = file.last_modified
                 end
+                # rubocop:enable Security/Open
             end
 
             if mtime && size
                 return size != cached_size || mtime > cached_mtime
             elsif mtime
-                package.warn "%s: archive size is not available for #{@url}, relying on modification time"
+                package.warn "%s: archive size is not available for #{@url}, "\
+                    "relying on modification time"
                 return mtime > cached_mtime
             elsif size
-                package.warn "%s: archive modification time is not available for #{@url}, relying on size"
+                package.warn "%s: archive modification time "\
+                    "is not available for #{@url}, relying on size"
                 return size != cached_size
             else
-                package.warn "%s: neither the archive size nor its modification time available for #{@url}, will always update"
+                package.warn "%s: neither the archive size nor its modification time "\
+                    "are available for #{@url}, will always update"
                 return true
             end
         end
@@ -225,26 +226,32 @@ module Autobuild
                 if %w[http https].include?(@url.scheme)
                     if File.file?(cachefile)
                         return false unless update_cached_file?
+
                         cached_mtime = File.lstat(cachefile).mtime
                     end
+
                     updated = download_http(package, @url, "#{cachefile}.partial",
                         user: @user, password: @password,
                         current_time: cached_mtime)
                     return false unless updated
                 elsif Autobuild.bsd?
                     return false unless update_needed?(package)
+
                     package.run(:import, Autobuild.tool('curl'),
-                                '-Lso',"#{cachefile}.partial", @url)
+                                '-Lso', "#{cachefile}.partial", @url)
                 else
                     return false unless update_needed?(package)
+
                     additional_options = []
-                    if timeout = self.timeout
+                    if (timeout = self.timeout)
                         additional_options << "--timeout" << timeout
                     end
-                    if retries = self.retries
+                    if (retries = self.retries)
                         additional_options << "--tries" << retries
                     end
-                    package.run(:import, Autobuild.tool('wget'), '-q', '-P', cachedir, *additional_options, @url, '-O', "#{cachefile}.partial", retry: true)
+                    package.run(:import, Autobuild.tool('wget'), '-q', '-P', cachedir,
+                        *additional_options, @url, '-O', "#{cachefile}.partial",
+                        retry: true)
                 end
             rescue Exception
                 FileUtils.rm_f "#{cachefile}.partial"
@@ -310,13 +317,16 @@ module Autobuild
             relocate(@url.to_s)
         end
 
-        # The directory contained in the tar file
-        #
-        # DEPRECATED use #archive_dir instead
-        def tardir; @options[:tardir] end
+        # @deprecated use {#archive_dir} instead
+        def tardir
+            @options[:tardir]
+        end
+
         # The directory contained in the archive. If not set, we assume that it
         # is the same than the source dir
-        def archive_dir; @options[:archive_dir] || tardir end
+        def archive_dir
+            @options[:archive_dir] || tardir
+        end
 
         # The number of time we should retry downloading if the underlying tool
         # supports it (wget does).
@@ -352,8 +362,8 @@ module Autobuild
             !@options[:no_subdirectory]
         end
 
-        # Creates a new importer which downloads +url+ in +cachedir+ and unpacks it. The following options
-        # are allowed:
+        # Creates a new importer which downloads +url+ in +cachedir+ and
+        # unpacks it. The following options are allowed:
         # [:cachedir] the cache directory. Defaults to "#{Autobuild.prefix}/cache"
         # [:archive_dir] the directory contained in the archive file. If set,
         #       the importer will rename that directory to make it match
@@ -361,7 +371,8 @@ module Autobuild
         # [:no_subdirectory] the archive does not have the custom archive
         #       subdirectory.
         # [:retries] The number of retries for downloading
-        # [:timeout] The timeout (in seconds) used during downloading, it defaults to 10s
+        # [:timeout] The timeout (in seconds) used during downloading, it
+        #       defaults to 10s
         # [:filename] Rename the archive to this filename (in cache) -- will be
         #       also used to infer the mode
         # [:mode] The unpack mode: one of Zip, Bzip, Gzip or Plain, this is
@@ -398,41 +409,53 @@ module Autobuild
             @source_id     = options[:source_id] || parsed_url.to_s
             @expected_digest = options[:expected_digest]
 
-            @filename = options[:filename] || @filename || File.basename(url).gsub(/\?.*/, '')
+            @filename =
+                options[:filename] ||
+                @filename ||
+                File.basename(url).gsub(/\?.*/, '')
             @update_cached_file = options[:update_cached_file]
 
-            @mode = options[:mode] || ArchiveImporter.find_mode_from_filename(filename) || @mode
+            @mode =
+                options[:mode] ||
+                ArchiveImporter.find_mode_from_filename(filename) ||
+                @mode
+
             if Autobuild.windows? && (mode != Gzip)
-                raise ConfigException, "only gzipped tar archives are supported on Windows"
+                raise ConfigException, "only gzipped tar archives "\
+                    "are supported on Windows"
             end
             @user = options[:user]
             @password = options[:password]
             if @user && !%w[http https].include?(@url.scheme)
-                raise ConfigException, "authentication is only supported for http and https URIs"
+                raise ConfigException, "authentication is only supported for "\
+                    "http and https URIs"
             end
 
-            if @url.scheme == 'file'
-                @cachefile = @url.path
-            else
-                @cachefile = File.join(cachedir, filename)
-            end
+            @cachefile =
+                if @url.scheme == 'file'
+                    @url.path
+                else
+                    File.join(cachedir, filename)
+                end
         end
 
         def update(package, options = Hash.new) # :nodoc:
             if options[:only_local]
-                package.warn "%s: the archive importer does not support local updates, skipping"
+                package.warn "%s: the archive importer does not support local updates, "\
+                    "skipping"
                 return false
             end
             needs_update = update_cache(package)
 
-            if !File.file?(checkout_digest_stamp(package))
+            unless File.file?(checkout_digest_stamp(package))
                 write_checkout_digest_stamp(package)
             end
 
             if needs_update || archive_changed?(package)
                 return checkout(package, allow_interactive: options[:allow_interactive])
+            else
+                false
             end
-            false
         end
 
         def checkout_digest_stamp(package)
@@ -465,11 +488,17 @@ module Autobuild
                     response = 'yes'
                 elsif options[:allow_interactive]
                     package.progress_done
-                    package.message "The archive #{@url.to_s} is different from the one currently checked out at #{package.srcdir}", :bold
-                    package.message "I will have to delete the current folder to go on with the update"
-                    response = TTY::Prompt.new.ask "  Continue (yes or no) ? If no, this update will be ignored, which can lead to build problems.", convert: :bool
+                    package.message "The archive #{@url} is different from "\
+                        "the one currently checked out at #{package.srcdir}", :bold
+                    package.message "I will have to delete the current folder to go on "\
+                        "with the update"
+                    response = TTY::Prompt.new.ask "  Continue (yes or no) ? "\
+                        "If no, this update will be ignored, "\
+                        "which can lead to build problems.", convert: :bool
                 else
-                    raise Autobuild::InteractionRequired, "importing #{package.name} would have required user interaction and allow_interactive is false"
+                    raise Autobuild::InteractionRequired, "importing #{package.name} "\
+                        "would have required user interaction and "\
+                        "allow_interactive is false"
                 end
 
                 if !response
@@ -495,7 +524,7 @@ module Autobuild
                            end
 
                 FileUtils.mkdir_p base_dir
-                cmd = [ '-o', cachefile, '-d', main_dir ]
+                cmd = ['-o', cachefile, '-d', main_dir]
                 package.run(:import, Autobuild.tool('unzip'), *cmd)
 
                 archive_dir = (self.archive_dir || File.basename(package.name))
@@ -503,33 +532,30 @@ module Autobuild
                     FileUtils.rm_rf File.join(package.srcdir)
                     FileUtils.mv File.join(base_dir, archive_dir), package.srcdir
                 elsif !File.directory?(package.srcdir)
-                    raise Autobuild::Exception, "#{cachefile} does not contain directory called #{File.basename(package.srcdir)}. Did you forget to use the :archive_dir option ?"
+                    raise Autobuild::Exception, "#{cachefile} does not contain "\
+                        "directory called #{File.basename(package.srcdir)}. "\
+                        "Did you forget to use the archive_dir option ?"
                 end
             else
                 FileUtils.mkdir_p package.srcdir
                 cmd = ["x#{TAR_OPTION[mode]}f", cachefile, '-C', package.srcdir]
-                if !@options[:no_subdirectory]
-                    cmd << '--strip-components=1'
-                end
+                cmd << '--strip-components=1' unless @options[:no_subdirectory]
 
                 if Autobuild.windows?
                     io = if mode == Plain
-                        File.open(cachefile, 'r')
-                    else
-                        Zlib::GzipReader.open(cachefile)
-                    end
+                             File.open(cachefile, 'r')
+                         else
+                             Zlib::GzipReader.open(cachefile)
+                         end
                     extract_tar_gz(io, package.srcdir)
                 else
                     package.run(:import, Autobuild.tool('tar'), *cmd)
                 end
             end
             write_checkout_digest_stamp(package)
-            return true
-
+            true
         rescue SubcommandFailed
-            if cachefile != url.path
-                FileUtils.rm_f cachefile
-            end
+            FileUtils.rm_f(cachefile) if cachefile != url.path
             raise
         end
     end

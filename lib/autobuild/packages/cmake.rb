@@ -9,10 +9,18 @@ module Autobuild
     # Handler class to build CMake-based packages
     class CMake < Configurable
         class << self
-            def builddir; @builddir || Configurable.builddir end
+            def builddir
+                @builddir || Configurable.builddir
+            end
+
             def builddir=(new)
-                raise ConfigException, "absolute builddirs are not supported" if (Pathname.new(new).absolute?)
-                raise ConfigException, "builddir must be non-nil and non-empty" if (new.nil? || new.empty?)
+                if Pathname.new(new).absolute?
+                    raise ConfigException, "absolute builddirs are not supported"
+                end
+                if new.nil? || new.empty?
+                    raise ConfigException, "builddir must be non-nil and non-empty"
+                end
+
                 @builddir = new
             end
 
@@ -67,7 +75,7 @@ module Autobuild
         # If true, always run cmake before make during the build
         attr_accessor :always_reconfigure
         # If true, we always remove the CMake cache before reconfiguring.
-        # 
+        #
         # See #full_reconfigures? for more details
         attr_writer :full_reconfigures
         # Sets a generator explicitely for this component. See #generator and
@@ -77,9 +85,7 @@ module Autobuild
         # Makefiles. If not set for this package explicitely, it is using the
         # global value CMake.generator.
         def generator
-            if @generator then @generator
-            else CMake.generator
-            end
+            @generator || CMake.generator
         end
 
         # If true, we always remove the CMake cache before reconfiguring. This
@@ -96,13 +102,19 @@ module Autobuild
             end
         end
 
-        def cmake_cache; File.join(builddir, "CMakeCache.txt") end
-        def configurestamp; cmake_cache end
+        def cmake_cache
+            File.join(builddir, "CMakeCache.txt")
+        end
+
+        def configurestamp
+            cmake_cache
+        end
 
         def initialize(options)
             @defines = Hash.new
             super
-            @delete_obsolete_files_in_prefix = self.class.delete_obsolete_files_in_prefix?
+            @delete_obsolete_files_in_prefix = self.class.
+                delete_obsolete_files_in_prefix?
         end
 
         # (see CMake.delete_obsolete_files_in_prefix?)
@@ -111,9 +123,7 @@ module Autobuild
         end
 
         # (see CMake.delete_obsolete_files_in_prefix=)
-        def delete_obsolete_files_in_prefix=(flag)
-            @delete_obsolete_files_in_prefix = flag
-        end
+        attr_writer :delete_obsolete_files_in_prefix
 
         @@defines = Hash.new
 
@@ -132,7 +142,6 @@ module Autobuild
                 end
         end
 
-
         def define(name, value)
             @defines[name] =
                 if value.respond_to?(:to_str)
@@ -145,12 +154,12 @@ module Autobuild
         end
 
         DOXYGEN_ACCEPTED_VARIABLES = {
-            '@CMAKE_SOURCE_DIR@' => lambda { |pkg| pkg.srcdir },
-            '@PROJECT_SOURCE_DIR@' => lambda { |pkg| pkg.srcdir },
-            '@CMAKE_BINARY_DIR@' => lambda { |pkg| pkg.builddir },
-            '@PROJECT_BINARY_DIR@' => lambda { |pkg| pkg.builddir },
-            '@PROJECT_NAME@' => lambda { |pkg| pkg.name }
-        }
+            '@CMAKE_SOURCE_DIR@' => ->(pkg) { pkg.srcdir },
+            '@PROJECT_SOURCE_DIR@' => ->(pkg) { pkg.srcdir },
+            '@CMAKE_BINARY_DIR@' => ->(pkg) { pkg.builddir },
+            '@PROJECT_BINARY_DIR@' => ->(pkg) { pkg.builddir },
+            '@PROJECT_NAME@' => ->(pkg) { pkg.name }
+        }.freeze
 
         class << self
             # Flag controlling whether autobuild should run doxygen itself or
@@ -197,7 +206,7 @@ module Autobuild
         # for a global control of that feature
         def always_use_doc_target?
             if @always_use_doc_target.nil?
-                return CMake.always_use_doc_target?
+                CMake.always_use_doc_target?
             else
                 @always_use_doc_target
             end
@@ -215,17 +224,14 @@ module Autobuild
         # This method returns true if the package can use the internal doxygen
         # mode and false otherwise
         def internal_doxygen_mode?
-            if always_use_doc_target?
-                return false
-            end
+            return false if always_use_doc_target?
 
             doxyfile_in = File.join(srcdir, "Doxyfile.in")
-            if !File.file?(doxyfile_in)
-                return false
-            end
+            return false unless File.file?(doxyfile_in)
+
             File.readlines(doxyfile_in).each do |line|
                 matches = line.scan(/@[^@]+@/)
-                if matches.any? { |str| !DOXYGEN_ACCEPTED_VARIABLES.has_key?(str) }
+                if matches.any? { |str| !DOXYGEN_ACCEPTED_VARIABLES.key?(str) }
                     return false
                 end
             end
@@ -245,11 +251,14 @@ module Autobuild
         # support cannot be used on this package
         def run_doxygen
             doxyfile_in = File.join(srcdir, "Doxyfile.in")
-            if !File.file?(doxyfile_in)
-                raise RuntimeError, "no Doxyfile.in in this package, cannot use the internal doxygen support"
+            unless File.file?(doxyfile_in)
+                raise "no Doxyfile.in in this package, "\
+                    "cannot use the internal doxygen support"
             end
             doxyfile_data = File.readlines(doxyfile_in).map do |line|
-                line.gsub(/@[^@]+@/) { |match| DOXYGEN_ACCEPTED_VARIABLES[match].call(self) }
+                line.gsub(/@[^@]+@/) do |match|
+                    DOXYGEN_ACCEPTED_VARIABLES[match].call(self)
+                end
             end
             doxyfile = File.join(builddir, "Doxyfile")
             File.open(doxyfile, 'w') do |io|
@@ -296,7 +305,7 @@ module Autobuild
             'YES' => 'ON',
             'OFF' => 'OFF',
             'NO' => 'OFF'
-        }
+        }.freeze
         def equivalent_option_value?(old, new)
             if old == new
                 true
@@ -331,7 +340,7 @@ module Autobuild
             raw = (dependencies.map { |pkg_name| Autobuild::Package[pkg_name].prefix } +
                 CMake.prefix_path)
             raw.each do |path|
-                if !seen.include?(path)
+                unless seen.include?(path)
                     seen << path
                     result << path
                 end
@@ -348,17 +357,20 @@ module Autobuild
 
         def defines_changed?(all_defines, cache_data)
             all_defines.any? do |name, value|
-                if match = /^#{name}:\w+=(.*)$/.match(cache_data)
+                if (match = /^#{name}:\w+=(.*)$/.match(cache_data))
                     old_value = match[1]
                 end
 
                 value = value.to_s
                 if !old_value || !equivalent_option_value?(old_value, value)
                     if Autobuild.debug
-                        message "%s: option '#{name}' changed value: '#{old_value}' => '#{value}'"
+                        message "%s: option '#{name}' changed value: "\
+                            "'#{old_value}' => '#{value}'"
                     end
+
                     if old_value
-                        message "%s: changed value of #{name} from #{old_value} to #{value}"
+                        message "%s: changed value of #{name} "\
+                            "from #{old_value} to #{value}"
                     else
                         message "%s: setting value of #{name} to #{value}"
                     end
@@ -373,8 +385,8 @@ module Autobuild
             # but no Makefile.
             #
             # Delete the CMakeCache to force reconfiguration
-            if !File.exist?( File.join(builddir, 'Makefile') )
-                FileUtils.rm_f cmake_cache
+            unless File.exist?(File.join(builddir, 'Makefile'))
+                FileUtils.rm_f(cmake_cache)
             end
 
             doc_utility.source_ref_dir = builddir
@@ -396,29 +408,27 @@ module Autobuild
         def configure
             super do
                 in_dir(builddir) do
-                    if !File.file?(File.join(srcdir, 'CMakeLists.txt'))
-                        raise ConfigException.new(self, 'configure'), "#{srcdir} contains no CMakeLists.txt file"
+                    unless File.file?(File.join(srcdir, 'CMakeLists.txt'))
+                        raise ConfigException.new(self, 'configure'),
+                            "#{srcdir} contains no CMakeLists.txt file"
                     end
 
-                    command = [ "cmake" ]
+                    command = ["cmake"]
 
                     if Autobuild.windows?
-                        command << '-G' 
+                        command << '-G'
                         command << "MSYS Makefiles"
                     end
 
                     all_defines.each do |name, value|
                         command << "-D#{name}=#{value}"
                     end
-                    if generator
-                        command << Array(generator).map { |g| "-G#{g}" }
-                    end
+                    command << Array(generator).map { |g| "-G#{g}" } if generator
                     command << srcdir
-                    
-                    progress_start "configuring CMake for %s", :done_message => "configured CMake for %s" do
-                        if full_reconfigures?
-                            FileUtils.rm_f cmake_cache
-                        end
+
+                    progress_start "configuring CMake for %s",
+                                   done_message: "configured CMake for %s" do
+                        FileUtils.rm_f cmake_cache if full_reconfigures?
                         run('configure', *command)
                     end
                 end
@@ -432,9 +442,7 @@ module Autobuild
             end
         end
 
-        def show_make_messages=(value)
-            @show_make_messages = value
-        end
+        attr_writer :show_make_messages
 
         def self.show_make_messages?
             @show_make_messages
@@ -446,7 +454,7 @@ module Autobuild
 
         # Do the build in builddir
         def build
-            current_message = String.new
+            current_message = +""
             in_dir(builddir) do
                 progress_start "building %s" do
                     if always_reconfigure || !File.file?('Makefile')
@@ -459,9 +467,7 @@ module Autobuild
                         if line =~ /\[\s*(\d+)%\]/
                             progress "building %s (#{Integer($1)}%)"
                         elsif line !~ /^(?:Generating|Linking|Scanning|Building|Built)/
-                            if line =~ /warning/
-                                warning_count += 1
-                            end
+                            warning_count += 1 if line =~ /warning/
                             if show_make_messages?
                                 current_message += line + "\n"
                                 needs_display = true
@@ -478,7 +484,8 @@ module Autobuild
                         message "%s: #{l}", :magenta
                     end
                     if warning_count > 0
-                        progress_done "built %s #{Autoproj.color("(#{warning_count} warnings)", :bold)}"
+                        msg_warning = Autoproj.color("(#{warning_count} warnings)", :bold)
+                        progress_done "built %s #{msg_warning}"
                     else
                         progress_done "built %s"
                     end
@@ -498,13 +505,12 @@ module Autobuild
         # in the prefix but not in CMake's install manifest will be removed.
         def install
             in_dir(builddir) do
-                progress_start "installing %s", :done_message => 'installed %s' do
-                    run('install', Autobuild.tool(:make), "-j#{parallel_build_level}", 'install')
+                progress_start "installing %s", done_message: 'installed %s' do
+                    run('install', Autobuild.tool(:make),
+                        "-j#{parallel_build_level}", 'install')
                 end
 
-                if delete_obsolete_files_in_prefix?
-                    delete_obsolete_files
-                end
+                delete_obsolete_files if delete_obsolete_files_in_prefix?
             end
             super
         end
@@ -520,7 +526,8 @@ module Autobuild
         def delete_obsolete_files
             # The expand_path is required to sanitize the paths, which can
             # contain e.g. double //
-            manifest_contents = File.readlines(File.join(builddir, 'install_manifest.txt')).
+            cmake_install_manifest = File.join(builddir, 'install_manifest.txt')
+            manifest_contents = File.readlines(cmake_install_manifest).
                 map { |p| File.expand_path(p.chomp) }.to_set
             logdir = self.logdir
             counter = 0
@@ -537,4 +544,3 @@ module Autobuild
         end
     end
 end
-

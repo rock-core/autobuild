@@ -41,7 +41,7 @@ module Autobuild
             # This is still considered experimental. Use
             # Orogen.always_regenerate= to set it
             def always_regenerate?
-                !!@always_regenerate
+                @always_regenerate
             end
         end
 
@@ -63,14 +63,15 @@ module Autobuild
 
         class << self
             attr_accessor :default_type_export_policy
-            # The list of enabled transports as an array of strings (default: typelib, corba)
+            # The list of enabled transports as an array of strings (default:
+            # typelib, corba)
             attr_reader :transports
 
             attr_reader :orogen_options
         end
         @orogen_options = []
         @default_type_export_policy = :used
-        @transports = %w{corba typelib mqueue}
+        @transports = %w[corba typelib mqueue]
         @rtt_scripting = true
 
         attr_reader :orogen_options
@@ -121,12 +122,13 @@ module Autobuild
             if @orogen_file
                 @orogen_file
             else
-                return if !File.directory?(srcdir)
-                    
+                return unless File.directory?(srcdir)
+
                 Dir.glob(File.join(srcdir, '*.orogen')) do |path|
                     return File.basename(path)
                 end
-                raise ArgumentError, "cannot find an oroGen specification file in #{srcdir}"
+                raise ArgumentError,
+                    "cannot find an oroGen specification file in #{srcdir}"
             end
         end
 
@@ -141,7 +143,7 @@ module Autobuild
 
         def prepare_for_forced_build
             super
-            FileUtils.rm_f genstamp 
+            FileUtils.rm_f genstamp
         end
 
         def update_environment
@@ -158,9 +160,7 @@ module Autobuild
             if !@orogen_version && (root = orogen_root)
                 version_file = File.join(root, 'lib', 'orogen', 'version.rb')
                 version_line = File.readlines(version_file).grep(/VERSION\s*=\s*"/).first
-                if version_line =~ /.*=\s+"(.+)"$/
-                    @orogen_version = $1
-                end
+                @orogen_version = $1 if version_line =~ /.*=\s+"(.+)"$/
             end
             @orogen_version
         end
@@ -168,9 +168,7 @@ module Autobuild
         def orogen_root
             if orogen_tool_path
                 root = File.expand_path(File.join('..', '..'), orogen_tool_path)
-                if File.directory?(File.join(root, 'lib', 'orogen'))
-                    root
-                end
+                root if File.directory?(File.join(root, 'lib', 'orogen'))
             end
         end
 
@@ -187,7 +185,9 @@ module Autobuild
             super
         end
 
-        def genstamp; File.join(srcdir, '.orogen', 'orogen-stamp') end
+        def genstamp
+            File.join(srcdir, '.orogen', 'orogen-stamp')
+        end
 
         def add_cmd_to_cmdline(cmd, cmdline)
             if cmd =~ /^([\w-]+)$/
@@ -210,31 +210,30 @@ module Autobuild
             cmdline << '--corba' if corba
 
             ext_states = extended_states
-            if !ext_states.nil?
+            unless ext_states.nil?
                 cmdline.delete_if { |str| str =~ /extended-states/ }
-                if ext_states
-                    cmdline << '--extended-states'
-                else
-                    cmdline << '--no-extended-states'
-                end
+                cmdline <<
+                    if ext_states
+                        '--extended-states'
+                    else
+                        '--no-extended-states'
+                    end
             end
 
-            @orogen_tool_path = find_in_path 'orogen'
-            if !orogen_tool_path
+            unless (@orogen_tool_path = find_in_path('orogen'))
                 raise ArgumentError, "cannot find 'orogen' in #{resolved_env['PATH']}"
             end
 
-            version = orogen_version
-            if !version
+            unless (version = orogen_version)
                 raise ArgumentError, "cannot determine the orogen version"
             end
 
-            if (version >= "1.0")
+            if version >= "1.0" # rubocop:disable Style/IfUnlessModifier
                 cmdline << "--parallel-build=#{parallel_build_level}"
             end
-            if (version >= "1.1")
+            if version >= "1.1"
                 cmdline << "--type-export-policy=#{Orogen.default_type_export_policy}"
-                cmdline << "--transports=#{Orogen.transports.sort.uniq.join(",")}"
+                cmdline << "--transports=#{Orogen.transports.sort.uniq.join(',')}"
             end
 
             # Now, add raw options
@@ -269,9 +268,11 @@ module Autobuild
             needs_regen ||= !generation_uptodate?
 
             if needs_regen
-                progress_start "generating oroGen %s", :done_message => 'generated oroGen %s' do
+                progress_start "generating oroGen %s",
+                               done_message: 'generated oroGen %s' do
                     in_dir(srcdir) do
-                        run 'orogen', Autobuild.tool('ruby'), '-S', orogen_tool_path, *cmdline
+                        run 'orogen', Autobuild.tool('ruby'), '-S',
+                            orogen_tool_path, *cmdline
                         File.open(genstamp, 'w') do |io|
                             io.print cmdline.join("\n")
                         end
@@ -287,11 +288,11 @@ module Autobuild
             if !File.file?(genstamp)
                 true
             elsif File.file?(File.join(builddir, 'Makefile'))
-                system("#{Autobuild.tool('make')} -C #{builddir} check-uptodate > /dev/null 2>&1")
+                make = Autobuild.tool('make')
+                system("#{make} -C #{builddir} check-uptodate > /dev/null 2>&1")
             else
                 true
             end
         end
     end
 end
-

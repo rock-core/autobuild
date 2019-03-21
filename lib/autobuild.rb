@@ -1,13 +1,13 @@
 require 'rake'
 
-if defined? Rake::DSL
-    include Rake::DSL
-end
+# rubocop:disable Style/MixinUsage
+include Rake::DSL if defined?(Rake::DSL)
+# rubocop:enable Style/MixinUsage
 
 require 'utilrb/logger'
 
 module Autobuild
-    LIB_DIR = File.expand_path(File.dirname(__FILE__))
+    LIB_DIR = __dir__
     extend Logger::Root('Autobuild', Logger::INFO)
 end
 
@@ -15,7 +15,6 @@ require 'net/smtp'
 require 'socket'
 require 'etc'
 require 'find'
-require 'thread'
 require 'pathname'
 require 'shellwords'
 require 'find'
