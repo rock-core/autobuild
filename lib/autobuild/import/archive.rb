@@ -124,10 +124,10 @@ module Autobuild
                     when Net::HTTPNotModified
                         return false
                     when Net::HTTPSuccess
-                        if current_time && (last_modified = resp.header['last-modified'])
+                        if current_time && (last_modified = resp['last-modified'])
                             return false if current_time >= Time.rfc2822(last_modified)
                         end
-                        if (length = resp.header['Content-Length'])
+                        if (length = resp['Content-Length'])
                             length = Integer(length)
                             expected_size = "/#{Autobuild.human_readable_size(length)}"
                         end
@@ -150,9 +150,9 @@ module Autobuild
                                 "(#{formatted_size}#{expected_size})"
                         end
                     when Net::HTTPRedirection
-                        if (location = resp.header['location']).start_with?('/')
+                        if (location = resp['location']).start_with?('/')
                             redirect_uri = uri.dup
-                            redirect_uri.path = resp.header['location']
+                            redirect_uri.path = resp['location']
                         else
                             redirect_uri = location
                         end
