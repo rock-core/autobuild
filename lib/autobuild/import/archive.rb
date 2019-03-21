@@ -272,7 +272,7 @@ module Autobuild
             Digest::SHA1.hexdigest File.read(cachefile)
         end
 
-        def digest
+        def fingerprint(package)
             if @cachefile_digest
                 @cachefile_digest
             elsif File.file?(cachefile)
@@ -280,10 +280,6 @@ module Autobuild
             else
                 @expected_digest
             end
-        end
-
-        def fingerprint(package)
-            digest
         end
 
         # The source URL
