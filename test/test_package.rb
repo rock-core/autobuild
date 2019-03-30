@@ -84,7 +84,7 @@ module Autobuild
             end
         end
 
-        describe "#fingerprint_generation" do
+        describe "#fingerprint" do
             attr_reader :package
             before do
                 @pkg0 = Package.new('pkg0')
@@ -121,59 +121,79 @@ module Autobuild
                 flexmock(@pkg0).should_receive(:dependencies).
                     and_return(['dep_pkg0', 'dep_pkg1'])
 
-                flexmock(@pkg0.importer).should_receive(:fingerprint).
-                    and_return("fingerprint_placeholder")
-                flexmock(@dep_pkg0.importer).should_receive(:fingerprint).
-                    and_return(nil)
-                flexmock(@dep_pkg1.importer).should_receive(:fingerprint).
-                    and_return("fingerprint_placeholder_pkg1")
+                mock_fingerprints(@pkg0 => "fingerprint_placeholder_pkg0",
+                                  @dep_pkg0 => nil,
+                                  @dep_pkg1 => "fingerprint_placeholder_dep_pkg1")
 
                 assert_nil @pkg0.fingerprint  
+            end
+
+            it "combines the fingerprint of the package with the fingerprint of its dependencies" do
+                flexmock(@pkg0).should_receive(:dependencies).
+                    and_return(['dep_pkg0', 'dep_pkg1'])
+
+                mock_fingerprints(@pkg0 => "fingerprint_placeholder_pkg0",
+                                  @dep_pkg0 => "fingerprint_placeholder_dep_pkg0",
+                                  @dep_pkg1 => "fingerprint_placeholder_dep_pkg1")
+
+                expected_fingerprint = Digest::SHA1.hexdigest(
+                    "fingerprint_placeholder_pkg0"\
+                    "fingerprint_placeholder_dep_pkg0"\
+                    "fingerprint_placeholder_dep_pkg1")
+                assert_equal expected_fingerprint, @pkg0.fingerprint  
+            end
+
+            it "adds the package fingerprint to the memo" do
+                flexmock(@pkg0).should_receive(:dependencies).
+                    and_return(['dep_pkg0', 'dep_pkg1'])
+
+                mock_fingerprints(@pkg0 => "fingerprint_placeholder_pkg0",
+                                  @dep_pkg0 => "fingerprint_placeholder_dep_pkg0",
+                                  @dep_pkg1 => "fingerprint_placeholder_dep_pkg1")
+
+                expected_fingerprint = Digest::SHA1.hexdigest(
+                    "fingerprint_placeholder_pkg0"\
+                    "fingerprint_placeholder_dep_pkg0"\
+                    "fingerprint_placeholder_dep_pkg1")
+
+                memo = Hash.new
+                @pkg0.fingerprint(memo: memo)
+                assert_equal expected_fingerprint, memo[@pkg0.name]
+            end
+
+            it "does not evaluate the package's fingerprint if it is stored in the memo" do
+                memo = { @pkg0.name => "TEST" }
+                flexmock(@pkg0).should_receive(:dependencies).never
+                flexmock(@pkg0.importer).should_receive(:fingerprint).never
+                assert_equal "TEST", @pkg0.fingerprint(memo: memo)
             end
 
             it "fingerprints should be the same no matter the order of the dependencies" do
                 flexmock(@pkg0).should_receive(:dependencies).
                     and_return(['dep_pkg0', 'dep_pkg1'])
 
-                flexmock(@pkg0.importer).should_receive(:fingerprint).
-                    and_return("fingerprint_placeholder")
-                flexmock(@dep_pkg0.importer).should_receive(:fingerprint).
-                    and_return("fingerprint_placeholder_pkg0")
-                flexmock(@dep_pkg1.importer).should_receive(:fingerprint).
-                    and_return("fingerprint_placeholder_pkg1")
-
-                fingerprint_pkg0_pk1 = @pkg0.fingerprint  
+                mock_fingerprints(@pkg0 => "fingerprint_placeholder",
+                                  @dep_pkg0 => "fingerprint_placeholder_pkg0",
+                                  @dep_pkg1 => "fingerprint_placeholder_pkg1")
 
                 flexmock(@pkg1).should_receive(:dependencies).
                     and_return(['dep_pkg1', 'dep_pkg0'])
 
-                flexmock(@pkg1.importer).should_receive(:fingerprint).
-                    and_return("fingerprint_placeholder")
-                flexmock(@dep_pkg0.importer).should_receive(:fingerprint).
-                    and_return("fingerprint_placeholder_pkg0")
-                flexmock(@dep_pkg1.importer).should_receive(:fingerprint).
-                    and_return("fingerprint_placeholder_pkg1")
+                mock_fingerprints(@pkg1 => "fingerprint_placeholder",
+                                  @dep_pkg0 => "fingerprint_placeholder_pkg0",
+                                  @dep_pkg1 => "fingerprint_placeholder_pkg1")
 
+                fingerprint_pkg0_pk1 = @pkg0.fingerprint  
                 fingerprint_pkg1_pk0 = @pkg1.fingerprint  
-
                 assert_equal fingerprint_pkg0_pk1, fingerprint_pkg1_pk0
             end
 
-            it "returns expected fingerprint" do
-                flexmock(@pkg0).should_receive(:dependencies).
-                    and_return(['dep_pkg0', 'dep_pkg1'])
-
-                flexmock(@pkg0.importer).should_receive(:fingerprint).
-                    and_return("fingerprint_placeholder_pkg0")
-                flexmock(@dep_pkg0.importer).should_receive(:fingerprint).
-                    and_return("fingerprint_placeholder_dep_pkg0")
-                flexmock(@dep_pkg1.importer).should_receive(:fingerprint).
-                    and_return("fingerprint_placeholder_dep_pkg1")
-
-                expected_fingerprint = Digest::SHA1.hexdigest("fingerprint_placeholder_pkg0fingerprint_placeholder_dep_pkg0fingerprint_placeholder_dep_pkg1")
-                assert_equal expected_fingerprint, @pkg0.fingerprint  
+            def mock_fingerprints(package_to_fingerprint)
+                package_to_fingerprint.each do |pkg, fin|
+                    flexmock(pkg.importer).should_receive(:fingerprint).
+                        and_return(fin)
+                end
             end
-
         end
     end
 end

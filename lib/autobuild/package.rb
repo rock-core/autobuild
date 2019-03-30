@@ -664,10 +664,10 @@ module Autobuild
         # fingerprint the result will be nil
         # @return [String]
         def fingerprint(recursive: true, memo: {})
+            return memo[name] if memo.key?(name)
+
             self_fingerprint = importer.fingerprint(self)
             return unless self_fingerprint
-
-            memo[name] = self_fingerprint
             return self_fingerprint if !recursive || dependencies.empty?
 
             dependency_fingerprints = dependencies.sort.map do |pkg_name|
@@ -675,12 +675,12 @@ module Autobuild
                 unless (fingerprint = memo[pkg.name])
                     fingerprint = pkg.fingerprint(recursive: true, memo: memo)
                     return unless fingerprint
-                    memo[pkg.name] = fingerprint
                 end
                 fingerprint
             end
 
-            Digest::SHA1.hexdigest(self_fingerprint + dependency_fingerprints.join(""))
+            memo[name] = Digest::SHA1.hexdigest(
+                self_fingerprint + dependency_fingerprints.join(""))
         end
 
         # Returns the name of all the packages +self+ depends on
