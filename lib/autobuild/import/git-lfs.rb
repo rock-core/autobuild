@@ -44,7 +44,7 @@ module Autobuild
                 "files may be missing from checkout"
         end
 
-        lfs_dir = File.join(package.srcdir, '.git', 'lfs')
+        lfs_dir = File.join(package.importdir, '.git', 'lfs')
         Autobuild.lfs_setup(importer, package) if File.directory?(lfs_dir)
     end
 end
