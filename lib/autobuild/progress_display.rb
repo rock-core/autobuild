@@ -20,8 +20,8 @@ module Autobuild
         end
 
         def silent
-            @silent = true
             silent = @silent
+            @silent = true
             yield
         ensure
             @silent = silent
