@@ -2,6 +2,19 @@ require 'autobuild/test'
 
 module Autobuild
     describe ProgressDisplay do
+        describe "#silent" do
+             before do
+                @io = StringIO.new
+                @formatter = ProgressDisplay.new(@io)
+            end
+
+            it "should keep previous mode" do
+                @formatter.silent = false
+                @formatter.silent { }
+                refute @formatter.silent?
+            end
+        end
+
         describe "#format_grouped_messages" do
             before do
                 @io = StringIO.new
