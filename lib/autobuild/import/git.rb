@@ -1160,7 +1160,7 @@ module Autobuild
         def self.lfs_installed?
             return @lfs_installed unless @lfs_installed.nil?
 
-            _, _, status = Open3.capture3('git lfs env')
+            _, _, status = Open3.capture3('git lfs')
             @lfs_installed = status.success?
         end
 
