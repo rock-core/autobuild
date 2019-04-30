@@ -10,6 +10,7 @@ matrix:
         - rvm: 'jruby-9.1.15.0'
 
 install:
+  - sudo apt-get install build-essential
   - gem install bundler
   - bundle install --path vendor/bundle
 
