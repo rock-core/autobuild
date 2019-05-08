@@ -1,8 +1,6 @@
 sudo: true
 language: ruby
 rvm:
-  - '2.1'
-  - '2.2'
   - '2.3'
   - '2.4'
   - '2.5'
@@ -12,6 +10,7 @@ matrix:
         - rvm: 'jruby-9.1.15.0'
 
 install:
+  - sudo apt-get install build-essential
   - gem install bundler
   - bundle install --path vendor/bundle
 
