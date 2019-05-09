@@ -59,7 +59,7 @@ module Autobuild
 
         version = gnumake_version(pkg, path)
         if version >= GNUMAKE_JOBSERVER_AUTH_VERSION
-            ["--jobserver-auth=#{jobserver_fds_arg}", "-j"]
+            ["--jobserver-auth=#{jobserver_fds_arg}"]
         else
             ["--jobserver-fds=#{jobserver_fds_arg}", "-j"]
         end
