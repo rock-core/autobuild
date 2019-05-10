@@ -92,14 +92,14 @@ module Autobuild
                 )
             end
 
-            it "returns --jobserver-auth for GNU make after 4.2.0" do
+            it "returns --jobserver-auth and no -j for GNU make after 4.2.0" do
                 flexmock(Autobuild).should_receive(:gnumake_version)
                     .with(@pkg, 'toolpath')
                     .and_return(Gem::Version.new("4.2.0"))
                 options = Autobuild.gnumake_jobserver_option(
                     @job_server, @pkg, 'toolpath'
                 )
-                assert_equal ["--jobserver-auth=42,21", "-j"], options
+                assert_equal ["--jobserver-auth=42,21"], options
             end
 
             it "returns --jobserver-fds for GNU make before 4.2.0" do
@@ -170,7 +170,7 @@ module Autobuild
                 @job_server.should_receive(rio: flexmock(fileno: 42))
                 @job_server.should_receive(wio: flexmock(fileno: 21))
 
-                @recorder.should_receive(:record).with(["--jobserver-auth=42,21", "-j"])
+                @recorder.should_receive(:record).with(["--jobserver-auth=42,21"])
                          .once.globally.ordered
                 Autobuild.invoke_make_parallel(@pkg, 'toolpath') do |*args|
                     @recorder.record(args)
