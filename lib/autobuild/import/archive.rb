@@ -284,6 +284,7 @@ module Autobuild
         # its digest whether is calculated or expected
         # @raises ConfigException if no digest is present
         def vcs_fingerprint(package)
+            puts "expecting cachefile in #{cachefile}"
             if @cachefile_digest
                 @cachefile_digest
             elsif File.file?(cachefile)
