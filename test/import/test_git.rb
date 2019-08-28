@@ -33,6 +33,16 @@ describe Autobuild::Git do
             assert_equal "master", git.local_branch
             assert_equal "test", git.remote_branch
         end
+        it 'picks the default alternates by default' do
+            flexmock(Autobuild::Git, default_alternates: (alt = [flexmock]))
+            git = Autobuild::Git.new('repo')
+            assert_equal alt, git.alternates
+        end
+        it 'does not pick the default alternates if the importer is set up to use submodules' do
+            flexmock(Autobuild::Git, default_alternates: (alt = [flexmock]))
+            git = Autobuild::Git.new('repo', with_submodules: true)
+            assert_equal [], git.alternates
+        end
     end
 
     describe "#relocate" do
@@ -671,7 +681,7 @@ describe Autobuild::Git do
             # flatenned into a string
             expected_patch_fingerprint = Digest::SHA1.hexdigest('1source_test2source2_test')
 
-            expected_fingerprint = Digest::SHA1.hexdigest(@expected_vcs_fingerprint + 
+            expected_fingerprint = Digest::SHA1.hexdigest(@expected_vcs_fingerprint +
                 expected_patch_fingerprint)
 
             assert_equal expected_fingerprint, importer.fingerprint(pkg)
