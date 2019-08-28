@@ -111,7 +111,6 @@ module Autobuild
         #   workflow, it is recommended to not use submodules but checkout all
         #   repositories separately instead.
         def initialize(repository, branch = nil, options = {})
-            @alternates = Git.default_alternates.dup
             @git_dir_cache = Array.new
             @local_branch = @remote_branch = nil
             @tag = @commit = nil
@@ -155,6 +154,13 @@ module Autobuild
 
             @single_branch = gitopts[:single_branch]
             @with_submodules = gitopts.delete(:with_submodules)
+            @alternates =
+                if @with_submodules
+                    []
+                else
+                    Git.default_alternates.dup
+                end
+
             @remote_name = 'autobuild'
             @push_to = nil
             relocate(repository, gitopts)
