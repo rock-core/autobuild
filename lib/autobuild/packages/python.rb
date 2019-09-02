@@ -22,9 +22,8 @@ module Autobuild
             super
         end
 
-        def prepare
-            super
-            @install_mode = File.file?(File.join(srcdir, 'setup.py'))
+        def install_mode?
+            File.file?(File.join(srcdir, 'setup.py'))
         end
 
         def prepare_for_forced_build
@@ -65,7 +64,7 @@ module Autobuild
 
         # Do the build in builddir
         def build
-            return unless @install_mode
+            return unless install_mode?
 
             command = generate_build_command
             command << '--force' if @forced
@@ -78,7 +77,7 @@ module Autobuild
 
         # Install the result in prefix
         def install
-            return unless @install_mode
+            return unless install_mode?
 
             command = generate_install_command
             command << '--force' if @forced
@@ -91,7 +90,7 @@ module Autobuild
 
         def update_environment
             super
-            path = @install_mode ? python_path : srcdir
+            path = install_mode? ? python_path : srcdir
             env_add_path 'PYTHONPATH', path
         end
     end
