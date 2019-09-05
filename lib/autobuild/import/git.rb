@@ -24,6 +24,11 @@ module Autobuild
             # AUTOBUILD_GIT_CACHE_DIR and AUTOBUILD_CACHE_DIR environment
             # variables
             #
+            # Because of its role within the caching system in autobuild/autoproj,
+            # these defaults are not applied to git repositories that are using
+            # submodules. The autoproj cache builder does not generate repositories
+            # compatible with having submodules
+            #
             # @return [Array]
             # @see default_alternates=, Git#alternates
             def default_alternates
@@ -111,7 +116,6 @@ module Autobuild
         #   workflow, it is recommended to not use submodules but checkout all
         #   repositories separately instead.
         def initialize(repository, branch = nil, options = {})
-            @alternates = Git.default_alternates.dup
             @git_dir_cache = Array.new
             @local_branch = @remote_branch = nil
             @tag = @commit = nil
@@ -155,6 +159,13 @@ module Autobuild
 
             @single_branch = gitopts[:single_branch]
             @with_submodules = gitopts.delete(:with_submodules)
+            @alternates =
+                if @with_submodules
+                    []
+                else
+                    Git.default_alternates.dup
+                end
+
             @remote_name = 'autobuild'
             @push_to = nil
             relocate(repository, gitopts)
