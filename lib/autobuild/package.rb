@@ -207,28 +207,20 @@ module Autobuild
             File.directory?(srcdir)
         end
 
-        def prepare_invoked?
-            task("#{name}-prepare").already_invoked?
-        end
-
-        def prepared?
-            @prepared
-        end
-
         def import_invoked?
-            task("#{name}-import").already_invoked?
+            @import_invoked
         end
 
         def imported?
             @imported
         end
 
-        def build_invoked?
-            task("#{name}-build").already_invoked?
+        def install_invoked?
+            @install_invoked
         end
 
-        def built?
-            @built
+        def installed?
+            @installed
         end
 
         def to_s
@@ -459,12 +451,13 @@ module Autobuild
         def import(options = Hash.new)
             options = Hash[only_local: options] unless options.respond_to?(:to_hash)
 
+            @import_invoked = true
             if @importer
                 result = @importer.import(self, options)
-                @imported = true
             elsif update?
                 message "%s: no importer defined, doing nothing"
             end
+            @imported = true
 
             # Add the dependencies declared in spec
             depends_on(*@spec_dependencies) if @spec_dependencies
@@ -480,7 +473,10 @@ module Autobuild
             stamps = dependencies.map { |p| Package[p].installstamp }
 
             file installstamp => stamps do
-                isolate_errors { install }
+                isolate_errors do
+                    @install_invoked = true
+                    install
+                end
             end
             task "#{name}-build" => installstamp
 
@@ -563,7 +559,7 @@ module Autobuild
 
             Autobuild.touch_stamp(installstamp)
 
-            @built = true
+            @installed = true
         end
 
         def run(*args, &block)

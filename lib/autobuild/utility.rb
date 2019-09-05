@@ -29,6 +29,10 @@ module Autobuild
             @source_dir = nil
             @target_dir = nil
             @install_on_error = install_on_error
+
+            @invoked = false
+            @success = false
+            @installed = false
         end
 
         # Directory in which the utility will generate some files The
@@ -98,7 +102,10 @@ module Autobuild
         end
 
         def call_task_block
+            @invoked = true
+
             yield if block_given?
+            @success = true
 
             # Allow the user to install manually in the task
             # block
@@ -107,6 +114,7 @@ module Autobuild
             raise
         rescue ::Exception => e
             install if install_on_error? && !@installed && target_dir
+            @success = false
 
             if Autobuild.send("pass_#{name}_errors")
                 raise
@@ -165,6 +173,24 @@ module Autobuild
                 "from #{source_dir} to #{target_dir}"
 
             @installed = true
+        end
+
+        # True if the utility has been invoked
+        def invoked?
+            @invoked
+        end
+
+        # True if the utility has been successful
+        #
+        # Combine with {#invoked?} to determine whether 'false' means 'not run'
+        # or 'failed'
+        def success?
+            @success
+        end
+
+        # True if the utility's results have been installed
+        def installed?
+            @installed
         end
 
         # Can be called in the block given to {task} to announce that the
