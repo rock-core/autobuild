@@ -576,6 +576,14 @@ module Autobuild
 
         module TaskExtension
             attr_accessor :package
+
+            def disabled?
+                if @disabled.nil? && package
+                    package.disabled?
+                else
+                    super
+                end
+            end
         end
 
         def source_tree(*args, &block)
@@ -816,17 +824,13 @@ module Autobuild
             phases.each do |phase|
                 task "#{name}-#{phase}"
                 t = Rake::Task["#{name}-#{phase}"]
-                t.disable!
+                t.disable
             end
         end
 
         # Make sure that this package will be ignored in the build
         def disable(phases = Autobuild.all_phases)
             @disabled = true
-            disable_phases(*phases)
-            task(installstamp)
-            t = Rake::Task[installstamp]
-            t.disable!
         end
 
         def utility(utility_name)

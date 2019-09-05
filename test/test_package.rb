@@ -90,11 +90,11 @@ module Autobuild
                 @pkg0 = Package.new('pkg0')
                 @pkg0.importer = Importer.new \
                     interactive: false
-                
+
                 @pkg1 = Package.new('pkg1')
                 @pkg1.importer = Importer.new \
                     interactive: false
-                
+
                 @dep_pkg0 = Package.new('dep_pkg0')
                 @dep_pkg1 = Package.new('dep_pkg1')
 
@@ -102,19 +102,19 @@ module Autobuild
                     interactive: false
                 @dep_pkg1.importer = Importer.new \
                     interactive: false
-                
+
             end
 
             it "return nil when the package's importer does not compute a fingerprint" do
                 flexmock(@pkg0.importer).should_receive(:fingerprint).
                     and_return(nil)
-                assert_nil @pkg0.fingerprint  
+                assert_nil @pkg0.fingerprint
             end
 
             it "return importer's fingerprint when there are no dependencies" do
                 flexmock(@pkg0.importer).should_receive(:fingerprint).
                     and_return("fingerprint_placeholder")
-                assert_equal "fingerprint_placeholder", @pkg0.fingerprint  
+                assert_equal "fingerprint_placeholder", @pkg0.fingerprint
             end
 
             it "returns nil if one of the dependencies has no fingerprint" do
@@ -125,7 +125,7 @@ module Autobuild
                                   @dep_pkg0 => nil,
                                   @dep_pkg1 => "fingerprint_placeholder_dep_pkg1")
 
-                assert_nil @pkg0.fingerprint  
+                assert_nil @pkg0.fingerprint
             end
 
             it "combines the fingerprint of the package with the fingerprint of its dependencies" do
@@ -140,7 +140,7 @@ module Autobuild
                     "fingerprint_placeholder_pkg0"\
                     "fingerprint_placeholder_dep_pkg0"\
                     "fingerprint_placeholder_dep_pkg1")
-                assert_equal expected_fingerprint, @pkg0.fingerprint  
+                assert_equal expected_fingerprint, @pkg0.fingerprint
             end
 
             it "adds the package fingerprint to the memo" do
@@ -183,8 +183,8 @@ module Autobuild
                                   @dep_pkg0 => "fingerprint_placeholder_pkg0",
                                   @dep_pkg1 => "fingerprint_placeholder_pkg1")
 
-                fingerprint_pkg0_pk1 = @pkg0.fingerprint  
-                fingerprint_pkg1_pk0 = @pkg1.fingerprint  
+                fingerprint_pkg0_pk1 = @pkg0.fingerprint
+                fingerprint_pkg1_pk0 = @pkg1.fingerprint
                 assert_equal fingerprint_pkg0_pk1, fingerprint_pkg1_pk0
             end
 
@@ -193,6 +193,26 @@ module Autobuild
                     flexmock(pkg.importer).should_receive(:fingerprint).
                         and_return(fin)
                 end
+            end
+        end
+
+        describe "#task" do
+            before do
+                @package = Package.new("pkg")
+                @task = @package.task 'test'
+            end
+
+            it "is associated with its package" do
+                assert_equal @package, @task.package
+            end
+
+            it "is not disabled if its package is not" do
+                refute task.disabled?
+            end
+
+            it "is disabled if its package is" do
+                @package.disable
+                assert @task.disabled?
             end
         end
     end

@@ -188,12 +188,16 @@ module Autobuild
                     break if !pending_task && available_workers.size == workers.size
                 end
 
-                if state.trivial_task?(pending_task)
-                    Worker.execute_task(pending_task)
+                bypass_task = pending_task.disabled? ||
+                              pending_task.already_invoked? ||
+                              !pending_task.needed?
+
+                if bypass_task
+                    pending_task.already_invoked = true
                     state.process_finished_task(pending_task)
                     next
-                elsif pending_task.already_invoked? || !pending_task.needed?
-                    pending_task.already_invoked = true
+                elsif state.trivial_task?(pending_task)
+                    Worker.execute_task(pending_task)
                     state.process_finished_task(pending_task)
                     next
                 end

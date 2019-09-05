@@ -6,11 +6,16 @@ module Autobuild
 
         attr_writer :already_invoked
 
-        def disable!
-            @already_invoked = true
-            singleton_class.class_eval do
-                define_method(:needed?) { false }
-            end
+        def disabled?
+            @disabled
+        end
+
+        def disabled!
+            disable
+        end
+
+        def disable
+            @disabled = true
         end
     end
 end
