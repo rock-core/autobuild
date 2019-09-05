@@ -352,7 +352,20 @@ module Autobuild
             invoker = Autobuild::RakeTaskParallelism.new(options[:parallel])
             Autobuild.parallel_task_manager = invoker
             phases.each do |phase|
-                invoker.invoke_parallel([Rake::Task["#{buildname}-#{phase}"]])
+                package_tasks = packages.each_with_object({}) do |pkg_name, h|
+                    h["#{pkg_name}-#{phase}"] = true
+                end
+                callback =
+                    if block_given?
+                        proc do |task|
+                            yield(task.package, phase) if package_tasks[task.name]
+                        end
+                    else
+                        proc { }
+                    end
+
+                invoker.invoke_parallel([Rake::Task["#{buildname}-#{phase}"]],
+                                        completion_callback: callback)
             end
         ensure
             Autobuild.parallel_task_manager = nil

@@ -5,6 +5,7 @@ module Autobuild
         describe '#invoke_parallel' do
             before do
                 @tasks = (0...10).map { |i| Rake::Task.define_task(i.to_s) }
+
                 @runner = RakeTaskParallelism.new
 
                 @tasks[0].enhance([@tasks[1], @tasks[2]])
@@ -12,6 +13,22 @@ module Autobuild
                 @tasks[2].enhance([@tasks[3]])
 
                 @recorder = flexmock
+            end
+
+            it 'yields completed tasks in the main thread' do
+                main_thread = Thread.current
+                order = []
+                callback = proc do |task|
+                    assert_equal main_thread, Thread.current
+                    order << task
+                end
+
+                @runner.invoke_parallel(@tasks[0, 4].shuffle,
+                                        completion_callback: callback)
+
+                assert_equal @tasks[3], order[0]
+                assert_equal @tasks[1, 2].to_set, order[1, 2].to_set
+                assert_equal @tasks[0], order[3]
             end
 
             it 'considers a task only once' do

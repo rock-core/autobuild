@@ -83,8 +83,9 @@ module Autobuild
             attr_reader :queue
             attr_reader :priorities
 
-            def initialize(reverse_dependencies)
+            def initialize(reverse_dependencies, completion_callback: proc { })
                 @reverse_dependencies = reverse_dependencies
+                @completion_callback = completion_callback
                 @processed = Set.new
                 @active_tasks = Set.new
                 @priorities = Hash.new
@@ -143,6 +144,8 @@ module Autobuild
                         push(candidate, priorities[task])
                     end
                 end
+
+                @completion_callback.call(task)
             end
 
             def trivial_task?(task)
@@ -153,7 +156,7 @@ module Autobuild
 
         # Invokes the provided tasks. Unlike the rake code, this is a toplevel
         # algorithm that does not use recursion
-        def invoke_parallel(required_tasks)
+        def invoke_parallel(required_tasks, completion_callback: proc { })
             tasks = Set.new
             reverse_dependencies = Hash.new { |h, k| h[k] = Set.new }
             required_tasks.each do |t|
@@ -162,7 +165,8 @@ module Autobuild
             # The queue is the set of tasks for which all prerequisites have
             # been successfully executed (or where not needed). I.e. it is the
             # set of tasks that can be queued for execution.
-            state = ProcessingState.new(reverse_dependencies)
+            state = ProcessingState.new(reverse_dependencies,
+                                        completion_callback: completion_callback)
             tasks.each do |t|
                 state.push(t) if state.ready?(t)
             end
