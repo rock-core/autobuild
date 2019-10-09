@@ -77,4 +77,37 @@ describe Autobuild do
             assert_equal full_tool_path, Autobuild.tool_in_path('bla', env: @env)
         end
     end
+
+    describe '#apply' do
+        before do
+            @packages = (0...4).map { |i| Autobuild::Package.new(i.to_s) }
+            @tasks = @packages.map do |p|
+                p.task("#{p.name}-build")
+            end
+        end
+
+        it 'yield to the completion callback when a root task is completed' do
+            @tasks[0].enhance @tasks[1..2]
+            @tasks[1].enhance [@tasks[3]]
+            @tasks[2].enhance [@tasks[3]]
+            @packages.map(&:prepare)
+
+            received = []
+            Autobuild.apply(@packages.map(&:name), 'test', ['build']) do |pkg, phase|
+                received << [pkg, phase]
+            end
+            assert_equal 4, received.size
+            assert_equal [@packages[3], 'build'], received[0]
+            assert_equal [[@packages[1], 'build'], [@packages[2], 'build']].to_set,
+                         received[1, 2].to_set
+            assert_equal [@packages[0], 'build'], received[3]
+        end
+
+        it 'yield to the completion callback even if the task fails' do
+            @packages[0].depends_on @packages[1]
+            @packages[0].depends_on @packages[2]
+            @packages[1].depends_on @packages[3]
+            @packages[2].depends_on @packages[3]
+        end
+    end
 end
