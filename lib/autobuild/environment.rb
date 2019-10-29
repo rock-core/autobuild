@@ -589,24 +589,30 @@ module Autobuild
             end
         end
 
+        def dpkg_discover_arch
+            return unless File.file?('/usr/bin/dpkg-architecture')
+
+            cmdline = ['/usr/bin/dpkg-architecture']
+            cmdline << "-T" << target_arch if target_arch
+            out = `#{cmdline.join(" ")}`.split
+            size = out.grep(/DEB_TARGET_ARCH_BITS/).first ||
+                   out.grep(/DEB_BUILD_ARCH_BITS/).first
+            name = out.grep(/DEB_TARGET_MULTIARCH/).first ||
+                   out.grep(/DEB_BUILD_MULTIARCH/).first
+            @arch_names = Set[name.chomp.split('=').last] if name
+            @arch_size = Integer(size.chomp.split('=').last) if size
+        end
+
         def arch_size
             return @arch_size if @arch_size
 
-            if File.file?('/usr/bin/dpkg-architecture')
-                cmdline = ['/usr/bin/dpkg-architecture']
-                cmdline << "-T" << target_arch if target_arch
-                out = `#{cmdline.join(" ")}`.split
-                arch = out.grep(/DEB_TARGET_ARCH_BITS/).first ||
-                       out.grep(/DEB_BUILD_ARCH_BITS/).first
-                @arch_size = Integer(arch.chomp.split('=').last) if arch
-            end
+            dpkg_discover_arch
 
             @arch_size ||=
                 if RbConfig::CONFIG['host_cpu'] =~ /64/
                     64
                 else 32
                 end
-            @arch_size
         end
 
         def target_arch=(archname)
@@ -619,16 +625,8 @@ module Autobuild
         def arch_names
             return @arch_names if @arch_names
 
-            result = Set.new
-            if File.file?('/usr/bin/dpkg-architecture')
-                cmdline = ['/usr/bin/dpkg-architecture']
-                cmdline << "-T" << target_arch if target_arch
-                out = `#{cmdline.join(" ")}`.split
-                arch = out.grep(/DEB_TARGET_MULTIARCH/).first ||
-                       out.grep(/DEB_BUILD_MULTIARCH/).first
-                result << arch.chomp.split('=').last if arch
-            end
-            @arch_names = result
+            dpkg_discover_arch
+            @arch_names ||= result
         end
 
         def update_environment(newprefix, includes = nil)
