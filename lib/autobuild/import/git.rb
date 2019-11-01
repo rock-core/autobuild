@@ -1199,7 +1199,8 @@ module Autobuild
                     repository, package.importdir, retry: true)
 
             update_remotes_configuration(package)
-            update(package, only_local: !remote_branch.start_with?("refs/"), reset: true)
+            update(package, only_local: !remote_branch.start_with?("refs/"),
+                            reset: :force)
             run_git(package, "submodule", "update", '--init') if with_submodules?
         end
 
