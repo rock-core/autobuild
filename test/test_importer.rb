@@ -60,10 +60,13 @@ module Autobuild
                     ENV['AUTOBUILD_TEST_CACHE_DIR'] = '/specific_env'
                     ENV['AUTOBUILD_CACHE_DIR'] = '/global_env'
                 end
-                it "defaults to the specific value if known" do
+                it 'normalizes default_cache_dirs to an array' do
+                    assert_equal ['/global'], Importer.default_cache_dirs
+                end
+                it 'defaults to the specific value if known' do
                     assert_equal ['/specific'], Importer.cache_dirs('test')
                 end
-                it "falls back to the global value otherwise" do
+                it 'falls back to the global value otherwise' do
                     assert_equal ['/global/bla'], Importer.cache_dirs('bla')
                 end
             end

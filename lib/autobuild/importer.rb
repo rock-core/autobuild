@@ -107,7 +107,11 @@ module Autobuild
         # @return [Array<String>,nil]
         # @see .cache_dirs
         def self.default_cache_dirs
-            [@default_cache_dirs] if @default_cache_dirs ||= ENV['AUTOBUILD_CACHE_DIR']
+            if @default_cache_dirs
+                @default_cache_dirs
+            elsif (from_env = ENV['AUTOBUILD_CACHE_DIR'])
+                @default_cache_dirs = [from_env]
+            end
         end
 
         # Sets the cache directory for a given importer type
