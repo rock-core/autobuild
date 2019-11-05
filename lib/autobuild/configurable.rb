@@ -109,6 +109,7 @@ module Autobuild
 
             stamps = dependencies.map { |pkg| Autobuild::Package[pkg].installstamp }
             file configurestamp => stamps do
+                @install_invoked = true
                 isolate_errors do
                     ensure_dependencies_installed
                     configure
@@ -118,6 +119,7 @@ module Autobuild
             task "#{name}-prepare" => configurestamp
 
             file buildstamp => [srcdir, configurestamp] do
+                @install_invoked = true
                 isolate_errors do
                     ensure_dependencies_installed
                     build
@@ -132,7 +134,7 @@ module Autobuild
         def configure
             if File.exist?(builddir) && !File.directory?(builddir)
                 raise ConfigException.new(self, 'configure'),
-                    "#{builddir} already exists but is not a directory"
+                      "#{builddir} already exists but is not a directory"
             end
 
             FileUtils.mkdir_p builddir unless File.directory?(builddir)
