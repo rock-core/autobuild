@@ -104,16 +104,18 @@ module Autobuild
         def call_task_block
             @invoked = true
 
-            yield if block_given?
-            @success = true
+            begin
+                yield if block_given?
+                @success = true
+            rescue StandardError => e
+                install if install_on_error? && !@installed && target_dir
+                raise
+            end
 
             # Allow the user to install manually in the task
             # block
             install if !@installed && target_dir
-        rescue Interrupt
-            raise
-        rescue ::Exception => e
-            install if install_on_error? && !@installed && target_dir
+        rescue StandardError => e
             @success = false
 
             if Autobuild.send("pass_#{name}_errors")
