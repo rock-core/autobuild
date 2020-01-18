@@ -9,14 +9,59 @@ module Autobuild
 
             @silent = false
             @color = color
-            @progress_enabled = true
             @display_lock = Mutex.new
+
+            @next_progress_display = Time.at(0)
+            @progress_mode = :single_line
+            @progress_period = 0.1
         end
 
-        attr_writer :silent
+        # Set the minimum time between two progress messages
+        #
+        # @see period
+        def progress_period=(period)
+            @progress_period = Float(period)
+        end
+
+        # Minimum time between two progress displays
+        #
+        # This does not affect normal messages
+        #
+        # @return [Float]
+        attr_reader :progress_period
+
+        # Valid progress modes
+        #
+        # @see progress_mode=
+        PROGRESS_MODES = %I[single_line newline off]
+
+        # Sets how progress messages will be displayed
+        #
+        # @param [String] the new mode. Can be either 'single_line', where a
+        #   progress message replaces the last one, 'newline' which displays
+        #   each on a new line or 'off' to disable progress messages altogether
+        def progress_mode=(mode)
+            mode = mode.to_sym
+            unless PROGRESS_MODES.include?(mode)
+                raise ArgumentError,
+                      "#{mode} is not a valid mode, expected one of "\
+                      "#{PROGRESS_MODES.join(", ")}"
+            end
+            @progress_mode = mode
+        end
+
+        # Return the current display mode
+        #
+        # @return [Symbol]
+        # @see mode=
+        attr_reader :progress_mode
 
         def silent?
             @silent
+        end
+
+        def silent=(flag)
+            @silent = flag
         end
 
         def silent
@@ -27,10 +72,14 @@ module Autobuild
             @silent = silent
         end
 
-        attr_writer :progress_enabled
+        # @deprecated use progress_mode= instead
+        def progress_enabled=(flag)
+            self.progress_mode = flag ? :single_line : :off
+        end
 
+        # Whether progress messages will be displayed at all
         def progress_enabled?
-            !@silent && @progress_enabled
+            !@silent && (@progress_mode != :off)
         end
 
         def message(message, *args, io: @io, force: false)
@@ -39,8 +88,11 @@ module Autobuild
             io = args.pop if args.last.respond_to?(:to_io)
 
             @display_lock.synchronize do
-                io.print "#{@cursor.column(1)}#{@cursor.clear_screen_down}"\
-                    "#{@color.call(message, *args)}\n"
+                if @progress_mode == :single_line
+                    io.print @cursor.clear_screen_down
+                end
+                io.puts @color.call(message, *args)
+
                 io.flush if @io != io
                 display_progress
                 @io.flush
@@ -54,7 +106,7 @@ module Autobuild
             @progress_messages << [key, formatted_message]
             if progress_enabled?
                 @display_lock.synchronize do
-                    display_progress
+                    display_progress(consider_period: false)
                 end
             else
                 message "  #{formatted_message}"
@@ -113,32 +165,38 @@ module Autobuild
             end
         end
 
-        def display_progress
+        def display_progress(consider_period: true)
             return unless progress_enabled?
+            return if consider_period && (@next_progress_display > Time.now)
 
-            formatted = format_grouped_messages(@progress_messages.map(&:last),
-                indent: "  ")
-            @io.print @cursor.clear_screen_down
-            @io.print formatted.join("\n")
-            if formatted.size > 1
-                @io.print "#{@cursor.up(formatted.size - 1)}#{@cursor.column(0)}"
+            formatted = format_grouped_messages(
+                @progress_messages.map(&:last),
+                indent: "  "
+            )
+            if @progress_mode == :newline
+                @io.print formatted.join("\n")
+                @io.print "\n"
             else
+                @io.print @cursor.clear_screen_down
+                @io.print formatted.join("\n")
+                @io.print @cursor.up(formatted.size - 1) if formatted.size > 1
                 @io.print @cursor.column(0)
             end
             @io.flush
+            @next_progress_display = Time.now + @progress_period
         end
 
         def find_common_prefix(msg, other_msg)
-            msg = msg.split(" ")
-            other_msg = other_msg.split(" ")
+            msg = msg.split(' ')
+            other_msg = other_msg.split(' ')
             msg.each_with_index do |token, idx|
                 if other_msg[idx] != token
                     prefix = msg[0..(idx - 1)].join(" ")
-                    prefix << " " unless prefix.empty?
+                    prefix << ' ' unless prefix.empty?
                     return prefix
                 end
             end
-            msg.join(" ")
+            msg.join(' ')
         end
 
         def group_messages(messages)
