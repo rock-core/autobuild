@@ -542,5 +542,11 @@ module Autobuild
                 message "%s: removed #{counter} obsolete files from prefix (cmake)"
             end
         end
+
+        def self_fingerprint
+            return unless (base = super)
+            all_defines = self.class.defines.merge(self.defines).sort_by(&:first)
+            Digest::SHA1.hexdigest(base + all_defines.join(""))
+        end
     end
 end
