@@ -88,5 +88,44 @@ module Autobuild
                     "CMAKE_BUILD_TYPE:STRING=Debug\nOTHER:BOOL=ON")
             end
         end
+
+        describe 'fingerprint' do
+            before do
+                importer = flexmock
+                @importer_fingerprint = 'abc'
+                importer.should_receive(:fingerprint).with(@package).
+                         and_return { @importer_fingerprint }
+                @package.importer = importer
+            end
+
+            it 'changes the fingerprint if the importer\'s change' do
+                old = @package.fingerprint
+                @importer_fingerprint = 'cde'
+                refute_equal old, @package.fingerprint
+            end
+
+            it 'changes the fingerprint if the global defines change' do
+                old = @package.fingerprint
+                @package.define 'A', 'B'
+                refute_equal old, @package.fingerprint
+            end
+
+            it 'changes the fingerprint if the local defines change' do
+                old = @package.fingerprint
+                @package.define 'A', 'B'
+                refute_equal old, @package.fingerprint
+            end
+
+            it 'is not sensitive to the defines order' do
+                @package.define 'A', 'B'
+                @package.define 'C', 'D'
+                a = @package.fingerprint
+                @package.defines.clear
+                @package.define 'C', 'D'
+                @package.define 'A', 'B'
+                assert_equal a, @package.fingerprint
+            end
+        end
     end
 end
+
