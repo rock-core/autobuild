@@ -30,6 +30,7 @@ module Autobuild
             @target_dir = nil
             @install_on_error = install_on_error
 
+            @no_results = false
             @invoked = false
             @success = false
             @installed = false
@@ -57,6 +58,23 @@ module Autobuild
         # @return [String,nil] the target directory, or nil if this utility does
         #   not install anything
         attr_writer :target_dir
+
+        # Controls whether this utility generates results or not
+        # 
+        # By default, Autobuild assumes that utilities generate report or
+        # artifact files, that are saved in {#target_dir}. Set this flag to
+        # true to disable this behavior, in which case the only report will
+        # be the console output during run
+        #
+        # @see no_results?
+        attr_writer :no_results
+
+        # Whether this utility generates results or not
+        # 
+        # @see no_results=
+        def no_results?
+            @no_results
+        end
 
         # Absolute path to where the utility product files have to be installed.
         # Returns nil if {target_dir} is not set.
@@ -108,13 +126,13 @@ module Autobuild
                 yield if block_given?
                 @success = true
             rescue StandardError => e
-                install if install_on_error? && !@installed && target_dir
+                install if install_on_error? && !@installed && !no_results?
                 raise
             end
 
             # Allow the user to install manually in the task
             # block
-            install if !@installed && target_dir
+            install if !@installed && !no_results?
         rescue StandardError => e
             @success = false
 
@@ -138,7 +156,7 @@ module Autobuild
         #
         # @return [Boolean]
         def available?
-            @available && (source_dir && @task)
+            @available && @task && (no_results? || source_dir)
         end
 
         # True if this utility should be executed

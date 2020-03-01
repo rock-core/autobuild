@@ -73,7 +73,8 @@ module Autobuild
         def coverage_target_dir
             if @coverage_target_dir
                 File.expand_path(@coverage_target_dir, package.prefix)
-            else File.join(target_dir, 'coverage')
+            elsif (target_dir = self.target_dir)
+                File.join(target_dir, 'coverage')
             end
         end
 
