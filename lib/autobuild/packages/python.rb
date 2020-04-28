@@ -67,7 +67,7 @@ module Autobuild
             return unless install_mode?
 
             command = generate_build_command
-            command << '--force' if @forced
+            # command << '--force' if @forced # --force not a valid option and amake --rebuild will take care of build/
             progress_start 'building %s [progress not available]',
                            done_message: 'built %s' do
                 run 'build', *command, working_directory: srcdir
