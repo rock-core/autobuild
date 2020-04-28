@@ -40,8 +40,7 @@ module Autobuild
         end
 
         def generate_install_command
-            command = generate_build_command
-            command << 'install'
+            command = ['python', 'setup.py', 'install']
             command << "--prefix=#{prefix}"
             command += installflags.flatten
             command
