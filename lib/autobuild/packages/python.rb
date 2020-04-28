@@ -34,7 +34,7 @@ module Autobuild
 
         def generate_build_command
             command = ['python', 'setup.py', 'build']
-            command << "--build-base=#{builddir}"
+            command << "-b #{builddir}"
             command += buildflags.flatten
             command
         end
