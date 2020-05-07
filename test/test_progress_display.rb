@@ -1,5 +1,8 @@
-require 'autobuild/test'
-require 'timecop'
+# frozen_string_literal: true
+
+require "autobuild/test"
+require "concurrent/atomic/event"
+require "timecop"
 
 module Autobuild
     describe ProgressDisplay do
@@ -17,6 +20,39 @@ module Autobuild
                 @formatter.silent = false
                 @formatter.silent { }
                 refute @formatter.silent?
+            end
+        end
+
+        describe "#synchronize" do
+            before do
+                @io = StringIO.new
+                @formatter = ProgressDisplay.new(@io)
+                @formatter.progress_mode = 'single_line'
+            end
+
+            it "queues messages while a thread is in #synchronize" do
+                event = Concurrent::Event.new
+                th = Thread.new do
+                    @formatter.synchronize { event.wait }
+                end
+                Thread.pass until th.status == "sleep"
+
+                @formatter.message "some message"
+                @formatter.message "some other message"
+                assert_equal "", @io.string
+
+                event.set
+                th.value
+
+                expected = "#{TTY::Cursor.clear_screen_down}  some message"\
+                           "#{TTY::Cursor.column(0)}"\
+                           "#{TTY::Cursor.clear_screen_down}  some other message"\
+                           "#{TTY::Cursor.column(0)}", @io.string
+            end
+
+            it "returns the block's return value in #synchronize" do
+                value = @formatter.synchronize { 42 }
+                assert_equal 42, value
             end
         end
 
