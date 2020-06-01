@@ -399,12 +399,12 @@ module Autobuild
             fallback(e, package, :import, package)
         end
 
-        def perform_checkout(package, options = Hash.new)
+        def perform_checkout(package, **options)
             last_error = nil
             package.progress_start "checking out %s", :done_message => 'checked out %s' do
                 retry_count = 0
                 begin
-                    checkout(package, options)
+                    checkout(package, **options)
                     execute_post_hooks(package)
                 rescue Interrupt
                     if last_error then raise last_error
@@ -456,31 +456,26 @@ module Autobuild
         #   ID is given will, in this mode, reset the repository to the requested ID
         #   (if that does not involve losing commits). Otherwise, it will only
         #   ensure that the requested commit ID is present in the current HEAD.
-        def import(package, options = Hash.new)
+        def import(
+            package, *old_boolean,
+            ignore_errors: false, checkout_only: false, allow_interactive: true, **options
+        )
             # Backward compatibility
-            unless options.kind_of?(Hash)
-                options = options
+            unless old_boolean.empty?
+                old_boolean = old_boolean.first
                 Autoproj.warn "calling #import with a boolean as second argument "\
                     "is deprecated, switch to the named argument interface instead"
-                Autoproj.warn "   e.g. call import(package, only_local: #{options})"
+                Autoproj.warn "   e.g. call import(package, only_local: #{old_boolean})"
                 Autoproj.warn "   #{caller(1..1).first}"
-                options = Hash[only_local: options]
+                options[:only_local] = old_boolean
             end
-
-            options = Kernel.validate_options options,
-                only_local: false,
-                reset: false,
-                checkout_only: false,
-                ignore_errors: false,
-                allow_interactive: true
-            ignore_errors = options.delete(:ignore_errors)
 
             importdir = package.importdir
             if File.directory?(importdir)
                 package.isolate_errors(mark_as_failed: false,
                                        ignore_errors: ignore_errors) do
-                    if !options[:checkout_only] && package.update?
-                        perform_update(package, options)
+                    if !checkout_only && package.update?
+                        perform_update(package, checkout_only: false, **options)
                     elsif Autobuild.verbose
                         package.message "%s: not updating"
                     end
@@ -492,8 +487,7 @@ module Autobuild
             else
                 package.isolate_errors(mark_as_failed: true,
                                        ignore_errors: ignore_errors) do
-                    perform_checkout(package,
-                        allow_interactive: options[:allow_interactive])
+                    perform_checkout(package, allow_interactive: allow_interactive)
                     true
                 end
             end

@@ -448,12 +448,12 @@ module Autobuild
         # be done there as well.
         #
         # (see Importer#import)
-        def import(options = Hash.new)
-            options = Hash[only_local: options] unless options.respond_to?(:to_hash)
+        def import(*old_boolean, **options)
+            options = { only_local: old_boolean.first } unless old_boolean.empty?
 
             @import_invoked = true
             if @importer
-                result = @importer.import(self, options)
+                result = @importer.import(self, **options)
             elsif update?
                 message "%s: no importer defined, doing nothing"
             end
