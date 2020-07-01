@@ -1,3 +1,6 @@
+require "concurrent/atomic/atomic_boolean"
+require "concurrent/array"
+
 module Autobuild
     # Management of the progress display
     class ProgressDisplay
@@ -5,7 +8,7 @@ module Autobuild
             @io = io
             @cursor = TTY::Cursor
             @last_formatted_progress = []
-            @progress_messages = []
+            @progress_messages = Concurrent::Array.new
 
             @silent = false
             @color = color
@@ -14,6 +17,15 @@ module Autobuild
             @next_progress_display = Time.at(0)
             @progress_mode = :single_line
             @progress_period = 0.1
+
+            @message_queue = Queue.new
+            @forced_progress_display = Concurrent::AtomicBoolean.new(false)
+        end
+
+        def synchronize(&block)
+            result = @display_lock.synchronize(&block)
+            refresh_display
+            result
         end
 
         # Set the minimum time between two progress messages
@@ -86,17 +98,9 @@ module Autobuild
             return if silent? && !force
 
             io = args.pop if args.last.respond_to?(:to_io)
+            @message_queue << [message, args, io]
 
-            @display_lock.synchronize do
-                if @progress_mode == :single_line
-                    io.print @cursor.clear_screen_down
-                end
-                io.puts @color.call(message, *args)
-
-                io.flush if @io != io
-                display_progress
-                @io.flush
-            end
+            refresh_display
         end
 
         def progress_start(key, *args, done_message: nil)
@@ -105,12 +109,12 @@ module Autobuild
             formatted_message = @color.call(*args)
             @progress_messages << [key, formatted_message]
             if progress_enabled?
-                @display_lock.synchronize do
-                    display_progress(consider_period: false)
-                end
+                @forced_progress_display.make_true
             else
                 message "  #{formatted_message}"
             end
+
+            refresh_display
 
             if block_given?
                 begin
@@ -125,44 +129,67 @@ module Autobuild
         end
 
         def progress(key, *args)
-            @display_lock.synchronize do
-                found = false
-                @progress_messages.map! do |msg_key, msg|
-                    if msg_key == key
-                        found = true
-                        [msg_key, @color.call(*args)]
-                    else
-                        [msg_key, msg]
-                    end
+            found = false
+            @progress_messages.map! do |msg_key, msg|
+                if msg_key == key
+                    found = true
+                    [msg_key, @color.call(*args)]
+                else
+                    [msg_key, msg]
                 end
-                @progress_messages << [key, @color.call(*args)] unless found
-                display_progress
             end
+            @progress_messages << [key, @color.call(*args)] unless found
+
+            refresh_display
         end
 
         def progress_done(key, display_last = true, message: nil)
-            changed = @display_lock.synchronize do
-                current_size = @progress_messages.size
-                @progress_messages.delete_if do |msg_key, msg|
-                    if msg_key == key
-                        message = msg if display_last && !message
-                        true
-                    end
+            current_size = @progress_messages.size
+            @progress_messages.delete_if do |msg_key, msg|
+                if msg_key == key
+                    message = msg if display_last && !message
+                    true
                 end
-                current_size != @progress_messages.size
             end
+            changed = current_size != @progress_messages.size
 
             if changed
                 if message
                     message("  #{message}")
-                    # Note: message calls display_progress already
+                    # Note: message updates the display already
                 else
-                    @display_lock.synchronize do
-                        display_progress
-                    end
+                    refresh_display
                 end
                 true
             end
+        end
+
+        def refresh_display
+            return unless @display_lock.try_lock
+
+            begin
+                refresh_display_under_lock
+            ensure
+                @display_lock.unlock
+            end
+        end
+
+        def refresh_display_under_lock
+            # Display queued messages
+            until @message_queue.empty?
+                message, args, io = @message_queue.pop
+                if @progress_mode == :single_line
+                    io.print @cursor.clear_screen_down
+                end
+                io.puts @color.call(message, *args)
+
+                io.flush if @io != io
+            end
+
+            # And re-display the progress
+            display_progress(consider_period: @forced_progress_display.false?)
+            @forced_progress_display.make_false
+            @io.flush
         end
 
         def display_progress(consider_period: true)

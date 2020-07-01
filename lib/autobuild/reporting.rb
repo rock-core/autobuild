@@ -47,6 +47,10 @@ module Autobuild
         @display.progress_enabled?
     end
 
+    def self.progress_display_synchronize(&block)
+        @display.synchronize(&block)
+    end
+
     # @deprecated use {progress_display_mode=} instead
     def self.progress_display_enabled=(value)
         @display.progress_enabled = value
