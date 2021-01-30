@@ -26,11 +26,11 @@ describe Autobuild::Git do
         it "takes a local_branch argument" do
             git = Autobuild::Git.new('repo', local_branch: 'test')
             assert_equal "test", git.local_branch
-            assert_equal "master", git.remote_branch
+            assert_equal nil, git.remote_branch
         end
         it "takes a remote_branch argument" do
             git = Autobuild::Git.new('repo', remote_branch: 'test')
-            assert_equal "master", git.local_branch
+            assert_equal nil, git.local_branch
             assert_equal "test", git.remote_branch
         end
         it 'picks the default alternates by default' do
@@ -92,7 +92,7 @@ describe Autobuild::Git do
         end
         it "accepts a full ref as remote branch" do
             importer.relocate("test", remote_branch: "refs/heads/master")
-            assert_equal "master", importer.local_branch
+            assert_equal nil, importer.local_branch
             assert_equal "refs/heads/master", importer.remote_branch
         end
     end
@@ -740,4 +740,95 @@ describe Autobuild::Git do
         importer.relocate(importer.repository, **options) unless options.empty?
         importer.import(pkg)
     end
+end
+
+describe Autobuild::Git do
+    attr_reader :pkg, :importer, :gitrepo
+    before do
+        tempdir = untar('gitrepo-nomaster.tar.xz')
+        @gitrepo = File.join(tempdir, 'gitrepo-nomaster.git')
+        @pkg = Autobuild::Package.new 'test'
+        pkg.srcdir = File.join(tempdir, 'git')
+        @importer = Autobuild.git(gitrepo)
+        pkg.importer = importer
+    end
+
+    describe "Exist local branch before HEAD check" do
+        it "get default remote brach" do
+            Autobuild.silent = true
+            assert_equal 'temp/branch', importer.default_remote_branch(pkg)
+        end
+        it "get default local brach" do
+            Autobuild.silent = true
+            importer.checkout(pkg)
+            assert_equal 'temp/branch', importer.default_local_branch(pkg)
+        end
+        it "not call ls-remote if local existis on default call" do
+            Autobuild.silent = true
+            importer.checkout(pkg)
+            flexmock(Autobuild::Subprocess)
+                .should_receive(:run)
+                .with(
+                    any, :import, 'git', 'ls-remote', '--symref',
+                    File.join(tempdir, 'gitrepo-nomaster.git'), any
+                )
+                .never()
+                flexmock(Autobuild::Subprocess).should_receive(:run).pass_thru
+            assert_equal 'temp/branch', importer.default_branch(pkg)
+        end
+        it "use default branch from repo" do
+            Autobuild.silent = true
+            importer.checkout(pkg)
+            assert_equal 'temp/branch', importer.branch
+        end
+        it "local check if remote head exists" do
+            flexmock(Autobuild::Subprocess)
+                .should_receive(:run)
+                .with(
+                    any, :import, 'git', 'symbolic-ref', "refs/remotes/autobuild/HEAD", any
+                )
+                .once()
+                .and_return(['ref: refs/heads/temp/branch HEAD', 'bla'])
+            flexmock(Autobuild::Subprocess).should_receive(:run).pass_thru
+            importer.import(pkg)
+        end
+    end
+end
+
+describe Autobuild::Git do
+    attr_reader :pkg, :importer, :gitrepo
+    before do
+        tempdir = untar('gitrepo-nomaster.tar.xz')
+        tempdir_local = untar('gitlocal-nomaster-singlenomaster.tar.xz')  # Single branch, no master
+        @gitrepo = File.join(tempdir, 'gitrepo-nomaster.git')
+        @pkg = Autobuild::Package.new 'test'
+        pkg.srcdir = File.join(tempdir_local, 'gitrepo-nomaster')
+        @importer = Autobuild.git(gitrepo)
+        pkg.importer = importer
+    end
+
+    describe "Local single branch" do
+        it "Return nil if local branch does not exists" do
+            Autobuild.silent = true
+            assert_equal nil, importer.default_local_branch(pkg)
+        end
+        it "get default remote brach if local does not exists" do
+            Autobuild.silent = true
+            assert_equal 'temp/branch', importer.default_branch(pkg)
+        end
+        it "shell out to git to check repo HEAD if not present on local branch" do
+            flexmock(Autobuild::Subprocess)
+                .should_receive(:run)
+                .with(
+                    any, :import, 'git', 'ls-remote', '--symref',
+                    File.join(tempdir, 'gitrepo-nomaster.git'), any
+                )
+                .once()
+                .and_return(['ref: refs/heads/temp/branch HEAD', 'bla'])
+            flexmock(Autobuild::Subprocess).should_receive(:run).pass_thru
+            importer.import(pkg)
+            assert_equal 'temp/branch', importer.branch
+        end
+    end
+
 end

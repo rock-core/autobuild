@@ -293,6 +293,52 @@ module Autobuild
             git_dir(package, true)
         end
 
+        
+        # Return default local branch if exists, if not return nil
+        #
+        # @param [Package] package
+        def default_local_branch(package)
+            ls_local_string = run_git(package, 'symbolic-ref', "refs/remotes/#{@remote_name}/HEAD").first.strip
+            default_local_branch = ls_local_string.match("refs/remotes/#{@remote_name}/(.*)")
+            default_local_branch.nil? ? nil : default_local_branch[1]
+            rescue Autobuild::SubcommandFailed
+                return nil
+        end
+
+        # Return default remote branch if exists, if not return 'master'
+        #
+        # @param [Package] package
+        def default_remote_branch(package)
+            ls_remote_string = package.run(:import,
+                Autobuild.tool('git'), 'ls-remote', '--symref', repository).first.strip
+            default_branch_match = ls_remote_string.match("ref:[^A-z]refs/heads/(.*)[^A-z]HEAD")
+            if default_branch_match != nil
+                return default_branch_match[1]
+            else
+                return 'master'
+            end
+        end
+
+        # Return default local branch if exists, if not return the default remote branch
+        #
+        # @param [Package] package
+        def default_branch(package)
+            local_branch = default_local_branch(package)
+            if local_branch.nil?
+                return default_remote_branch(package)
+            else
+                return local_branch
+            end
+        end
+
+        def has_all_branches?
+            if remote_branch.nil? || local_branch.nil?
+                false
+            else
+                true
+            end
+        end
+
         # @api private
         #
         # Resolves the git directory associated with path, and tells whether it
@@ -477,6 +523,9 @@ module Autobuild
         #
         # Set a remote up in the repositorie's configuration
         def setup_remote(package, remote_name, repository, push_to = repository)
+            if !has_all_branches?
+                relocate(repository, branch: default_branch(package))
+            end
             run_git_bare(package, 'config', '--replace-all',
                 "remote.#{remote_name}.url", repository)
             run_git_bare(package, 'config', '--replace-all',
@@ -706,7 +755,11 @@ module Autobuild
         end
 
         def has_local_branch?(package)
-            has_branch?(package, local_branch)
+            if !local_branch.nil?
+                has_branch?(package, local_branch)
+            else
+                false
+            end
         end
 
         def detached_head?(package)
@@ -714,10 +767,12 @@ module Autobuild
         end
 
         private def remote_branch_to_ref(branch)
-            if branch.start_with?("refs/")
-                branch
-            else
-                "refs/heads/#{branch}"
+            if !branch.nil?
+                if branch.start_with?("refs/")
+                    branch
+                else
+                    "refs/heads/#{branch}"
+                end
             end
         end
 
@@ -1065,6 +1120,11 @@ module Autobuild
         # @option (see Package#update)
         def update(package, options = Hash.new)
             validate_importdir(package)
+
+            if !has_all_branches?
+                relocate(repository, branch: default_branch(package))
+            end
+
             only_local = options.fetch(:only_local, false)
             reset = options.fetch(:reset, false)
 
@@ -1210,13 +1270,15 @@ module Autobuild
 
             local_branch  =
                 options[:local_branch] || options[:branch] ||
-                self.local_branch || 'master'
+                self.local_branch || nil
             remote_branch =
                 options[:remote_branch] || options[:branch] ||
-                self.remote_branch || 'master'
-            if local_branch.start_with?("refs/")
-                raise ArgumentError, "you cannot provide a full ref for"\
-                  " the local branch, only for the remote branch"
+                self.remote_branch || nil
+            if local_branch
+                if local_branch.start_with?("refs/")
+                    raise ArgumentError, "you cannot provide a full ref for"\
+                    " the local branch, only for the remote branch"
+                end
             end
 
             @push_to = options[:push_to] || @push_to
