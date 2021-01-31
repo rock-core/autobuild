@@ -70,6 +70,13 @@ describe Autobuild::Git do
             assert_equal 'random', importer.local_branch
             assert_equal 'test', importer.remote_branch
         end
+        it "default_branch does not override old set" do
+            importer.local_branch = 'random_local'
+            importer.remote_branch = 'random_remote'
+            importer.relocate('test', default_branch: 'test')
+            assert_equal 'random_local', importer.local_branch
+            assert_equal 'random_remote', importer.remote_branch
+        end
         it "reuses the local branch if not given as option" do
             importer.local_branch = 'random'
             importer.relocate('test')
@@ -749,11 +756,31 @@ describe Autobuild::Git do
         @gitrepo = File.join(tempdir, 'gitrepo-nomaster.git')
         @pkg = Autobuild::Package.new 'test'
         pkg.srcdir = File.join(tempdir, 'git')
+        @importer = Autobuild.git(gitrepo, remote_branch: 'refs/heads/non-default/branch')
+        pkg.importer = importer
+    end
+
+    describe "correct remote checkout" do
+        it "checkout remote branch HEAD" do
+            Autobuild.silent = true
+            importer.checkout(pkg)
+            assert_equal '1a5e6fb472c9622af4ef02f2706f5bd7eaac2fe9', importer.rev_parse(pkg, 'HEAD')
+        end
+    end
+end
+
+describe Autobuild::Git do
+    attr_reader :pkg, :importer, :gitrepo
+    before do
+        tempdir = untar('gitrepo-nomaster.tar.xz')
+        @gitrepo = File.join(tempdir, 'gitrepo-nomaster.git')
+        @pkg = Autobuild::Package.new 'test'
+        pkg.srcdir = File.join(tempdir, 'git')
         @importer = Autobuild.git(gitrepo)
         pkg.importer = importer
     end
 
-    describe "Exist local branch before HEAD check" do
+    describe "exist local branch before HEAD check" do
         it "get default remote brach" do
             Autobuild.silent = true
             assert_equal 'temp/branch', importer.default_remote_branch(pkg)
@@ -807,8 +834,8 @@ describe Autobuild::Git do
         pkg.importer = importer
     end
 
-    describe "Local single branch" do
-        it "Return nil if local branch does not exists" do
+    describe "local single branch" do
+        it "return nil if local branch does not exists" do
             Autobuild.silent = true
             assert_equal nil, importer.default_local_branch(pkg)
         end

@@ -312,7 +312,7 @@ module Autobuild
             ls_remote_string = package.run(:import,
                 Autobuild.tool('git'), 'ls-remote', '--symref', repository).first.strip
             default_branch_match = ls_remote_string.match("ref:[^A-z]refs/heads/(.*)[^A-z]HEAD")
-            if default_branch_match != nil
+            if !default_branch_match.nil?
                 return default_branch_match[1]
             else
                 return 'master'
@@ -524,7 +524,7 @@ module Autobuild
         # Set a remote up in the repositorie's configuration
         def setup_remote(package, remote_name, repository, push_to = repository)
             if !has_all_branches?
-                relocate(repository, branch: default_branch(package))
+                relocate(repository, default_branch: default_branch(package))
             end
             run_git_bare(package, 'config', '--replace-all',
                 "remote.#{remote_name}.url", repository)
@@ -1122,7 +1122,7 @@ module Autobuild
             validate_importdir(package)
 
             if !has_all_branches?
-                relocate(repository, branch: default_branch(package))
+                relocate(repository, default_branch: default_branch(package))
             end
 
             only_local = options.fetch(:only_local, false)
@@ -1270,10 +1270,10 @@ module Autobuild
 
             local_branch  =
                 options[:local_branch] || options[:branch] ||
-                self.local_branch || nil
+                self.local_branch || options[:default_branch] || nil
             remote_branch =
                 options[:remote_branch] || options[:branch] ||
-                self.remote_branch || nil
+                self.remote_branch || options[:default_branch] || nil
             if local_branch
                 if local_branch.start_with?("refs/")
                     raise ArgumentError, "you cannot provide a full ref for"\
