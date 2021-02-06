@@ -1097,7 +1097,7 @@ module Autobuild
             end
 
             if !only_local && with_submodules?
-                run_git(package, "submodule", "update", '--init')
+                run_git(package, "submodule", "update", '--init', '--recursive')
                 did_update = true
             end
 
@@ -1201,7 +1201,7 @@ module Autobuild
             update_remotes_configuration(package)
             update(package, only_local: !remote_branch.start_with?("refs/"),
                             reset: :force)
-            run_git(package, "submodule", "update", '--init') if with_submodules?
+            run_git(package, "submodule", "update", '--init', '--recursive') if with_submodules?
         end
 
         # Changes the repository this importer is pointing to
