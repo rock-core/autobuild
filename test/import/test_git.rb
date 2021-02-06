@@ -687,6 +687,84 @@ describe Autobuild::Git do
         end
     end
 
+    describe "nested submodules handling" do
+        before do
+            @master_root_commit = 'cc89d47'
+            tempdir = untar 'gitrepo-submodule-nested.tar'
+            untar 'gitrepo-submodule-master.tar'
+            untar 'gitrepo-submodule-child.tar'
+            srcdir     = File.join(tempdir, 'gitrepo-submodule-nested')
+            @pkg       = Autobuild::Package.new 'nested_submodules_test'
+            pkg.srcdir = srcdir
+            @importer  = Autobuild.git("#{srcdir}.git", with_submodules: true)
+            pkg.importer = importer
+        end
+
+        describe "checkout" do
+            it "checkouts submodules" do
+                import
+                assert_checkout_file_exist 'master', '.git'
+                assert_equal "Commit 1\n", checkout_read('master', 'FILE')
+                assert_equal "Commit 1\n", checkout_read('master', 'child', 'FILE')
+            end
+            it "checkouts submodules at the state of the tag/commit pin" do
+                import commit: @master_root_commit
+                assert_equal "Commit 0\n", checkout_read('master', 'FILE')
+                assert_equal "Commit 0\n", checkout_read('master', 'child', 'FILE')
+            end
+            it "checkouts the submodule of the local branch" do
+                import branch: 'a_branch'
+                assert_equal "Commit 0\n", checkout_read('master', 'FILE')
+                assert_equal "Commit 0\n", checkout_read('master', 'child', 'FILE')
+            end
+        end
+
+        describe "update" do
+            it "updates submodules" do
+                import commit: @master_root_commit
+                import commit: nil
+                assert_equal "Commit 1\n", checkout_read('master', 'FILE')
+                assert_equal "Commit 1\n", checkout_read('master', 'child', 'FILE')
+            end
+            it "updates submodules when checking out new branches" do
+                import
+                assert_equal "Commit 1\n", checkout_read('master', 'FILE')
+                assert_equal "Commit 1\n", checkout_read('master', 'child', 'FILE')
+                import branch: 'a_branch'
+                assert_equal "Commit 0\n", checkout_read('master', 'FILE')
+                assert_equal "Commit 0\n", checkout_read('master', 'child', 'FILE')
+            end
+            it "updates submodules when checking out existing branches" do
+                import
+                import branch: 'a_branch'
+                import branch: 'master'
+                assert_equal "Commit 1\n", checkout_read('master', 'FILE')
+                assert_equal "Commit 1\n", checkout_read('master', 'child', 'FILE')
+            end
+            it "initializes new submodules" do
+                import commit: @master_root_commit
+                FileUtils.rm_rf checkout_path('master', 'commit1_submodule')
+                import commit: nil
+                assert_equal "Commit 1\n", checkout_read('master', 'commit1_submodule', 'FILE')
+            end
+        end
+
+        describe "reset" do
+            it "resets submodules" do
+                import
+                force_reset commit: @master_root_commit
+                assert_equal "Commit 0\n", checkout_read('master', 'FILE')
+                assert_equal "Commit 0\n", checkout_read('master', 'child', 'FILE')
+            end
+            it "initializes new submodules" do
+                import
+                refute_checkout_file_exist 'master', 'commit0_submodule'
+                force_reset commit: @master_root_commit
+                assert_equal "Commit 1\n", checkout_read('master','commit0_submodule', 'FILE')
+            end
+        end
+    end
+
     describe "fingerprint generation" do
         before do
             importer.import(pkg)
