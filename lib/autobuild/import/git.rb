@@ -294,49 +294,36 @@ module Autobuild
         end
 
         
-        # Return default local branch if exists, if not return nil
+        # Return the remote head branch from local copy if exists, if not return nil
         #
         # @param [Package] package
-        def default_local_branch(package)
+        def try_resolve_remote_head_from_local(package)
             ls_local_string = run_git(package, 'symbolic-ref', "refs/remotes/#{@remote_name}/HEAD").first.strip
-            default_local_branch = ls_local_string.match("refs/remotes/#{@remote_name}/(.*)")
-            default_local_branch.nil? ? nil : default_local_branch[1]
-            rescue Autobuild::SubcommandFailed
-                return nil
+            local_remote_head = ls_local_string.match("refs/remotes/#{@remote_name}/(.*)")
+            local_remote_head ? local_remote_head[1] : nil
+        rescue Autobuild::SubcommandFailed
         end
 
-        # Return default remote branch if exists, if not return 'master'
+        # Return the remote head branch from server if exists, if not return 'master'
         #
         # @param [Package] package
-        def default_remote_branch(package)
+        def try_resolve_remote_head_from_server(package)
             ls_remote_string = package.run(:import,
                 Autobuild.tool('git'), 'ls-remote', '--symref', repository).first.strip
-            default_branch_match = ls_remote_string.match("ref:[^A-z]refs/heads/(.*)[^A-z]HEAD")
-            if !default_branch_match.nil?
-                return default_branch_match[1]
-            else
-                return 'master'
-            end
+            server_remote_head = ls_remote_string.match("ref:[^A-z]refs/heads/(.*)[^A-z]HEAD")
+            server_remote_head ? server_remote_head[1] : 'master'
         end
 
         # Return default local branch if exists, if not return the default remote branch
         #
         # @param [Package] package
-        def default_branch(package)
-            local_branch = default_local_branch(package)
-            if local_branch.nil?
-                return default_remote_branch(package)
-            else
-                return local_branch
-            end
+        def resolve_remote_head(package)
+            local_remote_head = try_resolve_remote_head_from_local(package)
+            local_remote_head ? local_remote_head : try_resolve_remote_head_from_server(package)
         end
 
         def has_all_branches?
-            if remote_branch.nil? || local_branch.nil?
-                false
-            else
-                true
-            end
+            remote_branch && local_branch
         end
 
         # @api private
@@ -523,8 +510,8 @@ module Autobuild
         #
         # Set a remote up in the repositorie's configuration
         def setup_remote(package, remote_name, repository, push_to = repository)
-            if !has_all_branches?
-                relocate(repository, default_branch: default_branch(package))
+            unless has_all_branches?
+                relocate(repository, default_branch: resolve_remote_head(package))
             end
             run_git_bare(package, 'config', '--replace-all',
                 "remote.#{remote_name}.url", repository)
@@ -755,11 +742,7 @@ module Autobuild
         end
 
         def has_local_branch?(package)
-            if !local_branch.nil?
-                has_branch?(package, local_branch)
-            else
-                false
-            end
+            has_branch?(package, local_branch) if local_branch
         end
 
         def detached_head?(package)
@@ -767,12 +750,11 @@ module Autobuild
         end
 
         private def remote_branch_to_ref(branch)
-            if !branch.nil?
-                if branch.start_with?("refs/")
-                    branch
-                else
-                    "refs/heads/#{branch}"
-                end
+            return unless branch
+            if branch.start_with?("refs/")
+                branch
+            else
+                "refs/heads/#{branch}"
             end
         end
 
@@ -1121,8 +1103,8 @@ module Autobuild
         def update(package, options = Hash.new)
             validate_importdir(package)
 
-            if !has_all_branches?
-                relocate(repository, default_branch: default_branch(package))
+            unless has_all_branches?
+                relocate(repository, default_branch: resolve_remote_head(package))
             end
 
             only_local = options.fetch(:only_local, false)
@@ -1277,7 +1259,7 @@ module Autobuild
             if local_branch
                 if local_branch.start_with?("refs/")
                     raise ArgumentError, "you cannot provide a full ref for"\
-                    " the local branch, only for the remote branch"
+                        " the local branch, only for the remote branch"
                 end
             end
 
