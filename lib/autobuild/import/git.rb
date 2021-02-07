@@ -293,12 +293,12 @@ module Autobuild
             git_dir(package, true)
         end
 
-        
         # Return the remote head branch from local copy if exists, if not return nil
         #
         # @param [Package] package
         def try_resolve_remote_head_from_local(package)
-            ls_local_string = run_git(package, 'symbolic-ref', "refs/remotes/#{@remote_name}/HEAD").first.strip
+            ls_local_string = run_git(package, 'symbolic-ref',
+                                      "refs/remotes/#{@remote_name}/HEAD").first.strip
             local_remote_head = ls_local_string.match("refs/remotes/#{@remote_name}/(.*)")
             local_remote_head ? local_remote_head[1] : nil
         rescue Autobuild::SubcommandFailed
@@ -310,7 +310,8 @@ module Autobuild
         def try_resolve_remote_head_from_server(package)
             ls_remote_string = package.run(:import,
                 Autobuild.tool('git'), 'ls-remote', '--symref', repository).first.strip
-            server_remote_head = ls_remote_string.match("ref:[^A-z]refs/heads/(.*)[^A-z]HEAD")
+            server_remote_head =
+                ls_remote_string.match("ref:[^A-z]refs/heads/(.*)[^A-z]HEAD")
             server_remote_head ? server_remote_head[1] : 'master'
         end
 
@@ -318,8 +319,8 @@ module Autobuild
         #
         # @param [Package] package
         def resolve_remote_head(package)
-            local_remote_head = try_resolve_remote_head_from_local(package)
-            local_remote_head ? local_remote_head : try_resolve_remote_head_from_server(package)
+            try_resolve_remote_head_from_local(package) ||
+                try_resolve_remote_head_from_server(package)
         end
 
         def has_all_branches?
@@ -1256,11 +1257,9 @@ module Autobuild
             remote_branch =
                 options[:remote_branch] || options[:branch] ||
                 self.remote_branch || options[:default_branch] || nil
-            if local_branch
-                if local_branch.start_with?("refs/")
-                    raise ArgumentError, "you cannot provide a full ref for"\
-                        " the local branch, only for the remote branch"
-                end
+            if local_branch&.start_with?("refs/")
+                raise ArgumentError, "you cannot provide a full ref for"\
+                    " the local branch, only for the remote branch"
             end
 
             @push_to = options[:push_to] || @push_to
