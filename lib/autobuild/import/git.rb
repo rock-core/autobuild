@@ -293,6 +293,40 @@ module Autobuild
             git_dir(package, true)
         end
 
+        # Return the remote head branch from local copy if exists, if not return nil
+        #
+        # @param [Package] package
+        def try_resolve_remote_head_from_local(package)
+            ls_local_string = run_git(package, 'symbolic-ref',
+                                      "refs/remotes/#{@remote_name}/HEAD").first.strip
+            local_remote_head = ls_local_string.match("refs/remotes/#{@remote_name}/(.*)")
+            local_remote_head ? local_remote_head[1] : nil
+        rescue Autobuild::SubcommandFailed
+        end
+
+        # Return the remote head branch from server if exists, if not return 'master'
+        #
+        # @param [Package] package
+        def try_resolve_remote_head_from_server(package)
+            ls_remote_string = package.run(:import,
+                Autobuild.tool('git'), 'ls-remote', '--symref', repository).first.strip
+            server_remote_head =
+                ls_remote_string.match("ref:[^A-z]refs/heads/(.*)[^A-z]HEAD")
+            server_remote_head ? server_remote_head[1] : 'master'
+        end
+
+        # Return default local branch if exists, if not return the default remote branch
+        #
+        # @param [Package] package
+        def resolve_remote_head(package)
+            try_resolve_remote_head_from_local(package) ||
+                try_resolve_remote_head_from_server(package)
+        end
+
+        def has_all_branches?
+            remote_branch && local_branch
+        end
+
         # @api private
         #
         # Resolves the git directory associated with path, and tells whether it
@@ -477,6 +511,9 @@ module Autobuild
         #
         # Set a remote up in the repositorie's configuration
         def setup_remote(package, remote_name, repository, push_to = repository)
+            unless has_all_branches?
+                relocate(repository, default_branch: resolve_remote_head(package))
+            end
             run_git_bare(package, 'config', '--replace-all',
                 "remote.#{remote_name}.url", repository)
             run_git_bare(package, 'config', '--replace-all',
@@ -706,7 +743,7 @@ module Autobuild
         end
 
         def has_local_branch?(package)
-            has_branch?(package, local_branch)
+            has_branch?(package, local_branch) if local_branch
         end
 
         def detached_head?(package)
@@ -714,6 +751,7 @@ module Autobuild
         end
 
         private def remote_branch_to_ref(branch)
+            return unless branch
             if branch.start_with?("refs/")
                 branch
             else
@@ -1065,6 +1103,11 @@ module Autobuild
         # @option (see Package#update)
         def update(package, options = Hash.new)
             validate_importdir(package)
+
+            unless has_all_branches?
+                relocate(repository, default_branch: resolve_remote_head(package))
+            end
+
             only_local = options.fetch(:only_local, false)
             reset = options.fetch(:reset, false)
 
@@ -1210,13 +1253,13 @@ module Autobuild
 
             local_branch  =
                 options[:local_branch] || options[:branch] ||
-                self.local_branch || 'master'
+                self.local_branch || options[:default_branch] || nil
             remote_branch =
                 options[:remote_branch] || options[:branch] ||
-                self.remote_branch || 'master'
-            if local_branch.start_with?("refs/")
+                self.remote_branch || options[:default_branch] || nil
+            if local_branch&.start_with?("refs/")
                 raise ArgumentError, "you cannot provide a full ref for"\
-                  " the local branch, only for the remote branch"
+                    " the local branch, only for the remote branch"
             end
 
             @push_to = options[:push_to] || @push_to

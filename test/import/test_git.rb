@@ -26,11 +26,11 @@ describe Autobuild::Git do
         it "takes a local_branch argument" do
             git = Autobuild::Git.new('repo', local_branch: 'test')
             assert_equal "test", git.local_branch
-            assert_equal "master", git.remote_branch
+            assert_nil git.remote_branch
         end
         it "takes a remote_branch argument" do
             git = Autobuild::Git.new('repo', remote_branch: 'test')
-            assert_equal "master", git.local_branch
+            assert_nil git.local_branch
             assert_equal "test", git.remote_branch
         end
         it 'picks the default alternates by default' do
@@ -70,6 +70,13 @@ describe Autobuild::Git do
             assert_equal 'random', importer.local_branch
             assert_equal 'test', importer.remote_branch
         end
+        it "default_branch does not override old set" do
+            importer.local_branch = 'random_local'
+            importer.remote_branch = 'random_remote'
+            importer.relocate('test', default_branch: 'test')
+            assert_equal 'random_local', importer.local_branch
+            assert_equal 'random_remote', importer.remote_branch
+        end
         it "reuses the local branch if not given as option" do
             importer.local_branch = 'random'
             importer.relocate('test')
@@ -92,7 +99,7 @@ describe Autobuild::Git do
         end
         it "accepts a full ref as remote branch" do
             importer.relocate("test", remote_branch: "refs/heads/master")
-            assert_equal "master", importer.local_branch
+            assert_nil importer.local_branch
             assert_equal "refs/heads/master", importer.remote_branch
         end
     end
@@ -696,7 +703,7 @@ describe Autobuild::Git do
             assert_equal @expected_vcs_fingerprint, importer.fingerprint(pkg)
         end
         it "computes also the patches' fingerprint" do
-            test_patches = [['/path/to/patch', 1, 'source_test'],['other/path', 2, 'source2_test']]
+            test_patches = [['/path/to/patch', 1, 'source_test'], ['other/path', 2, 'source2_test']]
             flexmock(importer).
                 should_receive(:currently_applied_patches).
                 and_return(test_patches)
@@ -712,6 +719,107 @@ describe Autobuild::Git do
                 expected_patch_fingerprint)
 
             assert_equal expected_fingerprint, importer.fingerprint(pkg)
+        end
+    end
+
+    describe "check remote_branch checkout" do
+        before do
+            tempdir = untar('gitrepo-nomaster.tar.xz')
+            @gitrepo = File.join(tempdir, 'gitrepo-nomaster.git')
+            @pkg = Autobuild::Package.new 'tes_remote_branch_checkout'
+            pkg.srcdir = File.join(tempdir, 'git')
+            @importer = Autobuild.git(gitrepo, remote_branch: 'refs/heads/non-default/branch')
+            pkg.importer = importer
+        end
+
+        it "checkout remote branch HEAD" do
+            Autobuild.silent = true
+            importer.checkout(pkg)
+            assert_equal '1a5e6fb472c9622af4ef02f2706f5bd7eaac2fe9', importer.rev_parse(pkg, 'HEAD')
+        end
+    end
+
+    describe "no master branch on server" do
+        before do
+            tempdir = untar('gitrepo-nomaster.tar.xz')
+            @gitrepo = File.join(tempdir, 'gitrepo-nomaster.git')
+            @pkg = Autobuild::Package.new 'test_server_head'
+            pkg.srcdir = File.join(tempdir, 'git')
+            @importer = Autobuild.git(gitrepo)
+            pkg.importer = importer
+        end
+
+        it "get server remote head" do
+            Autobuild.silent = true
+            assert_equal 'temp/branch', importer.try_resolve_remote_head_from_server(pkg)
+        end
+        it "get local remote head" do
+            Autobuild.silent = true
+            importer.checkout(pkg)
+            assert_equal 'temp/branch', importer.try_resolve_remote_head_from_local(pkg)
+        end
+        it "not call ls-remote if local existis on resolve_remote call" do
+            Autobuild.silent = true
+            importer.checkout(pkg)
+            flexmock(Autobuild::Subprocess)
+                .should_receive(:run)
+                .with(
+                    any, :import, 'git', 'ls-remote', '--symref',
+                    File.join(tempdir, 'gitrepo-nomaster.git'), any
+                )
+                .never
+            flexmock(Autobuild::Subprocess).should_receive(:run).pass_thru
+            assert_equal 'temp/branch', importer.resolve_remote_head(pkg)
+        end
+        it "use default branch from repo" do
+            Autobuild.silent = true
+            importer.checkout(pkg)
+            assert_equal 'temp/branch', importer.branch
+        end
+        it "local check if remote head exists" do
+            flexmock(Autobuild::Subprocess)
+                .should_receive(:run)
+                .with(
+                    any, :import, 'git', 'symbolic-ref', "refs/remotes/autobuild/HEAD", any
+                )
+                .once
+                .and_return(['ref: refs/heads/temp/branch HEAD', 'bla'])
+            flexmock(Autobuild::Subprocess).should_receive(:run).pass_thru
+            importer.import(pkg)
+        end
+    end
+
+    describe "local single branch copy" do
+        before do
+            tempdir = untar('gitrepo-nomaster.tar.xz')
+            tempdir_local = untar('gitlocal-nomaster-singlenomaster.tar.xz') # Single branch, no master
+            @gitrepo = File.join(tempdir, 'gitrepo-nomaster.git')
+            @pkg = Autobuild::Package.new 'test_single_branch_package'
+            pkg.srcdir = File.join(tempdir_local, 'gitrepo-nomaster')
+            @importer = Autobuild.git(gitrepo)
+            pkg.importer = importer
+        end
+
+        it "return nil if local remote head does not exists" do
+            Autobuild.silent = true
+            assert_nil importer.try_resolve_remote_head_from_local(pkg)
+        end
+        it "resolve remote head if not present on local copy" do
+            Autobuild.silent = true
+            assert_equal 'temp/branch', importer.resolve_remote_head(pkg)
+        end
+        it "shell out to git to check repo HEAD if not present on local copy" do
+            flexmock(Autobuild::Subprocess)
+                .should_receive(:run)
+                .with(
+                    any, :import, 'git', 'ls-remote', '--symref',
+                    File.join(tempdir, 'gitrepo-nomaster.git'), any
+                )
+                .once
+                .and_return(['ref: refs/heads/temp/branch HEAD', 'bla'])
+            flexmock(Autobuild::Subprocess).should_receive(:run).pass_thru
+            importer.import(pkg)
+            assert_equal 'temp/branch', importer.branch
         end
     end
 
