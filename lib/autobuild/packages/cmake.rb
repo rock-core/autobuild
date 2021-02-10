@@ -25,6 +25,7 @@ module Autobuild
             end
 
             attr_writer :full_reconfigures
+
             def full_reconfigures?
                 @full_reconfigures
             end
@@ -36,8 +37,7 @@ module Autobuild
             # It can be overriden on a per-package basis with CMake.generator=
             attr_accessor :generator
 
-            attr_reader :prefix_path
-            attr_reader :module_path
+            attr_reader :prefix_path, :module_path
 
             # Whether files that are not within CMake's install manifest but are
             # present in the prefix should be deleted. Note that the contents of
@@ -63,6 +63,7 @@ module Autobuild
 
         # a key => value association of defines for CMake
         attr_reader :defines
+
         # The list of all -D options that should be passed on to CMake
         def all_defines
             additional_defines = Hash[
@@ -81,6 +82,7 @@ module Autobuild
         # Sets a generator explicitely for this component. See #generator and
         # CMake.generator
         attr_writer :generator
+
         # The CMake generator to use. You must choose one that generates
         # Makefiles. If not set for this package explicitely, it is using the
         # global value CMake.generator.
@@ -320,7 +322,7 @@ module Autobuild
             end
         end
 
-        def import(options = Hash.new)
+        def import(**options)
             super
 
             Dir.glob(File.join(srcdir, "*.pc.in")) do |file|
@@ -410,7 +412,7 @@ module Autobuild
                 in_dir(builddir) do
                     unless File.file?(File.join(srcdir, 'CMakeLists.txt'))
                         raise ConfigException.new(self, 'configure'),
-                            "#{srcdir} contains no CMakeLists.txt file"
+                              "#{srcdir} contains no CMakeLists.txt file"
                     end
 
                     command = ["cmake"]
@@ -545,7 +547,8 @@ module Autobuild
 
         def self_fingerprint
             return unless (base = super)
-            all_defines = self.class.defines.merge(self.defines).sort_by(&:first)
+
+            all_defines = self.class.defines.merge(defines).sort_by(&:first)
             Digest::SHA1.hexdigest(base + all_defines.join(""))
         end
     end

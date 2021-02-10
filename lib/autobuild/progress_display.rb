@@ -45,7 +45,7 @@ module Autobuild
         # Valid progress modes
         #
         # @see progress_mode=
-        PROGRESS_MODES = %I[single_line newline off]
+        PROGRESS_MODES = %I[single_line newline off].freeze
 
         # Sets how progress messages will be displayed
         #
@@ -57,7 +57,7 @@ module Autobuild
             unless PROGRESS_MODES.include?(mode)
                 raise ArgumentError,
                       "#{mode} is not a valid mode, expected one of "\
-                      "#{PROGRESS_MODES.join(", ")}"
+                      "#{PROGRESS_MODES.join(', ')}"
             end
             @progress_mode = mode
         end
@@ -72,9 +72,7 @@ module Autobuild
             @silent
         end
 
-        def silent=(flag)
-            @silent = flag
-        end
+        attr_writer :silent
 
         def silent
             silent = @silent
@@ -156,7 +154,7 @@ module Autobuild
             if changed
                 if message
                     message("  #{message}")
-                    # Note: message updates the display already
+                    # NOTE: message updates the display already
                 else
                     refresh_display
                 end
@@ -178,9 +176,7 @@ module Autobuild
             # Display queued messages
             until @message_queue.empty?
                 message, args, io = @message_queue.pop
-                if @progress_mode == :single_line
-                    io.print @cursor.clear_screen_down
-                end
+                io.print @cursor.clear_screen_down if @progress_mode == :single_line
                 io.puts @color.call(message, *args)
 
                 io.flush if @io != io

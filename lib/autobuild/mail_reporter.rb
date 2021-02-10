@@ -22,8 +22,11 @@ if Autobuild::HAS_RMAIL
             end
 
             attr_reader :from_email, :to_email, :smtp_hostname, :smtp_port,
-                :subject, :only_errors
+                        :subject, :only_errors
+
             def initialize(config)
+                super()
+
                 @from_email = (config[:from] || default_mail)
                 @to_email   = (config[:to]   || default_mail)
                 @subject =
@@ -78,7 +81,7 @@ if Autobuild::HAS_RMAIL
                         to_email.each do |email|
                             mail.header.to = email
                             smtp.send_mail(RMail::Serialize.write('', mail),
-                                from_email, email)
+                                           from_email, email)
                         end
                     end
 

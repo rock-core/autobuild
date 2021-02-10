@@ -17,9 +17,9 @@ module Autobuild
         # @option options [String] :branch (default) the branch to track
         def initialize(repository, options = {})
             hgopts, _common = Kernel.filter_options options,
-                branch: 'default'
+                                                    branch: 'default'
             sourceopts, common = Kernel.filter_options options,
-                :repository_id, :source_id
+                                                       :repository_id, :source_id
 
             super(common)
             @branch = hgopts[:branch]
@@ -48,8 +48,8 @@ module Autobuild
         def validate_importdir(package)
             unless File.directory?(File.join(package.importdir, '.hg'))
                 raise ConfigException.new(package, 'import'),
-                    "while importing #{package.name}, "\
-                    "#{package.importdir} is not a hg repository"
+                      "while importing #{package.name}, "\
+                      "#{package.importdir} is not a hg repository"
             end
         end
 
@@ -61,9 +61,9 @@ module Autobuild
             end
             validate_importdir(package)
             package.run(:import, Autobuild.tool('hg'), 'pull',
-                repository, retry: true, working_directory: package.importdir)
+                        repository, retry: true, working_directory: package.importdir)
             package.run(:import, Autobuild.tool('hg'), 'update',
-                branch, working_directory: package.importdir)
+                        branch, working_directory: package.importdir)
             true # no easy to know if package was updated, keep previous behavior
         end
 
@@ -72,7 +72,7 @@ module Autobuild
             FileUtils.mkdir_p(base_dir) unless File.directory?(base_dir)
 
             package.run(:import, Autobuild.tool('hg'), 'clone',
-                '-u', branch, repository, package.importdir, retry: true)
+                        '-u', branch, repository, package.importdir, retry: true)
         end
     end
 

@@ -10,26 +10,26 @@ module Autobuild
         if includes.empty?
             begin
                 importer.run_git_bare(package, 'config', '--local',
-                    '--unset', 'lfs.fetchinclude')
+                                      '--unset', 'lfs.fetchinclude')
             rescue SubcommandFailed => e
                 raise if e.status != 5
             end
         else
             importer.run_git_bare(package, 'config', '--local',
-                'lfs.fetchinclude', includes)
+                                  'lfs.fetchinclude', includes)
         end
 
         excludes = importer.options.fetch(:lfs_exclude, '')
         if excludes.empty?
             begin
                 importer.run_git_bare(package, 'config', '--local',
-                    '--unset', 'lfs.fetchexclude')
+                                      '--unset', 'lfs.fetchexclude')
             rescue SubcommandFailed => e
                 raise if e.status != 5
             end
         else
             importer.run_git_bare(package, 'config', '--local',
-                'lfs.fetchexclude', excludes)
+                                  'lfs.fetchexclude', excludes)
         end
 
         if importer.options[:lfs] != false

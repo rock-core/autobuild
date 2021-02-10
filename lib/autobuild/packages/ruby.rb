@@ -40,7 +40,7 @@ module Autobuild
                                done_message: 'generated documentation for %s' do
                     run 'doc',
                         Autobuild.tool_in_path('ruby'), '-S',
-                            Autobuild.tool('rake'), rake_doc_task,
+                        Autobuild.tool('rake'), rake_doc_task,
                         working_directory: srcdir
                 end
             end
@@ -52,7 +52,7 @@ module Autobuild
                                done_message: 'tests passed for %s' do
                     run 'test',
                         Autobuild.tool_in_path('ruby'), '-S',
-                            Autobuild.tool('rake'), rake_test_task, *rake_test_options,
+                        Autobuild.tool('rake'), rake_test_task, *rake_test_options,
                         working_directory: srcdir
                 end
             end
@@ -62,7 +62,7 @@ module Autobuild
             if setup_task && File.file?(File.join(srcdir, 'Rakefile'))
                 run 'post-install',
                     Autobuild.tool_in_path('ruby'), '-S',
-                        Autobuild.tool('rake'), setup_task,
+                    Autobuild.tool('rake'), setup_task,
                     working_directory: srcdir
             end
         end
@@ -80,7 +80,7 @@ module Autobuild
             %w[ext tmp].each do |extdir|
                 if File.directory?(extdir)
                     Find.find(extdir) do |file|
-                        next if file !~ /\<Makefile\>|\<CMakeCache.txt\>$/
+                        next if file !~ /<Makefile>|<CMakeCache.txt>$/
 
                         FileUtils.rm_rf file
                     end
@@ -94,7 +94,7 @@ module Autobuild
                 begin
                     run 'clean',
                         Autobuild.tool_in_path('ruby'), '-S',
-                            Autobuild.tool('rake'), rake_clean_task,
+                        Autobuild.tool('rake'), rake_clean_task,
                         working_directory: srcdir
                 rescue Autobuild::SubcommandFailed => e
                     warn "%s: clean failed. If this package does not need a clean target,"

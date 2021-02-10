@@ -9,8 +9,7 @@ module Autobuild
 
     # Handler class to build python-based packages
     class Python < Configurable
-        attr_accessor   :buildflags
-        attr_accessor   :installflags
+        attr_accessor :buildflags, :installflags
 
         def configurestamp
             "#{builddir}/configure-autobuild-stamp"

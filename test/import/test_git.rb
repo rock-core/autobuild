@@ -2,6 +2,7 @@ require 'autobuild/test'
 
 describe Autobuild::Git do
     attr_reader :pkg, :importer, :gitrepo
+
     before do
         tempdir = untar('gitrepo.tar')
         @gitrepo = File.join(tempdir, 'gitrepo.git')
@@ -39,7 +40,7 @@ describe Autobuild::Git do
             assert_equal alt, git.alternates
         end
         it 'does not pick the default alternates if the importer is set up to use submodules' do
-            flexmock(Autobuild::Git, default_alternates: (alt = [flexmock]))
+            flexmock(Autobuild::Git, default_alternates: [flexmock])
             git = Autobuild::Git.new('repo', with_submodules: true)
             assert_equal [], git.alternates
         end
@@ -148,10 +149,10 @@ describe Autobuild::Git do
             assert importer.has_commit?(pkg, importer.rev_parse(pkg, '8b09cb0febae222b31e2ee55f839c1e00dc7edc4'))
         end
         it "returns false if the specified name does not resolve to an object" do
-            assert !importer.has_commit?(pkg, 'blabla')
+            refute importer.has_commit?(pkg, 'blabla')
         end
         it "returns false if the specified commit is not present locally" do
-            assert !importer.has_commit?(pkg, 'c8cf0798b1d53931314a86bdb3e2ad874eb8deb5')
+            refute importer.has_commit?(pkg, 'c8cf0798b1d53931314a86bdb3e2ad874eb8deb5')
         end
         it "raises for any other error" do
             flexmock(Autobuild::Subprocess).should_receive(:run).
@@ -172,7 +173,7 @@ describe Autobuild::Git do
         end
 
         it "returns false if the branch does not exist" do
-            assert !importer.has_branch?(pkg, 'does_not_exist')
+            refute importer.has_branch?(pkg, 'does_not_exist')
         end
 
         it "raises for any other error" do
@@ -194,7 +195,7 @@ describe Autobuild::Git do
             assert importer.detached_head?(pkg)
         end
         it "returns false if HEAD is pointing to a branch" do
-            assert !importer.detached_head?(pkg)
+            refute importer.detached_head?(pkg)
         end
         it "raises for any other error" do
             flexmock(Autobuild::Subprocess).should_receive(:run).
@@ -327,6 +328,7 @@ describe Autobuild::Git do
 
     describe "#commit_present_in?" do
         attr_reader :commits
+
         before do
             importer.import(pkg)
             @commits = [
@@ -343,7 +345,7 @@ describe Autobuild::Git do
         end
         it "returns false if the revision is not in the provided branch" do
             importer.run_git(pkg, 'branch', 'fork', 'autobuild/fork')
-            assert !importer.commit_present_in?(pkg, commits[0], "refs/heads/fork")
+            refute importer.commit_present_in?(pkg, commits[0], "refs/heads/fork")
         end
         # git rev-parse return the tag ID for annotated tags instead of the
         # commit ID. This was in turn breaking commit_present_in?
@@ -360,24 +362,24 @@ describe Autobuild::Git do
 
         it "lists the tags from the repository and returns their name and commit" do
             assert_equal Hash["third_commit" => "1ddb20665622279700770be09f9a291b37c9b631"],
-                importer.tags(pkg)
+                         importer.tags(pkg)
         end
         it "fetches new tags by default" do
             system "git", "tag", "test", chdir: @gitrepo
             assert_equal Set["third_commit", 'test'],
-                importer.tags(pkg).keys.to_set
+                         importer.tags(pkg).keys.to_set
         end
         it "does not fetch new tags if only_local: true is given" do
             system "git", "tag", "test", chdir: @gitrepo
             assert_equal ["third_commit"],
-                importer.tags(pkg, only_local: true).keys
+                         importer.tags(pkg, only_local: true).keys
         end
     end
 
     describe "update" do
         it "accepts a full ref as remote_branch" do
             importer.relocate(importer.repository,
-                local_branch: 'test', remote_branch: 'refs/heads/master')
+                              local_branch: 'test', remote_branch: 'refs/heads/master')
             importer.import(pkg)
             assert_equal 'refs/heads/test', importer.current_branch(pkg)
         end

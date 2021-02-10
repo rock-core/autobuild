@@ -6,8 +6,7 @@ module Autobuild
     class BuildLogfile
         Entry = Struct.new :package, :phase, :start_time, :duration
 
-        attr_reader :by_package
-        attr_reader :by_phase
+        attr_reader :by_package, :by_phase
 
         def initialize(entries = Array.new)
             @entries = entries.dup

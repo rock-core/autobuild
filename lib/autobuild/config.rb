@@ -198,7 +198,7 @@ module Autobuild
                 opts.separator ""
                 opts.separator "General behaviour"
                 opts.on('--nice NICE', Integer,
-                    'nice the subprocesses to the given value') do |v|
+                        'nice the subprocesses to the given value') do |v|
                     Autobuild.nice = v
                 end
                 opts.on("-h", "--help", "Show this message") do
@@ -253,7 +253,7 @@ module Autobuild
                 opts.separator ""
                 opts.separator "Mail reports"
                 opts.on("--mail-from EMAIL", String,
-                    "From: field of the sent mails") do |from_email|
+                        "From: field of the sent mails") do |from_email|
                     mail[:from] = from_email
                 end
                 opts.on("--mail-to EMAILS", String, "comma-separated list of emails "\
@@ -262,7 +262,7 @@ module Autobuild
                     mail[:to] += emails.split(',')
                 end
                 opts.on("--mail-subject SUBJECT", String,
-                    "Subject: field of the sent mails") do |subject_email|
+                        "Subject: field of the sent mails") do |subject_email|
                     mail[:subject] = subject_email
                 end
                 opts.on("--mail-smtp HOSTNAME", String, "address of the mail server "\
@@ -301,7 +301,7 @@ module Autobuild
 
     def self.apply(packages, buildname = "autobuild", phases = [], options = Hash.new)
         options = Kernel.validate_options options,
-            parallel: Autobuild.parallel_build_level
+                                          parallel: Autobuild.parallel_build_level
 
         if Autobuild.mail[:to]
             if !Autobuild::HAS_RMAIL
@@ -361,7 +361,7 @@ module Autobuild
                             yield(task.package, phase) if package_tasks[task.name]
                         end
                     else
-                        proc { }
+                        proc {}
                     end
 
                 invoker.invoke_parallel([Rake::Task["#{buildname}-#{phase}"]],

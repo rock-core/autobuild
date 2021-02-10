@@ -4,15 +4,10 @@ module Autobuild
     # Since autobuild does not use task arguments, we don't support them for
     # simplicity
     class RakeTaskParallelism
-        attr_reader :available_workers
-        attr_reader :finished_workers
-        attr_reader :workers
-
-        attr_reader :job_server
+        attr_reader :available_workers, :finished_workers, :workers, :job_server
 
         class JobServer
-            attr_reader :rio
-            attr_reader :wio
+            attr_reader :rio, :wio
 
             def initialize(level)
                 @rio, @wio = IO.pipe
@@ -76,14 +71,10 @@ module Autobuild
         end
 
         class ProcessingState
-            attr_reader :reverse_dependencies
-            attr_reader :processed
-            attr_reader :started_packages
-            attr_reader :active_tasks
-            attr_reader :queue
-            attr_reader :priorities
+            attr_reader :reverse_dependencies, :processed, :started_packages,
+                        :active_tasks, :queue, :priorities
 
-            def initialize(reverse_dependencies, completion_callback: proc { })
+            def initialize(reverse_dependencies, completion_callback: proc {})
                 @reverse_dependencies = reverse_dependencies
                 @completion_callback = completion_callback
                 @processed = Set.new
@@ -156,7 +147,7 @@ module Autobuild
 
         # Invokes the provided tasks. Unlike the rake code, this is a toplevel
         # algorithm that does not use recursion
-        def invoke_parallel(required_tasks, completion_callback: proc { })
+        def invoke_parallel(required_tasks, completion_callback: proc {})
             tasks = Set.new
             reverse_dependencies = Hash.new { |h, k| h[k] = Set.new }
             required_tasks.each do |t|

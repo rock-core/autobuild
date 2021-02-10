@@ -12,6 +12,7 @@ It will be the second part of the two-part cat
     EXAMPLE_END
 
     attr_reader :source1, :source2
+
     def setup
         super
 

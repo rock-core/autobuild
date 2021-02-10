@@ -3,6 +3,7 @@ require 'autobuild/test'
 module Autobuild
     describe CMake do
         attr_reader :root_dir, :package, :prefix
+
         before do
             @root_dir = make_tmpdir
             @package = Autobuild.cmake :package
@@ -128,4 +129,3 @@ module Autobuild
         end
     end
 end
-

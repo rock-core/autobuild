@@ -203,7 +203,8 @@ module Autobuild
 
             patches_fingerprint_string = patches_fingerprint(package)
             if patches_fingerprint_string
-                Digest::SHA1.hexdigest(vcs_fingerprint_string + patches_fingerprint_string)
+                Digest::SHA1.hexdigest(vcs_fingerprint_string +
+                                       patches_fingerprint_string)
             elsif patches.empty?
                 vcs_fingerprint_string
             end
@@ -211,16 +212,19 @@ module Autobuild
 
         # basic fingerprint of the package and its dependencies
         def vcs_fingerprint(package)
-            #each importer type should implement its own 
-            Autoproj.warn "Fingerprint in #{package.name} has not been implemented for this type of packages, results should be discarded"
-            return nil
+            # each importer type should implement its own
+            Autoproj.warn "Fingerprint in #{package.name} has not been implemented "\
+                          "for this type of packages, results should be discarded"
+            nil
         end
 
         # fingerprint for patches associated to this package
         def patches_fingerprint(package)
             cur_patches = currently_applied_patches(package)
-            cur_patches.map(&:shift) #leave only level and source information
-            Digest::SHA1.hexdigest(cur_patches.sort.flatten.join("")) if !patches.empty? && cur_patches
+            cur_patches.map(&:shift) # leave only level and source information
+            if !patches.empty? && cur_patches
+              Digest::SHA1.hexdigest(cur_patches.sort.flatten.join(""))
+            end
         end
 
         # Sets the number of times update / checkout should be retried before giving
@@ -314,12 +318,10 @@ module Autobuild
         end
 
         # Enumerate the post-import hooks for this importer
-        def each_post_hook(error: false)
+        def each_post_hook(error: false, &block)
             return enum_for(__method__, error: false) unless block_given?
 
-            self.class.each_post_hook(error: error) do |callback|
-                yield(callback)
-            end
+            self.class.each_post_hook(error: error, &block)
 
             post_hooks.each do |hook|
                 yield(hook.callback) if hook.always || !error
@@ -357,9 +359,9 @@ module Autobuild
                     raise last_error
                 else raise
                 end
-            rescue ::Exception => original_error
+            rescue ::Exception => e
                 message = Autobuild.color('update failed', :red)
-                last_error = original_error
+                last_error = e
                 # If the package is patched, it might be that the update
                 # failed because we needed to unpatch first. Try it out
                 #
@@ -378,11 +380,11 @@ module Autobuild
                     rescue Interrupt
                         raise
                     rescue ::Exception
-                        raise original_error
+                        raise e
                     end
                 end
 
-                retry_count = update_retry_count(original_error, retry_count)
+                retry_count = update_retry_count(e, retry_count)
                 raise unless retry_count
 
                 package.message "update failed in #{package.importdir}, "\
@@ -399,20 +401,20 @@ module Autobuild
             fallback(e, package, :import, package)
         end
 
-        def perform_checkout(package, options = Hash.new)
+        def perform_checkout(package, **options)
             last_error = nil
             package.progress_start "checking out %s", :done_message => 'checked out %s' do
                 retry_count = 0
                 begin
-                    checkout(package, options)
+                    checkout(package, **options)
                     execute_post_hooks(package)
                 rescue Interrupt
                     if last_error then raise last_error
                     else raise
                     end
-                rescue ::Exception => original_error
-                    last_error = original_error
-                    retry_count = update_retry_count(original_error, retry_count)
+                rescue ::Exception => e
+                    last_error = e
+                    retry_count = update_retry_count(e, retry_count)
                     raise unless retry_count
 
                     package.message "checkout of %s failed, "\
@@ -456,31 +458,26 @@ module Autobuild
         #   ID is given will, in this mode, reset the repository to the requested ID
         #   (if that does not involve losing commits). Otherwise, it will only
         #   ensure that the requested commit ID is present in the current HEAD.
-        def import(package, options = Hash.new)
+        def import( # rubocop:disable Metrics/ParameterLists
+            package, *old_boolean,
+            ignore_errors: false, checkout_only: false, allow_interactive: true, **options
+        )
             # Backward compatibility
-            unless options.kind_of?(Hash)
-                options = options
+            unless old_boolean.empty?
+                old_boolean = old_boolean.first
                 Autoproj.warn "calling #import with a boolean as second argument "\
                     "is deprecated, switch to the named argument interface instead"
-                Autoproj.warn "   e.g. call import(package, only_local: #{options})"
+                Autoproj.warn "   e.g. call import(package, only_local: #{old_boolean})"
                 Autoproj.warn "   #{caller(1..1).first}"
-                options = Hash[only_local: options]
+                options[:only_local] = old_boolean
             end
-
-            options = Kernel.validate_options options,
-                only_local: false,
-                reset: false,
-                checkout_only: false,
-                ignore_errors: false,
-                allow_interactive: true
-            ignore_errors = options.delete(:ignore_errors)
 
             importdir = package.importdir
             if File.directory?(importdir)
                 package.isolate_errors(mark_as_failed: false,
                                        ignore_errors: ignore_errors) do
-                    if !options[:checkout_only] && package.update?
-                        perform_update(package, options)
+                    if !checkout_only && package.update?
+                        perform_update(package, checkout_only: false, **options)
                     elsif Autobuild.verbose
                         package.message "%s: not updating"
                     end
@@ -488,12 +485,11 @@ module Autobuild
 
             elsif File.exist?(importdir)
                 raise ConfigException.new(package, 'import'),
-                    "#{importdir} exists but is not a directory"
+                      "#{importdir} exists but is not a directory"
             else
                 package.isolate_errors(mark_as_failed: true,
                                        ignore_errors: ignore_errors) do
-                    perform_checkout(package,
-                        allow_interactive: options[:allow_interactive])
+                    perform_checkout(package, allow_interactive: allow_interactive)
                     true
                 end
             end

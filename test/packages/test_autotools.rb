@@ -228,9 +228,9 @@ module Autobuild
                     @package.using[:libtool] = true
                     @package.using[:autogen] = '/my/autogen/script'
                     @package.should_receive(:run).with(any, /libtoolize/, '--copy',
-                        working_directory: @package.srcdir).once.globally.ordered
+                                                       working_directory: @package.srcdir).once.globally.ordered
                     @package.should_receive(:run).with(any, "/my/autogen/script",
-                        working_directory: @package.srcdir).once.globally.ordered
+                                                       working_directory: @package.srcdir).once.globally.ordered
                     @package.should_receive(:run).with(any, /configure/, any, any).
                         once.globally.ordered
                     conffile = @package.prepare
@@ -244,9 +244,9 @@ module Autobuild
                     @package.using[:autoconf] = true
                     @package.using[:automake] = true
                     @package.should_receive(:run).with(any, /libtoolize/, '--copy',
-                        working_directory: @package.srcdir).once.globally.ordered
+                                                       working_directory: @package.srcdir).once.globally.ordered
                     @package.should_receive(:run).with(any, "/my/autogen/script",
-                        working_directory: @package.srcdir).once.globally.ordered
+                                                       working_directory: @package.srcdir).once.globally.ordered
                     @package.should_receive(:run).with(any, /configure/, any, any).
                         once.globally.ordered
                     conffile = @package.prepare
@@ -260,15 +260,15 @@ module Autobuild
                     @package.using[:autoconf] = true
                     @package.using[:automake] = true
                     @package.should_receive(:run).with(any, /libtoolize/, '--copy',
-                        working_directory: @package.srcdir).once.globally.ordered
+                                                       working_directory: @package.srcdir).once.globally.ordered
                     @package.should_receive(:run).with(any, /aclocal/,
-                        working_directory: @package.srcdir).once.globally.ordered
+                                                       working_directory: @package.srcdir).once.globally.ordered
                     @package.should_receive(:run).with(any, /autoconf/,
-                        working_directory: @package.srcdir).once.globally.ordered
+                                                       working_directory: @package.srcdir).once.globally.ordered
                     @package.should_receive(:run).with(any, /autoheader/,
-                        working_directory: @package.srcdir).once.globally.ordered
+                                                       working_directory: @package.srcdir).once.globally.ordered
                     @package.should_receive(:run).with(any, /automake/,
-                        working_directory: @package.srcdir).once.globally.ordered
+                                                       working_directory: @package.srcdir).once.globally.ordered
                     @package.should_receive(:run).with(any, /configure/, any, any).
                         once.globally.ordered
                     conffile = @package.prepare
@@ -286,15 +286,15 @@ module Autobuild
                     @package.automake_flags << "--test-automake"
                     @package.using[:automake] = true
                     @package.should_receive(:run).with(any, /libtoolize/, '--copy',
-                        working_directory: @package.srcdir).once.globally.ordered
+                                                       working_directory: @package.srcdir).once.globally.ordered
                     @package.should_receive(:run).with(any, /aclocal/, '--test-aclocal',
-                        working_directory: @package.srcdir).once.globally.ordered
+                                                       working_directory: @package.srcdir).once.globally.ordered
                     @package.should_receive(:run).with(any, /autoconf/, '--test-autoconf',
-                        working_directory: @package.srcdir).once.globally.ordered
+                                                       working_directory: @package.srcdir).once.globally.ordered
                     @package.should_receive(:run).with(any, /autoheader/, '--test-autoheader',
-                        working_directory: @package.srcdir).once.globally.ordered
+                                                       working_directory: @package.srcdir).once.globally.ordered
                     @package.should_receive(:run).with(any, /automake/, '--test-automake',
-                        working_directory: @package.srcdir).once.globally.ordered
+                                                       working_directory: @package.srcdir).once.globally.ordered
                     @package.should_receive(:run).with_any_args.
                         once.globally.ordered
                     conffile = @package.prepare
@@ -308,13 +308,13 @@ module Autobuild
                     @package.using[:autoconf] = true
                     @package.using[:automake] = true
                     @package.should_receive(:run).with(any, "aclocal",
-                        working_directory: @package.srcdir).once.globally.ordered
+                                                       working_directory: @package.srcdir).once.globally.ordered
                     @package.should_receive(:run).with(any, /autoconf/,
-                        working_directory: @package.srcdir).once.globally.ordered
+                                                       working_directory: @package.srcdir).once.globally.ordered
                     @package.should_receive(:run).with(any, /autoheader/,
-                        working_directory: @package.srcdir).once.globally.ordered
+                                                       working_directory: @package.srcdir).once.globally.ordered
                     @package.should_receive(:run).with(any, /automake/,
-                        working_directory: @package.srcdir).once.globally.ordered
+                                                       working_directory: @package.srcdir).once.globally.ordered
                     @package.should_receive(:run).with(any, /configure/, any, any).
                         once.globally.ordered
                     conffile = @package.prepare
@@ -328,13 +328,13 @@ module Autobuild
                     @package.using[:autoconf] = true
                     @package.using[:automake] = true
                     @package.should_receive(:run).with(any, /libtoolize/, '--copy',
-                        working_directory: @package.srcdir).once.globally.ordered
+                                                       working_directory: @package.srcdir).once.globally.ordered
                     @package.should_receive(:run).with(any, /autoconf/,
-                        working_directory: @package.srcdir).once.globally.ordered
+                                                       working_directory: @package.srcdir).once.globally.ordered
                     @package.should_receive(:run).with(any, /autoheader/,
-                        working_directory: @package.srcdir).once.globally.ordered
+                                                       working_directory: @package.srcdir).once.globally.ordered
                     @package.should_receive(:run).with(any, /automake/,
-                        working_directory: @package.srcdir).once.globally.ordered
+                                                       working_directory: @package.srcdir).once.globally.ordered
                     @package.should_receive(:run).with(any, /configure/, any, any).
                         once.globally.ordered
                     conffile = @package.prepare
@@ -348,13 +348,13 @@ module Autobuild
                     @package.using[:autoheader] = true
                     @package.using[:automake] = true
                     @package.should_receive(:run).with(any, /libtoolize/, '--copy',
-                        working_directory: @package.srcdir).once.globally.ordered
+                                                       working_directory: @package.srcdir).once.globally.ordered
                     @package.should_receive(:run).with(any, /aclocal/,
-                        working_directory: @package.srcdir).once.globally.ordered
+                                                       working_directory: @package.srcdir).once.globally.ordered
                     @package.should_receive(:run).with(any, /autoheader/,
-                        working_directory: @package.srcdir).once.globally.ordered
+                                                       working_directory: @package.srcdir).once.globally.ordered
                     @package.should_receive(:run).with(any, /automake/,
-                        working_directory: @package.srcdir).once.globally.ordered
+                                                       working_directory: @package.srcdir).once.globally.ordered
                     @package.should_receive(:run).with(any, /configure/, any, any).
                         once.globally.ordered
                     conffile = @package.prepare
@@ -368,13 +368,13 @@ module Autobuild
                     @package.using[:autoheader] = false
                     @package.using[:automake] = true
                     @package.should_receive(:run).with(any, /libtoolize/, '--copy',
-                        working_directory: @package.srcdir).once.globally.ordered
+                                                       working_directory: @package.srcdir).once.globally.ordered
                     @package.should_receive(:run).with(any, /aclocal/,
-                        working_directory: @package.srcdir).once.globally.ordered
+                                                       working_directory: @package.srcdir).once.globally.ordered
                     @package.should_receive(:run).with(any, /autoconf/,
-                        working_directory: @package.srcdir).once.globally.ordered
+                                                       working_directory: @package.srcdir).once.globally.ordered
                     @package.should_receive(:run).with(any, /automake/,
-                        working_directory: @package.srcdir).once.globally.ordered
+                                                       working_directory: @package.srcdir).once.globally.ordered
                     @package.should_receive(:run).with(any, /configure/, any, any).
                         once.globally.ordered
                     conffile = @package.prepare
@@ -388,13 +388,13 @@ module Autobuild
                     @package.using[:autoheader] = true
                     @package.using[:automake] = false
                     @package.should_receive(:run).with(any, /libtoolize/, '--copy',
-                        working_directory: @package.srcdir).once.globally.ordered
+                                                       working_directory: @package.srcdir).once.globally.ordered
                     @package.should_receive(:run).with(any, /aclocal/,
-                        working_directory: @package.srcdir).once.globally.ordered
+                                                       working_directory: @package.srcdir).once.globally.ordered
                     @package.should_receive(:run).with(any, /autoconf/,
-                        working_directory: @package.srcdir).once.globally.ordered
+                                                       working_directory: @package.srcdir).once.globally.ordered
                     @package.should_receive(:run).with(any, /autoheader/,
-                        working_directory: @package.srcdir).once.globally.ordered
+                                                       working_directory: @package.srcdir).once.globally.ordered
                     @package.should_receive(:run).with(any, /configure/, any, any).
                         once.globally.ordered
                     conffile = @package.prepare
@@ -467,14 +467,14 @@ module Autobuild
             it 'runs build command' do
                 @package.use bear: false
                 @package.should_receive(:run).with(any, Autobuild.tool(:make),
-                    "-j#{@package.parallel_build_level}").once
+                                                   "-j#{@package.parallel_build_level}").once
                 @package.send(:build)
             end
 
             it 'runs build command using bear' do
                 @package.use bear: '/path/to/bear'
                 @package.should_receive(:run).with(any, '/path/to/bear', '-a',
-                    Autobuild.tool(:make), "-j#{@package.parallel_build_level}").once
+                                                   Autobuild.tool(:make), "-j#{@package.parallel_build_level}").once
                 @package.send(:build)
             end
         end

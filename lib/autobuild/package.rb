@@ -64,7 +64,7 @@ module Autobuild
         # Some statistics about the commands that have been run
         attr_reader :statistics
 
-        EnvOp = Struct.new :type, :name, :values
+        EnvOp = Struct.new :type, :name, :values # rubocop:disable Lint/StructNewOverride
 
         # List of environment values added by this package with {#env_add},
         # {#env_add_path} or {#env_set}
@@ -150,6 +150,7 @@ module Autobuild
             @imported = false
             @prepared = false
             @built = false
+            @disabled = nil
 
             if Hash === spec
                 name, depends = spec.to_a.first
@@ -402,8 +403,8 @@ module Autobuild
         def isolate_errors(options = Hash.new)
             options = Hash[mark_as_failed: true] unless options.kind_of?(Hash)
             options = validate_options options,
-                mark_as_failed: true,
-                ignore_errors: Autobuild.ignore_errors
+                                       mark_as_failed: true,
+                                       ignore_errors: Autobuild.ignore_errors
 
             # Don't do anything if we already have failed
             if failed?
@@ -448,12 +449,12 @@ module Autobuild
         # be done there as well.
         #
         # (see Importer#import)
-        def import(options = Hash.new)
-            options = Hash[only_local: options] unless options.respond_to?(:to_hash)
+        def import(*old_boolean, **options)
+            options = { only_local: old_boolean.first } unless old_boolean.empty?
 
             @import_invoked = true
             if @importer
-                result = @importer.import(self, options)
+                result = @importer.import(self, **options)
             elsif update?
                 message "%s: no importer defined, doing nothing"
             end
@@ -495,12 +496,12 @@ module Autobuild
                 end
             end
             if suffix.empty?
-                return msg
+                msg
             elsif prefix_style.empty?
-                return (prefix + suffix).join(" ")
+                (prefix + suffix).join(" ")
             else
                 colorized_prefix = Autobuild.color(prefix.join(" "), *prefix_style)
-                return [colorized_prefix, *suffix].join(" ")
+                [colorized_prefix, *suffix].join(" ")
             end
         end
 
@@ -527,7 +528,7 @@ module Autobuild
             args[0] = process_formatting_string(args[0], :bold)
             done_message = process_formatting_string(done_message) if done_message
             Autobuild.progress_start(self, *args,
-                done_message: done_message, **raw_options, &block)
+                                     done_message: done_message, **raw_options, &block)
         end
 
         def progress(*args)
@@ -686,10 +687,11 @@ module Autobuild
                 pkg = Autobuild::Package[pkg_name]
                 unless (fingerprint = memo[pkg.name])
                     fingerprint = pkg.fingerprint(recursive: true, memo: memo)
-                    return unless fingerprint
+                    break unless fingerprint
                 end
                 fingerprint
             end
+            return unless dependency_fingerprints
 
             memo[name] = Digest::SHA1.hexdigest(
                 self_fingerprint + dependency_fingerprints.join(""))
@@ -837,7 +839,7 @@ module Autobuild
         end
 
         # Make sure that this package will be ignored in the build
-        def disable(phases = Autobuild.all_phases)
+        def disable(_phases = Autobuild.all_phases)
             @disabled = true
         end
 

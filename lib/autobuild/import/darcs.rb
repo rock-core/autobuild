@@ -28,12 +28,12 @@ module Autobuild
             end
             unless File.directory?(File.join(package.srcdir, '_darcs'))
                 raise ConfigException.new(package, 'import'),
-                    "#{package.srcdir} is not a Darcs repository"
+                      "#{package.srcdir} is not a Darcs repository"
             end
 
             package.run(:import, @program, 'pull', '--all',
-                "--repodir=#{package.srcdir}", '--set-scripts-executable',
-                @source, *@pull, retry: true)
+                        "--repodir=#{package.srcdir}", '--set-scripts-executable',
+                        @source, *@pull, retry: true)
             true # no easy to know if package was updated, keep previous behavior
         end
 
@@ -42,7 +42,7 @@ module Autobuild
             FileUtils.mkdir_p(basedir) unless File.directory?(basedir)
 
             package.run(:import, @program, 'get', '--set-scripts-executable',
-                @source, package.srcdir, *@get, retry: true)
+                        @source, package.srcdir, *@get, retry: true)
         end
     end
 

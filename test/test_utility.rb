@@ -13,7 +13,7 @@ module Autobuild
             end
 
             it 'is false if only a block is defined' do
-                @utility.task { }
+                @utility.task {}
                 refute @utility.available?
             end
 
@@ -28,19 +28,19 @@ module Autobuild
             end
 
             it 'is true if a block has been defined and the source dir is set' do
-                @utility.task { }
+                @utility.task {}
                 @utility.source_dir = '/some/path'
                 assert @utility.available?
             end
 
             it 'is true if a block has been defined and no_results is set' do
-                @utility.task { }
+                @utility.task {}
                 @utility.no_results = true
                 assert @utility.available?
             end
 
             it 'may be forcefully set to false' do
-                @utility.task { }
+                @utility.task {}
                 @utility.source_dir = '/some/path'
                 @utility.available = false
                 refute @utility.available?

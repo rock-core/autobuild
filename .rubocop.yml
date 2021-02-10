@@ -2,7 +2,7 @@ inherit_gem:
   rubocop-rock: defaults.yml
 
 AllCops:
-    TargetRubyVersion: "2.3"
+    TargetRubyVersion: "2.5"
     Exclude:
     - lib/autobuild/packages/genom.rb
     - vendor/**/*
@@ -15,9 +15,6 @@ Style/TrivialAccessors:
     IgnoreClassMethods: true
 
 Naming/PredicateName:
-    Enabled: false
-
-Lint/SplatKeywordArguments:
     Enabled: false
 
 Style/FrozenStringLiteralComment:
@@ -33,7 +30,7 @@ Naming/FileName:
 
 
 
-Layout/AlignParameters:
+Layout/ParameterAlignment:
     Enabled: false
 
 Layout/DotPosition:
@@ -42,7 +39,7 @@ Layout/DotPosition:
 Layout/FirstParameterIndentation:
     Enabled: false
 
-Layout/IndentAssignment:
+Layout/AssignmentIndentation:
     Enabled: false
 
 Layout/IndentationWidth:
@@ -96,7 +93,7 @@ Style/PerlBackrefs:
 Style/StringLiterals:
     Enabled: false
 
-Layout/IndentHeredoc:
+Layout/HeredocIndentation:
     Enabled: false
 
 Metrics/LineLength:
@@ -104,4 +101,14 @@ Metrics/LineLength:
     Exclude:
     - test/**/*
 
+Style/StringConcatenation:
+    Enabled: false
 
+Style/StderrPuts:
+    Enabled: false
+
+Style/GlobalStdStream:
+    Enabled: false
+
+Style/OptionalBooleanParameter:
+    Enabled: false

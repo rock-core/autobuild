@@ -2,8 +2,7 @@ require 'autobuild/pkgconfig'
 
 module Autobuild
     class InstalledPkgConfig < Package
-        attr_reader :pkgconfig
-        attr_reader :prefix
+        attr_reader :pkgconfig, :prefix
 
         def initialize(name)
             @pkgconfig = PkgConfig.new(name)
@@ -23,6 +22,7 @@ module Autobuild
             pcfile
         end
     end
+
     def self.installed_pkgconfig(name, &block)
         InstalledPkgConfig.new(name, &block)
     end

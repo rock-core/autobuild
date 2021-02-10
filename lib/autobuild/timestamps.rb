@@ -58,8 +58,7 @@ module Autobuild
     class SourceTreeTask < Rake::Task
         attr_accessor :exclude
 
-        attr_reader :newest_file
-        attr_reader :newest_time
+        attr_reader :newest_file, :newest_time
 
         def initialize(*args, &block)
             @exclude = Autobuild.ignored_files.dup
@@ -71,10 +70,11 @@ module Autobuild
 
             @newest_file, @newest_time =
                 Autobuild.tree_timestamp(name,
-                    %r{(?:^|/)(?:CVS|_darcs|\.svn)$}, *@exclude)
+                                         %r{(?:^|/)(?:CVS|_darcs|\.svn)$}, *@exclude)
             @newest_time
         end
     end
+
     def self.source_tree(path, &block)
         task = SourceTreeTask.define_task(path)
         block&.call(task)

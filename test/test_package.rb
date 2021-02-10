@@ -4,6 +4,7 @@ module Autobuild
     describe Package do
         describe "#apply_env" do
             attr_reader :package, :env
+
             before do
                 @package = Package.new("pkg")
                 @env = flexmock(base: Environment)
@@ -32,7 +33,7 @@ module Autobuild
                 env.should_receive(:set).never
                 e = assert_raises(Package::IncompatibleEnvironment) do
                     package.apply_env(env,
-                        Hash['KEY' => [flexmock(name: 'test'), 'VALUE']])
+                                      Hash['KEY' => [flexmock(name: 'test'), 'VALUE']])
                 end
                 assert_equal "trying to reset KEY to [\"OTHER_VALUE\"] in "\
                     "pkg but this conflicts with test already setting it to "\
@@ -63,6 +64,7 @@ module Autobuild
 
         describe "#resolve_dependency_env" do
             attr_reader :package
+
             before do
                 @package = Package.new
             end
@@ -86,6 +88,7 @@ module Autobuild
 
         describe "#fingerprint" do
             attr_reader :package
+
             before do
                 @pkg0 = Package.new('pkg0')
                 @pkg0.importer = Importer.new \
@@ -102,7 +105,6 @@ module Autobuild
                     interactive: false
                 @dep_pkg1.importer = Importer.new \
                     interactive: false
-
             end
 
             it "return nil when the package's importer does not compute a fingerprint" do
@@ -119,7 +121,7 @@ module Autobuild
 
             it "returns nil if one of the dependencies has no fingerprint" do
                 flexmock(@pkg0).should_receive(:dependencies).
-                    and_return(['dep_pkg0', 'dep_pkg1'])
+                    and_return(%w[dep_pkg0 dep_pkg1])
 
                 mock_fingerprints(@pkg0 => "fingerprint_placeholder_pkg0",
                                   @dep_pkg0 => nil,
@@ -130,7 +132,7 @@ module Autobuild
 
             it "combines the fingerprint of the package with the fingerprint of its dependencies" do
                 flexmock(@pkg0).should_receive(:dependencies).
-                    and_return(['dep_pkg0', 'dep_pkg1'])
+                    and_return(%w[dep_pkg0 dep_pkg1])
 
                 mock_fingerprints(@pkg0 => "fingerprint_placeholder_pkg0",
                                   @dep_pkg0 => "fingerprint_placeholder_dep_pkg0",
@@ -145,7 +147,7 @@ module Autobuild
 
             it "adds the package fingerprint to the memo" do
                 flexmock(@pkg0).should_receive(:dependencies).
-                    and_return(['dep_pkg0', 'dep_pkg1'])
+                    and_return(%w[dep_pkg0 dep_pkg1])
 
                 mock_fingerprints(@pkg0 => "fingerprint_placeholder_pkg0",
                                   @dep_pkg0 => "fingerprint_placeholder_dep_pkg0",
@@ -170,14 +172,14 @@ module Autobuild
 
             it "fingerprints should be the same no matter the order of the dependencies" do
                 flexmock(@pkg0).should_receive(:dependencies).
-                    and_return(['dep_pkg0', 'dep_pkg1'])
+                    and_return(%w[dep_pkg0 dep_pkg1])
 
                 mock_fingerprints(@pkg0 => "fingerprint_placeholder",
                                   @dep_pkg0 => "fingerprint_placeholder_pkg0",
                                   @dep_pkg1 => "fingerprint_placeholder_pkg1")
 
                 flexmock(@pkg1).should_receive(:dependencies).
-                    and_return(['dep_pkg1', 'dep_pkg0'])
+                    and_return(%w[dep_pkg1 dep_pkg0])
 
                 mock_fingerprints(@pkg1 => "fingerprint_placeholder",
                                   @dep_pkg0 => "fingerprint_placeholder_pkg0",
