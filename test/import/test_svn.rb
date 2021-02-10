@@ -106,7 +106,7 @@ describe Autobuild::SVN do
         it "indicates if there are no local modifications" do
             importer = Autobuild.svn(svnroot, revision: 1)
             importer.import(pkg_svn)
-            assert !importer.status(pkg_svn).uncommitted_code
+            refute importer.status(pkg_svn).uncommitted_code
         end
 
         it "indicates if there are modified files" do
@@ -163,8 +163,8 @@ describe Autobuild::SVN do
             flexmock(@importer).
                 should_receive(:patches).
                 and_return(test_patches)
-            
-            expected_fingerprint = Digest::SHA1.hexdigest(@expected_vcs_fingerprint + 
+
+            expected_fingerprint = Digest::SHA1.hexdigest(@expected_vcs_fingerprint +
                 expected_patch_fingerprint)
 
             assert_equal expected_fingerprint, @importer.fingerprint(pkg_svn)

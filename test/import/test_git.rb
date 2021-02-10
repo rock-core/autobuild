@@ -148,10 +148,10 @@ describe Autobuild::Git do
             assert importer.has_commit?(pkg, importer.rev_parse(pkg, '8b09cb0febae222b31e2ee55f839c1e00dc7edc4'))
         end
         it "returns false if the specified name does not resolve to an object" do
-            assert !importer.has_commit?(pkg, 'blabla')
+            refute importer.has_commit?(pkg, 'blabla')
         end
         it "returns false if the specified commit is not present locally" do
-            assert !importer.has_commit?(pkg, 'c8cf0798b1d53931314a86bdb3e2ad874eb8deb5')
+            refute importer.has_commit?(pkg, 'c8cf0798b1d53931314a86bdb3e2ad874eb8deb5')
         end
         it "raises for any other error" do
             flexmock(Autobuild::Subprocess).should_receive(:run).
@@ -172,7 +172,7 @@ describe Autobuild::Git do
         end
 
         it "returns false if the branch does not exist" do
-            assert !importer.has_branch?(pkg, 'does_not_exist')
+            refute importer.has_branch?(pkg, 'does_not_exist')
         end
 
         it "raises for any other error" do
@@ -194,7 +194,7 @@ describe Autobuild::Git do
             assert importer.detached_head?(pkg)
         end
         it "returns false if HEAD is pointing to a branch" do
-            assert !importer.detached_head?(pkg)
+            refute importer.detached_head?(pkg)
         end
         it "raises for any other error" do
             flexmock(Autobuild::Subprocess).should_receive(:run).
@@ -343,7 +343,7 @@ describe Autobuild::Git do
         end
         it "returns false if the revision is not in the provided branch" do
             importer.run_git(pkg, 'branch', 'fork', 'autobuild/fork')
-            assert !importer.commit_present_in?(pkg, commits[0], "refs/heads/fork")
+            refute importer.commit_present_in?(pkg, commits[0], "refs/heads/fork")
         end
         # git rev-parse return the tag ID for annotated tags instead of the
         # commit ID. This was in turn breaking commit_present_in?
