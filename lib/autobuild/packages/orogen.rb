@@ -97,18 +97,18 @@ module Autobuild
             end
         end
 
-        attr_writer :corba
+        attr_writer :corba, :orogen_file
+
         def corba
             @corba || (@corba.nil? && Orogen.corba)
         end
 
         # Overrides the global Orocos.extended_states for this particular package
         attr_writer :extended_states
+
         def extended_states
             @extended_states || (@extended_states.nil? && Orogen.extended_states)
         end
-
-        attr_writer :orogen_file
 
         # Path to the orogen file used for this package
         #
@@ -128,7 +128,7 @@ module Autobuild
                     return File.basename(path)
                 end
                 raise ArgumentError,
-                    "cannot find an oroGen specification file in #{srcdir}"
+                      "cannot find an oroGen specification file in #{srcdir}"
             end
         end
 

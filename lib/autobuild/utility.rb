@@ -60,7 +60,7 @@ module Autobuild
         attr_writer :target_dir
 
         # Controls whether this utility generates results or not
-        # 
+        #
         # By default, Autobuild assumes that utilities generate report or
         # artifact files, that are saved in {#target_dir}. Set this flag to
         # true to disable this behavior, in which case the only report will
@@ -70,7 +70,7 @@ module Autobuild
         attr_writer :no_results
 
         # Whether this utility generates results or not
-        # 
+        #
         # @see no_results=
         def no_results?
             @no_results
@@ -84,7 +84,7 @@ module Autobuild
             if @target_dir
                 utility_prefix = Autobuild.send("#{name}_prefix") || name
                 File.expand_path(@target_dir,
-                    File.expand_path(utility_prefix, package.prefix))
+                                 File.expand_path(utility_prefix, package.prefix))
             else
                 File.join(package.logdir, "#{name}-results", package.name)
             end

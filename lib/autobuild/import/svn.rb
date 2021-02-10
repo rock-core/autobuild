@@ -14,9 +14,11 @@ module Autobuild
         #   Autobuild.programs['svn'] = 'my_svn_tool'
         def initialize(svnroot, options = {})
             svnroot = [*svnroot].join("/")
-            svnopts, common = Kernel.filter_options options,
+            svnopts, common = Kernel.filter_options(
+                options,
                 :svnup => [], :svnco => [], :revision => nil,
                 :repository_id => "svn:#{svnroot}"
+            )
             common[:repository_id] = svnopts.delete(:repository_id)
             relocate(svnroot, svnopts)
             super(common.merge(repository_id: svnopts[:repository_id]))
@@ -67,7 +69,7 @@ module Autobuild
             revision = svninfo.grep(/^Revision: /).first
             unless revision
                 raise ConfigException.new(package, 'import'),
-                    "cannot get SVN information for #{package.importdir}"
+                      "cannot get SVN information for #{package.importdir}"
             end
             revision =~ /Revision: (\d+)/
             Integer($1)
@@ -79,7 +81,9 @@ module Autobuild
         # @return [String]
         # @raises (see svn_info)
         def vcs_fingerprint(package)
-            Digest::SHA1.hexdigest(svn_info(package).grep(/^(URL|Revision):/).sort.join("\n"))
+            Digest::SHA1.hexdigest(
+                svn_info(package).grep(/^(URL|Revision):/).sort.join("\n")
+            )
         end
 
         # Returns the URL of the remote SVN repository
@@ -93,7 +97,7 @@ module Autobuild
             url = svninfo.grep(/^URL: /).first
             unless url
                 raise ConfigException.new(package, 'import'),
-                    "cannot get SVN information for #{package.importdir}"
+                      "cannot get SVN information for #{package.importdir}"
             end
             url.chomp =~ /URL: (.+)/
             $1
@@ -165,8 +169,9 @@ module Autobuild
                     Hash.new
                 end
 
-            options, other_options = Kernel.filter_options options,
-                working_directory: package.importdir, retry: true
+            options, other_options = Kernel.filter_options(
+                options, working_directory: package.importdir, retry: true
+            )
             options = options.merge(other_options)
             package.run(:import, Autobuild.tool(:svn), *args, options, &block)
         end
@@ -203,7 +208,8 @@ module Autobuild
 
             unless svninfo.grep(/is not a working copy/).empty?
                 raise ConfigException.new(package, 'import'),
-                    "#{package.importdir} does not appear to be a Subversion working copy"
+                      "#{package.importdir} does not appear to be a "\
+                      "Subversion working copy"
             end
             svninfo
         ensure
@@ -241,8 +247,8 @@ module Autobuild
 
         def checkout(package, _options = Hash.new) # :nodoc:
             run_svn(package, 'co', "--non-interactive", *@options_co,
-                svnroot, package.importdir,
-                working_directory: nil)
+                    svnroot, package.importdir,
+                    working_directory: nil)
         end
     end
 

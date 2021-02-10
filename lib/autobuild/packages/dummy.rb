@@ -8,10 +8,6 @@ module Autobuild
             "#{srcdir}/#{STAMPFILE}"
         end
 
-        def initialize(*args)
-            super
-        end
-
         def import(options = Hash.new); end
 
         def prepare

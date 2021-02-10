@@ -2,6 +2,7 @@ require 'autobuild/test'
 
 describe Autobuild::Git do
     attr_reader :pkg, :importer, :gitrepo
+
     before do
         tempdir = untar('gitrepo.tar')
         @gitrepo = File.join(tempdir, 'gitrepo.git')
@@ -39,7 +40,7 @@ describe Autobuild::Git do
             assert_equal alt, git.alternates
         end
         it 'does not pick the default alternates if the importer is set up to use submodules' do
-            flexmock(Autobuild::Git, default_alternates: (alt = [flexmock]))
+            flexmock(Autobuild::Git, default_alternates: [flexmock])
             git = Autobuild::Git.new('repo', with_submodules: true)
             assert_equal [], git.alternates
         end
@@ -327,6 +328,7 @@ describe Autobuild::Git do
 
     describe "#commit_present_in?" do
         attr_reader :commits
+
         before do
             importer.import(pkg)
             @commits = [
@@ -360,24 +362,24 @@ describe Autobuild::Git do
 
         it "lists the tags from the repository and returns their name and commit" do
             assert_equal Hash["third_commit" => "1ddb20665622279700770be09f9a291b37c9b631"],
-                importer.tags(pkg)
+                         importer.tags(pkg)
         end
         it "fetches new tags by default" do
             system "git", "tag", "test", chdir: @gitrepo
             assert_equal Set["third_commit", 'test'],
-                importer.tags(pkg).keys.to_set
+                         importer.tags(pkg).keys.to_set
         end
         it "does not fetch new tags if only_local: true is given" do
             system "git", "tag", "test", chdir: @gitrepo
             assert_equal ["third_commit"],
-                importer.tags(pkg, only_local: true).keys
+                         importer.tags(pkg, only_local: true).keys
         end
     end
 
     describe "update" do
         it "accepts a full ref as remote_branch" do
             importer.relocate(importer.repository,
-                local_branch: 'test', remote_branch: 'refs/heads/master')
+                              local_branch: 'test', remote_branch: 'refs/heads/master')
             importer.import(pkg)
             assert_equal 'refs/heads/test', importer.current_branch(pkg)
         end

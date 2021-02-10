@@ -161,6 +161,7 @@ module Autobuild::Subprocess # rubocop:disable Style/ClassAndModuleChildren
         def initialize(status, do_retry)
             @status = status
             @retry = do_retry
+            super()
         end
     end
 
@@ -222,12 +223,14 @@ module Autobuild::Subprocess # rubocop:disable Style/ClassAndModuleChildren
 
         if command.last.kind_of?(Hash)
             options = command.pop
-            options = Kernel.validate_options options,
+            options = Kernel.validate_options(
+                options,
                 input: nil, working_directory: nil, retry: false,
                 input_streams: [],
                 env: ENV.to_hash,
                 env_inherit: true,
                 encoding: 'BINARY'
+            )
 
             input_streams << File.open(options[:input]) if options[:input]
             input_streams.concat(options[:input_streams]) if options[:input_streams]
@@ -255,8 +258,8 @@ module Autobuild::Subprocess # rubocop:disable Style/ClassAndModuleChildren
             options[:working_directory] ||= target.working_directory
         end
 
-        logname = File.join(logdir, "#{target_name.gsub(/[:]/, '_')}-"\
-            "#{phase.to_s.gsub(/[:]/, '_')}.log")
+        logname = File.join(logdir, "#{target_name.gsub(/:/, '_')}-"\
+            "#{phase.to_s.gsub(/:/, '_')}.log")
         unless File.directory?(File.dirname(logname))
             FileUtils.mkdir_p File.dirname(logname)
         end
@@ -312,8 +315,9 @@ module Autobuild::Subprocess # rubocop:disable Style/ClassAndModuleChildren
             if Autobuild.windows?
                 Dir.chdir(options[:working_directory]) do
                     unless system(*command)
-                        raise Failed.new($CHILD_STATUS.exitstatus, nil),
-                            "'#{command.join(' ')}' returned status #{status.exitstatus}"
+                        exit_code = $CHILD_STATUS.exitstatus
+                        raise Failed.new(exit_code, nil),
+                              "'#{command.join(' ')}' returned status #{exit_code}"
                     end
                 end
                 return # rubocop:disable Lint/NonLocalExitFromIterator
@@ -322,7 +326,6 @@ module Autobuild::Subprocess # rubocop:disable Style/ClassAndModuleChildren
             cwrite.fcntl(Fcntl::F_SETFD, Fcntl::FD_CLOEXEC)
 
             pid = fork do
-                begin
                     logfile.puts "in directory #{options[:working_directory] || Dir.pwd}"
 
                     cwrite.sync = true
@@ -340,20 +343,19 @@ module Autobuild::Subprocess # rubocop:disable Style/ClassAndModuleChildren
                     end
 
                     exec(env, *command,
-                        chdir: options[:working_directory] || Dir.pwd,
-                        close_others: false)
-                rescue Errno::ENOENT
+                         chdir: options[:working_directory] || Dir.pwd,
+                         close_others: false)
+            rescue Errno::ENOENT
                     cwrite.write([CONTROL_COMMAND_NOT_FOUND].pack('I'))
                     exit(100)
-                rescue Interrupt
+            rescue Interrupt
                     cwrite.write([CONTROL_INTERRUPT].pack('I'))
                     exit(100)
-                rescue ::Exception => e
+            rescue ::Exception => e
                     STDERR.puts e
                     STDERR.puts e.backtrace.join("\n  ")
                     cwrite.write([CONTROL_UNEXPECTED].pack('I'))
                     exit(100)
-                end
             end
 
             readbuffer = StringIO.new
@@ -372,7 +374,7 @@ module Autobuild::Subprocess # rubocop:disable Style/ClassAndModuleChildren
                     end
                 rescue Errno::ENOENT => e
                     raise Failed.new(nil, false),
-                        "cannot open input files: #{e.message}", retry: false
+                          "cannot open input files: #{e.message}", retry: false
                 end
                 pwrite.close
             end
@@ -382,15 +384,14 @@ module Autobuild::Subprocess # rubocop:disable Style/ClassAndModuleChildren
             value = cread.read(4)
             if value
                 # An error occured
-                value = value.unpack('I').first
-                if value == CONTROL_COMMAND_NOT_FOUND
-                    raise Failed.new(nil, false),
-                        "command '#{command.first}' not found"
-                elsif value == CONTROL_INTERRUPT
+                value = value.unpack1('I')
+                case value
+                when CONTROL_COMMAND_NOT_FOUND
+                    raise Failed.new(nil, false), "command '#{command.first}' not found"
+                when CONTROL_INTERRUPT
                     raise Interrupt, "command '#{command.first}': interrupted by user"
                 else
-                    raise Failed.new(nil, false),
-                        "something unexpected happened"
+                    raise Failed.new(nil, false), "something unexpected happened"
                 end
             end
 
@@ -439,10 +440,10 @@ module Autobuild::Subprocess # rubocop:disable Style/ClassAndModuleChildren
 
             if status.termsig
                 raise Failed.new(status.exitstatus, nil),
-                    "'#{command.join(' ')}' terminated by signal #{status.termsig}"
+                      "'#{command.join(' ')}' terminated by signal #{status.termsig}"
             else
                 raise Failed.new(status.exitstatus, nil),
-                    "'#{command.join(' ')}' returned status #{status.exitstatus}"
+                      "'#{command.join(' ')}' returned status #{status.exitstatus}"
             end
         end
 
@@ -458,7 +459,7 @@ module Autobuild::Subprocess # rubocop:disable Style/ClassAndModuleChildren
         subcommand_output
     rescue Failed => e
         error = Autobuild::SubcommandFailed.new(target, command.join(" "),
-            logname, e.status, subcommand_output)
+                                                logname, e.status, subcommand_output)
         error.retry = if e.retry?.nil? then options[:retry]
                       else e.retry?
                       end

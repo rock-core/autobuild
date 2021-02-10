@@ -24,6 +24,7 @@ module Autobuild
             @target = target
             @phase  = phase
             @retry  = options[:retry]
+            super()
         end
 
         alias exception_message to_s
@@ -52,10 +53,11 @@ module Autobuild
     class ConfigException < PhaseException
         def initialize(target = nil, phase = nil, options = Hash.new)
             options, other_options = Kernel.filter_options options,
-                retry: false
+                                                           retry: false
             super(target, phase, options.merge(other_options))
         end
     end
+
     ## An error occured in a package
     class PackageException < PhaseException
         def mail?
@@ -64,7 +66,7 @@ module Autobuild
 
         def initialize(target = nil, phase = nil, options = Hash.new)
             options, other_options = Kernel.filter_options options,
-                retry: false
+                                                           retry: false
             super(target, phase, options.merge(other_options))
         end
     end
@@ -76,6 +78,7 @@ module Autobuild
 
     # The subcommand is not found
     class CommandNotFound  < PhaseException; end
+
     # An error occured while running a subcommand
     class SubcommandFailed < PhaseException
         def mail?
@@ -84,8 +87,10 @@ module Autobuild
 
         attr_writer :retry
         attr_reader :command, :logfile, :status, :output
+
         def initialize(*args)
-            if args.size == 1
+            case args.size
+            when 1
                 sc = args[0]
                 target = sc.target
                 command = sc.command
@@ -93,7 +98,7 @@ module Autobuild
                 status = sc.status
                 output = sc.output
                 @orig_message = sc.exception_message
-            elsif args.size == 4 || args.size == 5
+            when 4, 5
                 target, command, logfile, status, output = *args
             else
                 raise ArgumentError, "wrong number of arguments, should be 1 or 4..5"
@@ -140,13 +145,14 @@ module Autobuild
 
     # The exception type that is used to report multiple errors that occured
     # when ignore_errors is set
-    class CompositeException < Autobuild::Exception
+    class CompositeException < PhaseException
         # The array of exception objects representing all the errors that
         # occured during the build
         attr_reader :original_errors
 
         def initialize(original_errors)
             @original_errors = original_errors
+            super()
         end
 
         def mail?

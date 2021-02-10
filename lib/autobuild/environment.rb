@@ -89,10 +89,7 @@ module Autobuild
         # path separator (File::PATH_SEPARATOR)
         attr_reader :environment
 
-        attr_reader :inherited_variables
-
-        attr_reader :system_env
-        attr_reader :original_env
+        attr_reader :inherited_variables, :system_env, :original_env, :target_arch
 
         # The set of environment variables that are known to hold paths on the
         # filesystem
@@ -162,7 +159,8 @@ module Autobuild
                 inherited_environment.delete(name)
                 init_from_env(name)
             else
-                environment.keys.each do |env_key|
+                keys = environment.keys # get keys first to avoid delete-while-iterating
+                keys.each do |env_key|
                     reset(env_key)
                 end
             end
@@ -180,7 +178,8 @@ module Autobuild
                 environment[name] = nil
                 inherited_environment[name] = nil
             else
-                environment.keys.each do |env_key|
+                keys = environment.keys # get keys first to avoid delete-while-iterating
+                keys.each do |env_key|
                     clear(env_key)
                 end
             end
@@ -228,7 +227,9 @@ module Autobuild
         # @see inherit? inherit
         def inherit=(value)
             @inherit = value
-            inherited_environment.keys.each do |env_name|
+            # get keys first to avoid modify-while-iterating
+            keys = inherited_environment.keys
+            keys.each do |env_name|
                 init_from_env(env_name)
             end
         end
@@ -328,7 +329,7 @@ module Autobuild
                     end
             end
             options = Kernel.validate_options options,
-                inheritance_mode: :expand
+                                              inheritance_mode: :expand
             inheritance_mode = options[:inheritance_mode]
 
             if !include?(name)
@@ -511,8 +512,8 @@ module Autobuild
             end
             export.update.each do |name, (with_inheritance, without_inheritance)|
                 io.puts format(SHELL_CONDITIONAL_SET_COMMAND, name,
-                    with_inheritance.join(File::PATH_SEPARATOR),
-                    without_inheritance.join(File::PATH_SEPARATOR))
+                               with_inheritance.join(File::PATH_SEPARATOR),
+                               without_inheritance.join(File::PATH_SEPARATOR))
                 io.puts format(SHELL_EXPORT_COMMAND, name)
             end
             source_after(shell: shell).each do |path|
@@ -555,9 +556,8 @@ module Autobuild
         # DEPRECATED: use add_path instead
         def self.pathvar(path, varname)
             if File.directory?(path)
-                if block_given?
-                    return unless yield(path)
-                end
+                return if block_given? && !yield(path)
+
                 add_path(varname, path)
             end
         end
@@ -614,8 +614,6 @@ module Autobuild
             @arch_size, @arch_names = nil
         end
 
-        attr_reader :target_arch
-
         def arch_names
             return @arch_names if @arch_names
 
@@ -635,12 +633,12 @@ module Autobuild
             add_prefix(newprefix, includes)
         end
 
-        # rubocop:disable Metrics/LineLength
+        # rubocop:disable Layout/LineLength
         PKGCONFIG_INFO = [
             %r{Scanning directory (?:#\d+ )?'(.*/)((?:lib|lib64|share)/.*)'$},
             %r{Cannot open directory (?:#\d+ )?'.*/((?:lib|lib64|share)/.*)' in package search path:.*}
         ].freeze
-        # rubocop:enable Metrics/LineLength
+        # rubocop:enable Layout/LineLength
 
         # Returns the system-wide search path that is embedded in pkg-config
         def default_pkgconfig_search_suffixes
@@ -663,10 +661,9 @@ module Autobuild
 
         # Updates the environment when a new prefix has been added
         def add_prefix(newprefix, includes = nil)
-            if !includes || includes.include?('PATH')
-                if File.directory?("#{newprefix}/bin")
-                    add_path('PATH', "#{newprefix}/bin")
-                end
+            if (!includes || includes.include?('PATH')) &&
+               File.directory?("#{newprefix}/bin")
+                add_path('PATH', "#{newprefix}/bin")
             end
 
             if !includes || includes.include?('PKG_CONFIG_PATH')
@@ -717,7 +714,7 @@ module Autobuild
                 begin
                     stat = File.stat(full)
                     return full if stat.file? && stat.executable?
-                rescue ::Exception # rubocop:disable Lint/HandleExceptions
+                rescue ::Exception # rubocop:disable Lint/SuppressedException
                 end
             end
             nil
@@ -743,7 +740,7 @@ module Autobuild
         def prepare
             # Set up some important autobuild parameters
             inherit 'PATH', 'PKG_CONFIG_PATH', 'RUBYLIB', \
-                LIBRARY_PATH, 'CMAKE_PREFIX_PATH', 'PYTHONPATH'
+                    LIBRARY_PATH, 'CMAKE_PREFIX_PATH', 'PYTHONPATH'
         end
 
         # Method called to filter the environment variables before they are set,
@@ -868,9 +865,8 @@ module Autobuild
     # @deprecated use {Env#add_path} on {.env} instead
     def self.pathvar(path, varname)
         if File.directory?(path)
-            if block_given?
-                return unless yield(path)
-            end
+            return if block_given? && !yield(path)
+
             env.add_path(varname, path)
         end
     end

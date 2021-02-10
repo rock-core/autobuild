@@ -19,7 +19,7 @@ module Autobuild
                     @env.push 'AUTOBUILD_TEST', 'newval1'
                     @env.push 'AUTOBUILD_TEST', 'newval0'
                     assert_equal 'newval1:newval0:val1:val0',
-                        @env.resolved_env['AUTOBUILD_TEST']
+                                 @env.resolved_env['AUTOBUILD_TEST']
                 end
             end
             describe "#env_add_path" do
@@ -27,13 +27,13 @@ module Autobuild
                     Autobuild::ORIGINAL_ENV['AUTOBUILD_TEST'] = 'val2:val3'
                     @env.add 'AUTOBUILD_TEST', 'newval'
                     assert_equal 'newval:val1:val0',
-                        @env.resolved_env['AUTOBUILD_TEST']
+                                 @env.resolved_env['AUTOBUILD_TEST']
                 end
                 it "adds the new path at the end of the variable, before the inherited environment" do
                     @env.add 'AUTOBUILD_TEST', 'newval0'
                     @env.add 'AUTOBUILD_TEST', 'newval1'
                     assert_equal 'newval1:newval0:val1:val0',
-                        @env.resolved_env['AUTOBUILD_TEST']
+                                 @env.resolved_env['AUTOBUILD_TEST']
                 end
             end
             describe "#env_set" do
@@ -68,7 +68,7 @@ module Autobuild
                     @env.push 'AUTOBUILD_TEST', 'newval1'
                     @env.push 'AUTOBUILD_TEST', 'newval0'
                     assert_equal 'newval1:newval0',
-                        @env.resolved_env['AUTOBUILD_TEST']
+                                 @env.resolved_env['AUTOBUILD_TEST']
                 end
             end
             describe "#env_add_path" do
@@ -76,7 +76,7 @@ module Autobuild
                     @env.add 'AUTOBUILD_TEST', 'newval0'
                     @env.add 'AUTOBUILD_TEST', 'newval1'
                     assert_equal 'newval1:newval0',
-                        @env.resolved_env['AUTOBUILD_TEST']
+                                 @env.resolved_env['AUTOBUILD_TEST']
                 end
             end
             describe "#env_clear" do

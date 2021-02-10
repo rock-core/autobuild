@@ -25,13 +25,8 @@ module Autobuild
     # To override this default behaviour on a per-package basis, use Autotools#use
     #
     class Autotools < Configurable
-        attr_accessor   :using
-        attr_accessor   :configureflags
-        attr_accessor   :aclocal_flags
-        attr_accessor   :autoheader_flags
-        attr_accessor   :autoconf_flags
-        attr_accessor   :automake_flags
-        attr_accessor   :bear_flags
+        attr_accessor :using, :configureflags, :aclocal_flags, :autoheader_flags,
+                      :autoconf_flags, :automake_flags, :bear_flags
 
         @builddir = 'build'
         @@enable_bear_globally = false
@@ -278,7 +273,7 @@ module Autobuild
                 file conffile => "#{conffile}#{confext}"
             elsif using[:autoconf]
                 raise PackageException.new(self, 'prepare'),
-                    "neither configure.ac nor configure.in present in #{srcdir}"
+                      "neither configure.ac nor configure.in present in #{srcdir}"
             end
 
             file conffile do

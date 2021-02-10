@@ -101,4 +101,14 @@ Metrics/LineLength:
     Exclude:
     - test/**/*
 
+Style/StringConcatenation:
+    Enabled: false
 
+Style/StderrPuts:
+    Enabled: false
+
+Style/GlobalStdStream:
+    Enabled: false
+
+Style/OptionalBooleanParameter:
+    Enabled: false

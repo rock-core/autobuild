@@ -1,5 +1,10 @@
 module Autobuild
     module RakeTaskExtension
+        def initialize(*, **)
+            super
+            @disabled = false
+        end
+
         def already_invoked?
             @already_invoked
         end
@@ -19,6 +24,7 @@ module Autobuild
         end
     end
 end
+
 class Rake::Task # rubocop:disable Style/ClassAndModuleChildren
     include Autobuild::RakeTaskExtension
 end

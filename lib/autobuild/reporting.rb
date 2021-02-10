@@ -105,8 +105,8 @@ module Autobuild
                 interrupted = e
             rescue Autobuild::Exception => e
                 return report_finish_on_error([e],
-                    on_package_failures: on_package_failures,
-                    interrupted_by: interrupted)
+                                              on_package_failures: on_package_failures,
+                                              interrupted_by: interrupted)
             end
 
             # If ignore_erorrs is true, check if some packages have failed
@@ -118,8 +118,8 @@ module Autobuild
             end
 
             report_finish_on_error(errors,
-                on_package_failures: on_package_failures,
-                interrupted_by: interrupted)
+                                   on_package_failures: on_package_failures,
+                                   interrupted_by: interrupted)
         end
 
         # @api private
@@ -170,7 +170,7 @@ module Autobuild
                 if interrupted_by
                     raise interrupted_by
                 else
-                    return errors
+                    errors
                 end
             elsif %i[exit exit_silent].include?(on_package_failures)
                 exit 1
@@ -244,8 +244,8 @@ module Autobuild
             scaled_size = (size / scale)
             if scaled_size > 1
                 return format("%3.1<scaled>f%<scale_name>s",
-                    scaled: scaled_size,
-                    scale_name: name)
+                              scaled: scaled_size,
+                              scale_name: name)
             end
         end
     end

@@ -106,6 +106,7 @@ module Autobuild
         @auto_update = (ENV['AUTOBUILD_ARCHIVE_AUTOUPDATE'] == '1')
 
         attr_writer :update_cached_file
+
         def update_cached_file?
             @update_cached_file
         end
@@ -118,15 +119,16 @@ module Autobuild
 
             Net::HTTP.start(
                 uri.hostname, uri.port, use_ssl: uri.scheme == 'https') do |http|
-
                 http.request(request) do |resp|
                     case resp
                     when Net::HTTPNotModified
                         return false
                     when Net::HTTPSuccess
-                        if current_time && (last_modified = resp['last-modified'])
-                            return false if current_time >= Time.rfc2822(last_modified)
+                        if current_time && (last_modified = resp['last-modified']) &&
+                           (current_time >= Time.rfc2822(last_modified))
+                           return false
                         end
+
                         if (length = resp['Content-Length'])
                             length = Integer(length)
                             expected_size = "/#{Autobuild.human_readable_size(length)}"
@@ -158,11 +160,12 @@ module Autobuild
                         end
 
                         return download_http(package, URI(redirect_uri), filename,
-                            user: user, password: password, current_time: current_time)
+                                             user: user, password: password,
+                                             current_time: current_time)
                     else
                         raise PackageException.new(package, 'import'),
-                            "failed download of #{package.name} from #{uri}: "\
-                            "#{resp.class}"
+                              "failed download of #{package.name} from #{uri}: "\
+                              "#{resp.class}"
                     end
                 end
             end
@@ -204,19 +207,19 @@ module Autobuild
             end
 
             if mtime && size
-                return size != cached_size || mtime > cached_mtime
+                size != cached_size || mtime > cached_mtime
             elsif mtime
                 package.warn "%s: archive size is not available for #{@url}, "\
                     "relying on modification time"
-                return mtime > cached_mtime
+                mtime > cached_mtime
             elsif size
                 package.warn "%s: archive modification time "\
                     "is not available for #{@url}, relying on size"
-                return size != cached_size
+                size != cached_size
             else
                 package.warn "%s: neither the archive size nor its modification time "\
                     "are available for #{@url}, will always update"
-                return true
+                true
             end
         end
 
@@ -231,8 +234,8 @@ module Autobuild
                     end
 
                     updated = download_http(package, @url, "#{cachefile}.partial",
-                        user: @user, password: @password,
-                        current_time: cached_mtime)
+                                            user: @user, password: @password,
+                                            current_time: cached_mtime)
                     return false unless updated
                 elsif Autobuild.bsd?
                     return false unless update_needed?(package)
@@ -250,8 +253,8 @@ module Autobuild
                         additional_options << "--tries" << retries
                     end
                     package.run(:import, Autobuild.tool('wget'), '-q', '-P', cachedir,
-                        *additional_options, @url, '-O', "#{cachefile}.partial",
-                        retry: true)
+                                *additional_options, @url, '-O', "#{cachefile}.partial",
+                                retry: true)
                 end
             rescue Exception
                 FileUtils.rm_f "#{cachefile}.partial"
@@ -264,13 +267,15 @@ module Autobuild
         # Updates the downloaded file in cache only if it is needed
         #
         # @return [Boolean] true if a new file was downloaded, false otherwise
-        # @raises ConfigException if a expected digest was given in the source.yml file and it doesn't match
+        # @raises ConfigException if a expected digest was given in the
+        #   source.yml file and it doesn't match
         def update_cache(package)
             updated = download_from_url(package)
             @cachefile_digest = read_cachefile_digest
 
             if @expected_digest && @expected_digest != @cachefile_digest
-                raise ConfigException, "The archive #{@url.to_s} does not match the digest provided"
+                raise ConfigException,
+                      "The archive #{@url} does not match the digest provided"
             end
 
             updated
@@ -279,11 +284,11 @@ module Autobuild
         def read_cachefile_digest
             Digest::SHA1.hexdigest File.read(cachefile)
         end
-        
+
         # Fingerprint for archive importer, we are using
         # its digest whether is calculated or expected
         # @raises ConfigException if no digest is present
-        def vcs_fingerprint(package)
+        def vcs_fingerprint(_package)
             if @cachefile_digest
                 @cachefile_digest
             elsif File.file?(cachefile)
@@ -291,7 +296,9 @@ module Autobuild
             elsif @expected_digest
                 @expected_digest
             else
-                raise ConfigException, "There is no digest for archive #{@url.to_s}, make sure cache directories are configured correctly"
+                raise ConfigException,
+                      "There is no digest for archive #{@url}, make sure "\
+                      "cache directories are configured correctly"
             end
         end
 
@@ -378,9 +385,11 @@ module Autobuild
         # [:mode] The unpack mode: one of Zip, Bzip, Gzip or Plain, this is
         #       usually automatically inferred from the filename
         def initialize(url, options = Hash.new)
-            sourceopts, options = Kernel.filter_options options,
+            sourceopts, options = Kernel.filter_options(
+                options,
                 :source_id, :repository_id, :filename, :mode, :update_cached_file,
                 :user, :password, :expected_digest
+            )
             super(options)
 
             @filename = nil
@@ -452,7 +461,7 @@ module Autobuild
             end
 
             if needs_update || archive_changed?(package)
-                return checkout(package, allow_interactive: options[:allow_interactive])
+                checkout(package, allow_interactive: options[:allow_interactive])
             else
                 false
             end
@@ -477,7 +486,7 @@ module Autobuild
 
         def checkout(package, options = Hash.new) # :nodoc:
             options = Kernel.validate_options options,
-                allow_interactive: true
+                                              allow_interactive: true
 
             update_cache(package)
 

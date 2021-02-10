@@ -145,7 +145,7 @@ describe Autobuild::SVN do
         before do
             current_revision = '2'
             @importer = Autobuild.svn(svnroot, revision: current_revision)
-            expected_source_string = "Revision: "+current_revision+"\nURL: "+svnroot
+            expected_source_string = "Revision: " + current_revision + "\nURL: " + svnroot
             @expected_vcs_fingerprint = Digest::SHA1.hexdigest(expected_source_string)
             @importer.import(pkg_svn)
         end
@@ -153,7 +153,7 @@ describe Autobuild::SVN do
             assert_equal @expected_vcs_fingerprint, @importer.fingerprint(pkg_svn)
         end
         it "computes also the patches' fingerprint" do
-            test_patches = [['/path/to/patch', 1, 'source_test'],['other/path', 2, 'source2_test']]
+            test_patches = [['/path/to/patch', 1, 'source_test'], ['other/path', 2, 'source2_test']]
             # we expect paths will be ignored and the patches array to be
             # flatenned into a string
             expected_patch_fingerprint = Digest::SHA1.hexdigest('1source_test2source2_test')
@@ -170,5 +170,4 @@ describe Autobuild::SVN do
             assert_equal expected_fingerprint, @importer.fingerprint(pkg_svn)
         end
     end
-
 end

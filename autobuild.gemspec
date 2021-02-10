@@ -5,7 +5,7 @@ require 'autobuild/version'
 Gem::Specification.new do |s|
     s.name = "autobuild"
     s.version = Autobuild::VERSION
-    s.required_ruby_version = '>= 2.3.0'
+    s.required_ruby_version = '>= 2.5.0'
     s.authors = ["Sylvain Joyeux"]
     s.email = "sylvain.joyeux@m4x.org"
     s.summary = "Library to handle build systems and import mechanisms"

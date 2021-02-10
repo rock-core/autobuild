@@ -52,6 +52,7 @@ module Autobuild
                     raise Minitest::Failed, 'install_invoked? is not set'
                 end
             end
+
             def @package.build
                 unless install_invoked?
                     raise Minitest::Failed, 'install_invoked? is not set'

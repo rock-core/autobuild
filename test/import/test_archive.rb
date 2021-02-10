@@ -23,7 +23,7 @@ module Autobuild
                 @pkg = Package.new 'tarimport'
                 @pkg.srcdir = File.join(tempdir, 'tarimport')
                 @importer = ArchiveImporter.new 'http://localhost:2000/redirect',
-                    cachedir: @cachedir
+                                                cachedir: @cachedir
             end
 
             it "does nothing if the server returns NotModified" do
@@ -165,7 +165,7 @@ module Autobuild
                     assert_equal @expected_vcs_fingerprint, @importer.fingerprint(@pkg)
                 end
                 it "computes also the patches' fingerprint" do
-                    test_patches = [['/path/to/patch', 1, 'source_test'],['other/path', 2, 'source2_test']]
+                    test_patches = [['/path/to/patch', 1, 'source_test'], ['other/path', 2, 'source2_test']]
                     # we expect paths will be ignored and the patches array to be
                     # flattened into a string
                     expected_patch_fingerprint = Digest::SHA1.hexdigest('1source_test2source2_test')
@@ -178,15 +178,15 @@ module Autobuild
                     flexmock(@importer).
                         should_receive(:patches).
                         and_return(test_patches)
-                    # archive applies and unapplies patches, we are not testing 
+                    # archive applies and unapplies patches, we are not testing
                     # this so we will mock it
                     flexmock(@importer).
                         should_receive(:call_patch).
                         and_return(true)
 
-                    expected_fingerprint = Digest::SHA1.hexdigest(@expected_vcs_fingerprint + 
+                    expected_fingerprint = Digest::SHA1.hexdigest(@expected_vcs_fingerprint +
                         expected_patch_fingerprint)
-        
+
                     assert_equal expected_fingerprint, @importer.fingerprint(@pkg)
                 end
             end
@@ -294,8 +294,8 @@ class TestTarImporter < Minitest::Test
             pkg = Package.new 'tarimport'
             pkg.srcdir = File.join(tempdir, 'tarimport')
             importer = TarImporter.new 'http://localhost:2000/files/data/tarimport.tar.gz',
-                cachedir: @cachedir,
-                update_cached_file: true
+                                       cachedir: @cachedir,
+                                       update_cached_file: true
 
             importer.checkout(pkg)
             assert(File.directory?(pkg.srcdir))

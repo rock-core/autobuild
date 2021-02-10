@@ -18,7 +18,7 @@ module Autobuild
 
             it "should keep previous mode" do
                 @formatter.silent = false
-                @formatter.silent { }
+                @formatter.silent {}
                 refute @formatter.silent?
             end
         end
@@ -44,10 +44,10 @@ module Autobuild
                 event.set
                 th.value
 
-                expected = "#{TTY::Cursor.clear_screen_down}  some message"\
-                           "#{TTY::Cursor.column(0)}"\
-                           "#{TTY::Cursor.clear_screen_down}  some other message"\
-                           "#{TTY::Cursor.column(0)}", @io.string
+                expected = "#{TTY::Cursor.clear_screen_down}some message\n"\
+                           "#{TTY::Cursor.clear_screen_down}some other message\n"\
+                           "#{TTY::Cursor.clear_screen_down}#{TTY::Cursor.column(0)}"
+                assert_equal expected, @io.string
             end
 
             it "returns the block's return value in #synchronize" do

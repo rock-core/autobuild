@@ -5,6 +5,7 @@ class PkgConfig
 
         def initialize(name)
             @name = name
+            super()
         end
 
         def to_s
