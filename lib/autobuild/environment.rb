@@ -635,26 +635,23 @@ module Autobuild
 
         # rubocop:disable Layout/LineLength
         PKGCONFIG_INFO = [
-            %r{Scanning directory (?:#\d+ )?'(.*/)((?:lib|lib64|share)/.*)'$},
-            %r{Cannot open directory (?:#\d+ )?'.*/((?:lib|lib64|share)/.*)' in package search path:.*}
+            %r{(.*/)((?:lib|lib64|share)/[^\n]+)\n?$},
         ].freeze
         # rubocop:enable Layout/LineLength
 
         # Returns the system-wide search path that is embedded in pkg-config
         def default_pkgconfig_search_suffixes
             found_path_rx = PKGCONFIG_INFO[0]
-            nonexistent_path_rx = PKGCONFIG_INFO[1]
 
             unless @default_pkgconfig_search_suffixes
                 pkg_config = Autobuild.tool("pkg-config")
-                output = `LANG=C PKG_CONFIG_PATH= #{pkg_config} --debug 2>&1`.split("\n")
-                found_paths = output.grep(found_path_rx).
+                output = `LANG=C PKG_CONFIG_PATH= #{pkg_config} --variable pc_path pkg-config 2>&1`.split(":")
+
+                found_paths = output.grep( %r{(.*/)((?:lib|lib64|share)/[^\n]+)\n?$} ).
                     map { |l| l.gsub(found_path_rx, '\2') }.
-                    to_set
-                not_found = output.grep(nonexistent_path_rx).
-                    map { |l| l.gsub(nonexistent_path_rx, '\1') }.
-                    to_set
-                @default_pkgconfig_search_suffixes = found_paths | not_found
+                    to_set                   
+                
+                @default_pkgconfig_search_suffixes = found_paths
             end
             @default_pkgconfig_search_suffixes
         end
