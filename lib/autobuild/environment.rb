@@ -633,27 +633,17 @@ module Autobuild
             add_prefix(newprefix, includes)
         end
 
-        # rubocop:disable Layout/LineLength
-        PKGCONFIG_INFO = [
-            %r{(.*/)((?:lib|lib64|share)/[^\n]+)\n?$},
-        ].freeze
-        # rubocop:enable Layout/LineLength
+        PKGCONFIG_PATH_RX = %r{.*/((?:lib|lib64|share)/.*)}.freeze
 
         # Returns the system-wide search path that is embedded in pkg-config
         def default_pkgconfig_search_suffixes
-            found_path_rx = PKGCONFIG_INFO[0]
-
-            unless @default_pkgconfig_search_suffixes
-                pkg_config = Autobuild.tool("pkg-config")
-                output = `LANG=C PKG_CONFIG_PATH= #{pkg_config} --variable pc_path pkg-config 2>&1`.split(":")
-
-                found_paths = output.grep( %r{(.*/)((?:lib|lib64|share)/[^\n]+)\n?$} ).
-                    map { |l| l.gsub(found_path_rx, '\2') }.
-                    to_set                   
-                
-                @default_pkgconfig_search_suffixes = found_paths
-            end
-            @default_pkgconfig_search_suffixes
+            @default_pkgconfig_search_suffixes ||=
+                `LANG=C #{Autobuild.tool("pkg-config")} --variable pc_path pkg-config`
+                    .strip
+                    .split(":")
+                    .grep(PKGCONFIG_PATH_RX)
+                    .map { |l| l.gsub(PKGCONFIG_PATH_RX, '\1') }
+                    .to_set
         end
 
         # Updates the environment when a new prefix has been added
