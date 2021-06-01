@@ -269,7 +269,7 @@ module Autobuild
             run('doc', Autobuild.tool(:doxygen), doxyfile)
         end
 
-        def common_utility_handling(utility, target, start_msg, done_msg)
+        def common_utility_handling(utility, target, *args, start_msg, done_msg)
             utility.source_ref_dir = builddir
             utility.task do
                 progress_start start_msg, :done_message => done_msg do
@@ -279,7 +279,7 @@ module Autobuild
                         run(utility.name,
                             Autobuild.tool(:make),
                             "-j#{parallel_build_level}",
-                            target,
+                            target, *args,
                             working_directory: builddir)
                     end
                     yield if block_given?
@@ -297,7 +297,7 @@ module Autobuild
 
         def with_tests(target = 'test', &block)
             common_utility_handling(
-                test_utility, target,
+                test_utility, target, "ARGS=-V",
                 "running tests for %s",
                 "successfully ran tests for %s", &block)
         end
