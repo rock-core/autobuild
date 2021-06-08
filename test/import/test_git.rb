@@ -349,6 +349,9 @@ describe Autobuild::Git do
             importer.import(pkg)
         end
 
+        it "returns false if there are no modifications" do
+            refute Autobuild::Git.has_uncommitted_changes?(pkg)
+        end
         it "returns true if some files is modified" do
             File.open(File.join(tempdir, 'git', 'test'), 'a') do |io|
                 io.puts "newline"
