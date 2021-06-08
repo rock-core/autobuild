@@ -105,6 +105,59 @@ describe Autobuild::Git do
         end
     end
 
+    describe "#status" do
+        before do
+            importer.import(pkg)
+        end
+
+        it "returns up-to-date if the working copy was not modified" do
+            status = importer.status(pkg)
+            assert_equal Autobuild::Importer::Status::UP_TO_DATE, status.status
+        end
+
+        it "returns ADVANCED if the local copy has additional commits" do
+            importer.run_git(pkg, 'commit', '--allow-empty', '-m', 'new local commit')
+
+            status = importer.status(pkg)
+            assert_equal Autobuild::Importer::Status::ADVANCED, status.status
+            assert_equal [], status.remote_commits
+            assert_match(/new local commit/, status.local_commits[0])
+        end
+
+        it "returns SIMPLE_UPDATE if the remote copy has additional commits" do
+            importer.run_git(pkg, 'commit', '--allow-empty', '-m', 'new remote commit')
+            importer.run_git(pkg, 'push')
+            importer.run_git(pkg, 'reset', '--hard', 'HEAD~1')
+
+            status = importer.status(pkg)
+            assert_equal Autobuild::Importer::Status::SIMPLE_UPDATE, status.status
+            assert_equal [], status.local_commits
+            assert_match(/new remote commit/, status.remote_commits[0])
+        end
+
+        it "returns NEEDS_MERGE if the remote and local have diverged" do
+            importer.run_git(pkg, 'commit', '--allow-empty', '-m', 'new remote commit')
+            importer.run_git(pkg, 'push')
+            importer.run_git(pkg, 'reset', '--hard', 'HEAD~1')
+            importer.run_git(pkg, 'commit', '--allow-empty', '-m', 'new local commit')
+
+            status = importer.status(pkg)
+            assert_equal Autobuild::Importer::Status::NEEDS_MERGE, status.status
+            assert_match(/new remote commit/, status.remote_commits[0])
+            assert_match(/new local commit/, status.local_commits[0])
+        end
+
+        it "reports uncommitted changes" do
+            File.open(File.join(tempdir, 'git', 'test'), 'w') do |io|
+                io.puts "test"
+            end
+            importer.run_git(pkg, 'add', 'test')
+
+            status = importer.status(pkg)
+            assert status.uncommitted_code
+        end
+    end
+
     describe "version_compare" do
         it "should return -1 if the actual version is greater" do
             assert_equal(-1, Autobuild::Git.compare_versions([2, 1, 0], [2, 0, 1]))
@@ -296,6 +349,9 @@ describe Autobuild::Git do
             importer.import(pkg)
         end
 
+        it "returns false if there are no modifications" do
+            refute Autobuild::Git.has_uncommitted_changes?(pkg)
+        end
         it "returns true if some files is modified" do
             File.open(File.join(tempdir, 'git', 'test'), 'a') do |io|
                 io.puts "newline"
@@ -760,7 +816,7 @@ describe Autobuild::Git do
             importer.checkout(pkg)
             assert_equal 'temp/branch', importer.try_resolve_remote_head_from_local(pkg)
         end
-        it "not call ls-remote if local existis on resolve_remote call" do
+        it "not call ls-remote if local exists on resolve_remote call" do
             Autobuild.silent = true
             importer.checkout(pkg)
             flexmock(Autobuild::Subprocess)
@@ -785,9 +841,11 @@ describe Autobuild::Git do
                     any, :import, 'git', 'symbolic-ref', "refs/remotes/autobuild/HEAD", any
                 )
                 .once
-                .and_return(['ref: refs/heads/temp/branch HEAD', 'bla'])
+                .and_return(['refs/remotes/autobuild/temp/branch', 'bla'])
             flexmock(Autobuild::Subprocess).should_receive(:run).pass_thru
+            flexmock(importer).should_receive(:try_resolve_remote_head_from_server).never
             importer.import(pkg)
+            assert_equal "temp/branch", importer.remote_branch
         end
     end
 
