@@ -760,7 +760,7 @@ describe Autobuild::Git do
             importer.checkout(pkg)
             assert_equal 'temp/branch', importer.try_resolve_remote_head_from_local(pkg)
         end
-        it "not call ls-remote if local existis on resolve_remote call" do
+        it "not call ls-remote if local exists on resolve_remote call" do
             Autobuild.silent = true
             importer.checkout(pkg)
             flexmock(Autobuild::Subprocess)
@@ -785,9 +785,11 @@ describe Autobuild::Git do
                     any, :import, 'git', 'symbolic-ref', "refs/remotes/autobuild/HEAD", any
                 )
                 .once
-                .and_return(['ref: refs/heads/temp/branch HEAD', 'bla'])
+                .and_return(['refs/remotes/autobuild/temp/branch', 'bla'])
             flexmock(Autobuild::Subprocess).should_receive(:run).pass_thru
+            flexmock(importer).should_receive(:try_resolve_remote_head_from_server).never
             importer.import(pkg)
+            assert_equal "temp/branch", importer.remote_branch
         end
     end
 

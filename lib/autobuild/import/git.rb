@@ -7,6 +7,9 @@ require 'English'
 
 module Autobuild
     class Git < Importer
+        # Exception raised when a network access is needed while only_local is true
+        class NetworkAccessNeeded < RuntimeError; end
+
         class << self
             # Sets the default alternates path used by all Git importers
             #
@@ -320,13 +323,37 @@ module Autobuild
         # Return default local branch if exists, if not return the default remote branch
         #
         # @param [Package] package
-        def resolve_remote_head(package)
+        def resolve_remote_head(package, only_local: false)
             try_resolve_remote_head_from_local(package) ||
-                try_resolve_remote_head_from_server(package)
+                (!only_local && try_resolve_remote_head_from_server(package))
         end
 
+        # Whether both the local and remote branches are known
+        #
+        # See documentation of {#resolve_all_branches}
         def has_all_branches?
             remote_branch && local_branch
+        end
+
+        # Resolve branches based on the remote's HEAD
+        #
+        # Since GitHub (and others) decided to change the name of the "default"
+        # branch, we can't assume that master is ... well ... master.
+        #
+        # For this reason, a Git importer does not have a built-in default.
+        # If the branch(es) are not provided explicitly, the importer will
+        # call this method to guess the name of the default branch instead.
+        #
+        # Call {#has_all_branches?} to determine whether it is necessary
+        def resolve_all_branches(package, only_local: false)
+            default_branch = resolve_remote_head(package, only_local: only_local)
+            unless default_branch
+                raise NetworkAccessNeeded,
+                      "determining the remote branch would require access to "\
+                      "the network, and only_local is true"
+            end
+
+            relocate(repository, default_branch: default_branch)
         end
 
         # @api private
@@ -513,9 +540,8 @@ module Autobuild
         #
         # Set a remote up in the repositorie's configuration
         def setup_remote(package, remote_name, repository, push_to = repository)
-            unless has_all_branches?
-                relocate(repository, default_branch: resolve_remote_head(package))
-            end
+            resolve_all_branches(package, only_local: true) unless has_all_branches?
+
             run_git_bare(package, 'config', '--replace-all',
                          "remote.#{remote_name}.url", repository)
             run_git_bare(package, 'config', '--replace-all',
@@ -1105,9 +1131,7 @@ module Autobuild
         def update(package, options = Hash.new)
             validate_importdir(package)
 
-            unless has_all_branches?
-                relocate(repository, default_branch: resolve_remote_head(package))
-            end
+            resolve_all_branches(package) unless has_all_branches?
 
             only_local = options.fetch(:only_local, false)
             reset = options.fetch(:reset, false)
