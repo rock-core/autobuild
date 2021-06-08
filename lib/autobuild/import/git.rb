@@ -733,6 +733,8 @@ module Autobuild
                 end
 
             validate_importdir(package)
+            resolve_all_branches(package, only_local: only_local) unless has_all_branches?
+
             _pinned_state, target_commit, = determine_target_state(
                 package, only_local: only_local)
 
