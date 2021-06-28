@@ -1201,7 +1201,9 @@ module Autobuild
             update_remotes_configuration(package)
             update(package, only_local: !remote_branch.start_with?("refs/"),
                             reset: :force)
-            run_git(package, "submodule", "update", '--init', '--recursive') if with_submodules?
+            if with_submodules?
+                run_git(package, "submodule", "update", '--init', '--recursive')
+            end
         end
 
         # Changes the repository this importer is pointing to

@@ -760,7 +760,7 @@ describe Autobuild::Git do
                 import
                 refute_checkout_file_exist 'master', 'commit0_submodule'
                 force_reset commit: @master_root_commit
-                assert_equal "Commit 1\n", checkout_read('master','commit0_submodule', 'FILE')
+                assert_equal "Commit 1\n", checkout_read('master', 'commit0_submodule', 'FILE')
             end
         end
     end
