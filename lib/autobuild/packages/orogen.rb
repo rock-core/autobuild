@@ -235,6 +235,13 @@ module Autobuild
                 cmdline << "--type-export-policy=#{Orogen.default_type_export_policy}"
                 cmdline << "--transports=#{Orogen.transports.sort.uniq.join(',')}"
             end
+            if version >= "1.2"
+                cmdline << "--parallel-codegen=#{parallel_build_level}"
+                if (job_server = Autobuild.parallel_task_manager&.job_server)
+                    fds = "#{job_server.rio.fileno},#{job_server.wio.fileno}"
+                    cmdline << "--jobserver-auth=#{fds}"
+                end
+            end
 
             # Now, add raw options
             #
