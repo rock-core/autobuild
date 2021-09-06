@@ -300,8 +300,10 @@ module Autobuild
         #
         # @param [Package] package
         def try_resolve_remote_head_from_local(package)
-            ls_local_string = run_git(package, 'symbolic-ref',
-                                      "refs/remotes/#{@remote_name}/HEAD").first.strip
+            ls_local_string = run_git_bare(
+                package, 'symbolic-ref',
+                "refs/remotes/#{@remote_name}/HEAD"
+            ).first.strip
             local_remote_head = ls_local_string.match("refs/remotes/#{@remote_name}/(.*)")
             local_remote_head ? local_remote_head[1] : nil
         rescue Autobuild::SubcommandFailed # rubocop:disable Lint/SuppressedException
@@ -539,8 +541,11 @@ module Autobuild
         # @api private
         #
         # Set a remote up in the repositorie's configuration
-        def setup_remote(package, remote_name, repository, push_to = repository)
-            resolve_all_branches(package, only_local: true) unless has_all_branches?
+        def setup_remote(
+            package, remote_name, repository, push_to = repository,
+            only_local: true
+        )
+            resolve_all_branches(package, only_local: only_local) unless has_all_branches?
 
             run_git_bare(package, 'config', '--replace-all',
                          "remote.#{remote_name}.url", repository)
@@ -576,9 +581,9 @@ module Autobuild
         # @api private
         #
         # Updates the git repository's configuration for the target remote
-        def update_remotes_configuration(package)
+        def update_remotes_configuration(package, only_local: true)
             each_configured_remote do |*args|
-                setup_remote(package, *args)
+                setup_remote(package, *args, only_local: only_local)
             end
 
             if local_branch
