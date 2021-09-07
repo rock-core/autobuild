@@ -146,7 +146,7 @@ module Autobuild
             FileUtils.rm_f configurestamp
         end
 
-        def import(options = Hash.new)
+        def import(**options)
             # We force a regen after the first checkout. The issue is that
             # autotools is less robust than it should, and very often it is
             # better to generate the build system for the system on which we
