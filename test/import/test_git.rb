@@ -915,9 +915,8 @@ describe Autobuild::Git do
         it "local check if remote head exists" do
             flexmock(Autobuild::Subprocess)
                 .should_receive(:run)
-                .with(
-                    any, :import, 'git', 'symbolic-ref', "refs/remotes/autobuild/HEAD", any
-                )
+                .with(any, :import, 'git', '--git-dir', File.join(pkg.srcdir, ".git"),
+                      'symbolic-ref', "refs/remotes/autobuild/HEAD", any)
                 .once
                 .and_return(['refs/remotes/autobuild/temp/branch', 'bla'])
             flexmock(Autobuild::Subprocess).should_receive(:run).pass_thru
