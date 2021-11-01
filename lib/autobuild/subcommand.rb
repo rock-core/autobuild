@@ -30,14 +30,31 @@ module Autobuild
         @statistics = Hash.new
     end
 
-    def self.add_stat(package, phase, duration)
-        if !@statistics[package]
-            @statistics[package] = { phase => duration }
-        elsif !@statistics[package][phase]
-            @statistics[package][phase] = duration
+    def self.add_stat(target, phase, start_time)
+        duration = Time.now - start_time
+
+        if !@statistics[target]
+            @statistics[target] = { phase => duration }
+        elsif !@statistics[target][phase]
+            @statistics[target][phase] = duration
         else
-            @statistics[package][phase] += duration
+            @statistics[target][phase] += duration
         end
+
+        target_name =
+            if target.respond_to?(:name)
+                target.name
+            else
+                target.to_str
+            end
+
+        FileUtils.mkdir_p(Autobuild.logdir)
+        File.open(File.join(Autobuild.logdir, "stats.log"), 'a') do |io|
+            formatted_msec = format('%.03i', start_time.tv_usec / 1000)
+            formatted_time = "#{start_time.strftime('%F %H:%M:%S')}.#{formatted_msec}"
+            io.puts "#{formatted_time} #{target_name} #{phase} #{duration}"
+        end
+        target.add_stat(phase, duration) if target.respond_to?(:add_stat)
     end
 
     reset_statistics
@@ -286,128 +303,62 @@ module Autobuild::Subprocess # rubocop:disable Style/ClassAndModuleChildren
         end
 
         status = File.open(logname, open_flag) do |logfile|
-            logfile.puts if Autobuild.keep_oldlogs
-            logfile.puts
-            logfile.puts "#{Time.now}: running"
-            logfile.puts "    #{command.join(' ')}"
-            logfile.puts "with environment:"
-            env.keys.sort.each do |key|
-                if (value = env[key])
-                    logfile.puts "  '#{key}'='#{value}'"
-                end
-            end
-            logfile.puts
-            logfile.puts "#{Time.now}: running"
-            logfile.puts "    #{command.join(' ')}"
-            logfile.flush
-            logfile.sync = true
-
-            unless input_streams.empty?
-                pread, pwrite = IO.pipe # to feed subprocess stdin
+            if input_streams.empty?
+                inread = :close
+            else
+                inread, inwrite = IO.pipe # to feed subprocess stdin
             end
 
             outread, outwrite = IO.pipe
             outread.sync = true
             outwrite.sync = true
 
-            cread, cwrite = IO.pipe # to control that exec goes well
+            chdir = options[:working_directory] || Dir.pwd
+            logfile_output_command_preamble(logfile, command, env, chdir)
+            logfile.sync = true
 
-            if Autobuild.windows?
-                Dir.chdir(options[:working_directory]) do
-                    unless system(*command)
-                        exit_code = $CHILD_STATUS.exitstatus
-                        raise Failed.new(exit_code, nil),
-                              "'#{command.join(' ')}' returned status #{exit_code}"
-                    end
-                end
-                return # rubocop:disable Lint/NonLocalExitFromIterator
+            begin
+                pid = spawn(
+                    env, *command,
+                    chdir: chdir, in: inread, out: outwrite, err: outwrite
+                )
+            rescue StandardError => e
+                raise Failed.new(nil, false), e.message
             end
 
-            cwrite.fcntl(Fcntl::F_SETFD, Fcntl::FD_CLOEXEC)
-
-            pid = fork do
-                    logfile.puts "in directory #{options[:working_directory] || Dir.pwd}"
-
-                    cwrite.sync = true
-                    if Autobuild.nice
-                        Process.setpriority(Process::PRIO_PROCESS, 0, Autobuild.nice)
-                    end
-
-                    outread.close
-                    $stderr.reopen(outwrite.dup)
-                    $stdout.reopen(outwrite.dup)
-
-                    unless input_streams.empty?
-                        pwrite.close
-                        $stdin.reopen(pread)
-                    end
-
-                    exec(env, *command,
-                         chdir: options[:working_directory] || Dir.pwd,
-                         close_others: false)
-            rescue Errno::ENOENT
-                    cwrite.write([CONTROL_COMMAND_NOT_FOUND].pack('I'))
-                    exit(100)
-            rescue Interrupt
-                    cwrite.write([CONTROL_INTERRUPT].pack('I'))
-                    exit(100)
-            rescue ::Exception => e
-                    STDERR.puts e
-                    STDERR.puts e.backtrace.join("\n  ")
-                    cwrite.write([CONTROL_UNEXPECTED].pack('I'))
-                    exit(100)
+            if Autobuild.nice
+                Process.setpriority(Process::PRIO_PROCESS, pid, Autobuild.nice)
             end
 
-            readbuffer = StringIO.new
+            outwrite.close
 
             # Feed the input
             unless input_streams.empty?
-                pread.close
-                begin
-                    input_streams.each do |instream|
-                        instream.each_line do |line|
-                            while IO.select([outread], nil, nil, 0)
-                                readbuffer.write(outread.readpartial(128))
-                            end
-                            pwrite.write(line)
-                        end
+                # To feed multiple input streams, we have to read and write at the same
+                # time. Those are pipes, and buffers aren't unlimited (i.e. we could
+                # deadlock if we weren't doing this)
+                #
+                # To do that, we transfer the output to an internal buffer. Let's hope
+                # there isn't gigabytes of data ;-)
+                readbuffer = StringIO.new
+                inread.close
+                input_streams.each do |instream|
+                    instream.each_line do |line|
+                        r_ready, w_ready = IO.select([outread], [inwrite], nil, 1)
+                        readbuffer.write(outread.readpartial(128)) unless r_ready.empty?
+                        inwrite.write(line) unless w_ready.empty?
                     end
-                rescue Errno::ENOENT => e
-                    raise Failed.new(nil, false),
-                          "cannot open input files: #{e.message}", retry: false
                 end
-                pwrite.close
-            end
 
-            # Get control status
-            cwrite.close
-            value = cread.read(4)
-            if value
-                # An error occured
-                value = value.unpack1('I')
-                case value
-                when CONTROL_COMMAND_NOT_FOUND
-                    raise Failed.new(nil, false), "command '#{command.first}' not found"
-                when CONTROL_INTERRUPT
-                    raise Interrupt, "command '#{command.first}': interrupted by user"
-                else
-                    raise Failed.new(nil, false), "something unexpected happened"
-                end
-            end
-
-            transparent_prefix = "#{target_name}:#{phase}: "
-            transparent_prefix = "#{target_type}:#{transparent_prefix}" if target_type
-
-            # If the caller asked for process output, provide it to him
-            # line-by-line.
-            outwrite.close
-
-            unless input_streams.empty?
+                inwrite.close
                 readbuffer.write(outread.read)
                 readbuffer.seek(0)
                 outread.close
                 outread = readbuffer
             end
+
+            transparent_prefix = "#{target_name}:#{phase}: "
+            transparent_prefix = "#{target_type}:#{transparent_prefix}" if target_type
 
             outread.each_line do |line|
                 line.force_encoding(options[:encoding])
@@ -418,11 +369,13 @@ module Autobuild::Subprocess # rubocop:disable Style/ClassAndModuleChildren
 
                 if Autobuild.verbose || transparent_mode?
                     STDOUT.puts "#{transparent_prefix}#{line}"
-                elsif block_given?
                     # Do not yield
-                    # would mix the progress output with the actual command
-                    # output. Assume that if the user wants the command output,
-                    # the autobuild progress output is unnecessary
+                    #
+                    # This would mix the progress output with the actual command
+                    # output. Assume that if the user wants the transparent mode
+                    # (i.e. --tool in autoproj), the autobuild progress output
+                    # is unnecessary
+                elsif block_given?
                     yield(line)
                 end
             end
@@ -434,36 +387,51 @@ module Autobuild::Subprocess # rubocop:disable Style/ClassAndModuleChildren
         end
 
         if !status.exitstatus || status.exitstatus > 0
-            if status.termsig == 2 # SIGINT == 2
-                raise Interrupt, "subcommand #{command.join(' ')} interrupted"
-            end
-
-            if status.termsig
-                raise Failed.new(status.exitstatus, nil),
-                      "'#{command.join(' ')}' terminated by signal #{status.termsig}"
-            else
-                raise Failed.new(status.exitstatus, nil),
-                      "'#{command.join(' ')}' returned status #{status.exitstatus}"
-            end
+            handle_failed_exit_status(command, status)
         end
 
-        duration = Time.now - start_time
-        Autobuild.add_stat(target, phase, duration)
-        FileUtils.mkdir_p(Autobuild.logdir)
-        File.open(File.join(Autobuild.logdir, "stats.log"), 'a') do |io|
-            formatted_msec = format('%.03i', start_time.tv_usec / 1000)
-            formatted_time = "#{start_time.strftime('%F %H:%M:%S')}.#{formatted_msec}"
-            io.puts "#{formatted_time} #{target_name} #{phase} #{duration}"
-        end
-        target.add_stat(phase, duration) if target.respond_to?(:add_stat)
+        Autobuild.add_stat(target, phase, start_time)
         subcommand_output
     rescue Failed => e
-        error = Autobuild::SubcommandFailed.new(target, command.join(" "),
-                                                logname, e.status, subcommand_output)
+        error = Autobuild::SubcommandFailed.new(
+            target, command.join(" "),
+            logname, e.status, subcommand_output
+        )
         error.retry = if e.retry?.nil? then options[:retry]
                       else e.retry?
                       end
         error.phase = phase
         raise error, e.message
+    end
+
+    def self.logfile_output_command_preamble(io, command, env, chdir)
+        io.puts if Autobuild.keep_oldlogs
+        io.puts
+        io.puts "#{Time.now}: running"
+        io.puts "    #{command.join(' ')}"
+        io.puts
+        io.puts "in directory directory #{chdir}"
+        io.puts
+        io.puts "with environment:"
+        env.keys.sort.each do |key|
+            if (value = env[key])
+                io.puts "  '#{key}'='#{value}'"
+            end
+        end
+        io.flush
+    end
+
+    def self.handle_failed_exit_status(command, status)
+        if status.termsig == 2 # SIGINT == 2
+            raise Interrupt, "subcommand #{command.join(' ')} interrupted"
+        end
+
+        if status.termsig
+            raise Failed.new(status.exitstatus, nil),
+                  "'#{command.join(' ')}' terminated by signal #{status.termsig}"
+        else
+            raise Failed.new(status.exitstatus, nil),
+                  "'#{command.join(' ')}' returned status #{status.exitstatus}"
+        end
     end
 end
