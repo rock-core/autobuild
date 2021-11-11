@@ -119,7 +119,8 @@ module Autobuild
         def update?
             if @update.nil?
                 Autobuild.do_update
-            else @update
+            else
+                @update
             end
         end
 
@@ -492,7 +493,8 @@ module Autobuild
                     suffix << token.gsub(/%s/, name)
                 elsif suffix.empty?
                     prefix << token
-                else suffix << token
+                else
+                    suffix << token
                 end
             end
             if suffix.empty?

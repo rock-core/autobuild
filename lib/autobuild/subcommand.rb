@@ -268,7 +268,8 @@ module Autobuild::Subprocess # rubocop:disable Style/ClassAndModuleChildren
         end
         logdir = if target.respond_to?(:logdir)
                      target.logdir
-                 else Autobuild.logdir
+                 else
+                     Autobuild.logdir
                  end
 
         if target.respond_to?(:working_directory)
@@ -288,7 +289,8 @@ module Autobuild::Subprocess # rubocop:disable Style/ClassAndModuleChildren
 
         open_flag = if Autobuild.keep_oldlogs then 'a'
                     elsif Autobuild.registered_logfile?(logname) then 'a'
-                    else 'w'
+                    else
+                        'w'
                     end
         open_flag << ":BINARY"
 
@@ -318,9 +320,12 @@ module Autobuild::Subprocess # rubocop:disable Style/ClassAndModuleChildren
             logfile.sync = true
 
             begin
+                # close_others: false is needed because some code (e.g.
+                # orogen/make) implicitly pass FDs to the child
                 pid = spawn(
                     env, *command,
-                    chdir: chdir, in: inread, out: outwrite, err: outwrite
+                    chdir: chdir, in: inread, out: outwrite, err: outwrite,
+                    close_others: false
                 )
             rescue StandardError => e
                 raise Failed.new(nil, false), e.message
@@ -398,7 +403,8 @@ module Autobuild::Subprocess # rubocop:disable Style/ClassAndModuleChildren
             logname, e.status, subcommand_output
         )
         error.retry = if e.retry?.nil? then options[:retry]
-                      else e.retry?
+                      else
+                          e.retry?
                       end
         error.phase = phase
         raise error, e.message

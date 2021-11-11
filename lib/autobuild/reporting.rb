@@ -130,7 +130,8 @@ module Autobuild
         # :exit if debug is false, or :raise if it is true
         def self.default_report_on_package_failures
             if Autobuild.debug then :raise
-            else :exit
+            else
+                :exit
             end
         end
 
@@ -163,7 +164,8 @@ module Autobuild
                 raise interrupted_by if interrupted_by
 
                 e = if errors.size == 1 then errors.first
-                    else CompositeException.new(errors)
+                    else
+                        CompositeException.new(errors)
                     end
                 raise e
             elsif %i[report_silent report].include?(on_package_failures)
