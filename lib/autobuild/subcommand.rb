@@ -306,7 +306,7 @@ module Autobuild::Subprocess # rubocop:disable Style/ClassAndModuleChildren
 
         status = File.open(logname, open_flag) do |logfile|
             if input_streams.empty?
-                inread = :close
+                inread = :in
             else
                 inread, inwrite = IO.pipe # to feed subprocess stdin
             end
