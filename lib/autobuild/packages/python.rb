@@ -48,8 +48,8 @@ module Autobuild
 
         def python_path
             begin
-                _, output, _, ret = Open3.popen3({ 'PYTHONUSERBASE' => prefix },
-                                                 'python -m site --user-site')
+                env = Autobuild.env.resolved_env.merge({ 'PYTHONUSERBASE' => prefix })
+                _, output, _, ret = Open3.popen3(env, 'python -m site --user-site')
             rescue Exception => e
                 raise "Unable to set PYTHONPATH: #{e.message}"
             end
