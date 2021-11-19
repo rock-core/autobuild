@@ -40,7 +40,8 @@ module Autobuild
                     @default_alternates = cache_dirs.map do |path|
                         File.join(File.expand_path(path), '%s')
                     end
-                else Array.new
+                else
+                    Array.new
                 end
             end
         end
@@ -764,7 +765,8 @@ module Autobuild
         rescue SubcommandFailed => e
             if e.status == 1
                 false
-            else raise
+            else
+                raise
             end
         end
 
@@ -775,7 +777,8 @@ module Autobuild
         rescue SubcommandFailed => e
             if e.status == 1
                 false
-            else raise
+            else
+                raise
             end
         end
 
@@ -1020,7 +1023,8 @@ module Autobuild
                     File.readlines(alternates_path)
                         .map(&:strip)
                         .find_all { |l| !l.empty? }
-                else Array.new
+                else
+                    Array.new
                 end
 
             alternates = each_alternate_path(package).map do |path|

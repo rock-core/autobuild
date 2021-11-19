@@ -246,7 +246,8 @@ module Autobuild
                             groups.last[1] = (current_group.first..group_end_index)
                             groups << [prefix, [idx, other_idx]]
                             grouping = true
-                        else break
+                        else
+                            break
                         end
                     end
                 end

@@ -33,7 +33,8 @@ module Autobuild
             target_name =
                 if target.respond_to?(:name)
                     target.name
-                else target.to_str
+                else
+                    target.to_str
                 end
 
             if target && phase

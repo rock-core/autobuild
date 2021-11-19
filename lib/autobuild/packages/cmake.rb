@@ -440,7 +440,8 @@ module Autobuild
         def show_make_messages?
             if !@show_make_messages.nil?
                 @show_make_messages
-            else CMake.show_make_messages?
+            else
+                CMake.show_make_messages?
             end
         end
 

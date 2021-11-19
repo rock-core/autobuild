@@ -529,7 +529,8 @@ module Autobuild
 
             if mode == Zip
                 main_dir = if @options[:no_subdirectory] then package.srcdir
-                           else base_dir
+                           else
+                               base_dir
                            end
 
                 FileUtils.mkdir_p base_dir
