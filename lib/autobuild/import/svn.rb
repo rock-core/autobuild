@@ -202,7 +202,8 @@ module Autobuild
                     # Try svn upgrade and info again
                     run_svn(package, 'upgrade', retry: false)
                     svninfo = run_svn(package, 'info')
-                else raise
+                else
+                    raise
                 end
             end
 

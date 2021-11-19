@@ -206,7 +206,8 @@ module Autobuild
                         varname, = o.split("=").first
                         if (current_flag = testflags.find { |fl| fl =~ /^#{varname}=/ })
                             current_flag != o
-                        else false
+                        else
+                            false
                         end
                     end
                 end

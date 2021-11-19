@@ -88,7 +88,8 @@ module Autobuild
                 if task.respond_to?(:package)
                     started_packages[task.package] ||= -started_packages.size
                     queue[task] = started_packages[task.package]
-                else queue[task] = base_priority
+                else
+                    queue[task] = base_priority
                 end
             end
 

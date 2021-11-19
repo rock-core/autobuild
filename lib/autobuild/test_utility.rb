@@ -24,7 +24,8 @@ module Autobuild
         def coverage_enabled?
             if @coverage_enabled.nil?
                 TestUtility.coverage_enabled?
-            else @coverage_enabled
+            else
+                @coverage_enabled
             end
         end
 
@@ -53,7 +54,8 @@ module Autobuild
             if @coverage_source_dir
                 relative = if package.respond_to?(:builddir)
                                package.builddir
-                           else package.srcdir
+                           else
+                               package.srcdir
                            end
                 File.expand_path(@coverage_source_dir, relative)
             end

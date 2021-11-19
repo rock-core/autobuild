@@ -29,37 +29,44 @@ module Autobuild
 
     SHELL_VAR_EXPANSION =
         if windows? then "%%%s%%".freeze
-        else "$%s".freeze
+        else
+            "$%s".freeze
         end
     SHELL_SET_COMMAND =
         if windows? then "set %s=%s".freeze
-        else "%s=\"%s\"".freeze
+        else
+            "%s=\"%s\"".freeze
         end
     SHELL_CONDITIONAL_SET_COMMAND =
         if windows? then "set %s=%s".freeze
-        else "if test -z \"$%1$s\"; then\n  %1$s=\"%3$s\"\n"\
+        else
+            "if test -z \"$%1$s\"; then\n  %1$s=\"%3$s\"\n"\
             "else\n  %1$s=\"%2$s\"\nfi".freeze
         end
     SHELL_UNSET_COMMAND = "unset %s".freeze
     SHELL_EXPORT_COMMAND =
         if windows? then "set %s".freeze
-        else "export %s".freeze
+        else
+            "export %s".freeze
         end
     SHELL_SOURCE_SCRIPT =
         if windows? then "%s".freeze
-        else '. "%s"'.freeze
+        else
+            '. "%s"'.freeze
         end
 
     LIBRARY_PATH =
         if macos? then 'DYLD_LIBRARY_PATH'.freeze
         elsif windows? then 'PATH'.freeze
-        else 'LD_LIBRARY_PATH'.freeze
+        else
+            'LD_LIBRARY_PATH'.freeze
         end
 
     LIBRARY_SUFFIX =
         if macos? then 'dylib'
         elsif windows? then 'dll'
-        else 'so'
+        else
+            'so'
         end
 
     ORIGINAL_ENV = Hash.new
@@ -211,7 +218,8 @@ module Autobuild
             if @inherit
                 if name
                     @inherited_variables.include?(name)
-                else true
+                else
+                    true
                 end
             end
         end
@@ -245,7 +253,8 @@ module Autobuild
             flag =
                 if !names.last.respond_to?(:to_str)
                     names.pop
-                else true
+                else
+                    true
                 end
 
             if flag
@@ -342,7 +351,8 @@ module Autobuild
                         inherited_environment[name] || []
                     elsif inheritance_mode == :keep && inherit?(name)
                         ["$#{name}"]
-                    else []
+                    else
+                        []
                     end
 
                 value = []
@@ -439,7 +449,8 @@ module Autobuild
             if file
                 @source_before << { file: file, shell: shell }
                 source_before(shell: shell) # for backwards compatibility
-            else @source_before.select { |pair| pair[:shell] == shell }
+            else
+                @source_before.select { |pair| pair[:shell] == shell }
                                .map { |item| item[:file] }
             end
         end
@@ -457,7 +468,8 @@ module Autobuild
             if file
                 @source_after << { file: file, shell: shell }
                 source_after(shell: shell) # for backwards compatibility
-            else @source_after.select { |pair| pair[:shell] == shell }
+            else
+                @source_after.select { |pair| pair[:shell] == shell }
                               .map { |item| item[:file] }
             end
         end
@@ -542,7 +554,8 @@ module Autobuild
                     with_inheritance = with_inheritance.map do |value|
                         if value == variable_expansion
                             base_env[name]
-                        else value
+                        else
+                            value
                         end
                     end
                     result[name] = with_inheritance.join(File::PATH_SEPARATOR)
@@ -604,7 +617,8 @@ module Autobuild
             @arch_size ||=
                 if RbConfig::CONFIG['host_cpu'] =~ /64/
                     64
-                else 32
+                else
+                    32
                 end
             @arch_size
         end

@@ -357,7 +357,8 @@ module Autobuild
                 message = Autobuild.color('interrupted', :red)
                 if last_error
                     raise last_error
-                else raise
+                else
+                    raise
                 end
             rescue ::Exception => e
                 message = Autobuild.color('update failed', :red)
@@ -410,7 +411,8 @@ module Autobuild
                     execute_post_hooks(package)
                 rescue Interrupt
                     if last_error then raise last_error
-                    else raise
+                    else
+                        raise
                     end
                 rescue ::Exception => e
                     last_error = e
