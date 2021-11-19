@@ -55,6 +55,11 @@ module Autobuild
                 assert_same ops, package.apply_env(env, Hash.new, ops)
                 assert_equal [Package::EnvOp.new(:set, 'KEY', ['VALUE'])], ops
             end
+            it "sends source_after operation to the given environment" do
+                env.should_receive(:source_after).with("foobar", shell: "bash")
+                package.env_source_after("foobar", shell: "bash")
+                package.apply_env(env)
+            end
             it "returns the applied operations" do
                 package.env_set 'KEY', 'VALUE'
                 env.should_receive(:set)

@@ -288,6 +288,11 @@ module Autobuild
             add_env_op EnvOp.new(:add_prefix, prefix, [includes])
         end
 
+        # Add a file to be sourced at the end of the generated env file
+        def env_source_after(file, shell: "sh")
+            add_env_op EnvOp.new(:source_after, file, shell: shell)
+        end
+
         # Hook called by autoproj to set up the default environment for this
         # package
         #
@@ -328,7 +333,11 @@ module Autobuild
                         set[env_op.name] = [self, env_op.values]
                     end
                 end
-                env.send(env_op.type, env_op.name, *env_op.values)
+                if env_op.type == :source_after
+                    env.send(env_op.type, env_op.name, **env_op.values)
+                else
+                    env.send(env_op.type, env_op.name, *env_op.values)
+                end
                 ops << env_op
             end
             ops
