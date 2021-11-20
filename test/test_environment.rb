@@ -56,7 +56,43 @@ module Autobuild
                 end
             end
         end
+        describe "cmake paths" do
+            before do
+                @prefix_base = File.join(__dir__, "prefix")
+                flexmock(@env).should_receive(:arch_names).and_return(["i386-linux-gnu"])
+                flexmock(@env).should_receive(:arch_size).and_return(32)
+            end
+            it "sets cmake environment if prefix has cmake files" do
+                @env.add_prefix(File.join(@prefix_base, "one"))
+                refute @env["CMAKE_MODULE_PATH"]
+                assert_equal File.join(@prefix_base, "one"),
+                             @env.resolved_env["CMAKE_PREFIX_PATH"]
+                @env.reset
 
+                @env.add_prefix(File.join(@prefix_base, "two"))
+                refute @env["CMAKE_MODULE_PATH"]
+                assert_equal File.join(@prefix_base, "two"),
+                             @env.resolved_env["CMAKE_PREFIX_PATH"]
+                @env.reset
+
+                @env.add_prefix(File.join(@prefix_base, "three"))
+                refute @env["CMAKE_PREFIX_PATH"]
+                assert_equal File.join(@prefix_base, "three"),
+                             @env.resolved_env["CMAKE_MODULE_PATH"]
+                @env.reset
+
+                @env.add_prefix(File.join(@prefix_base, "four"))
+                assert_equal File.join(@prefix_base, "four"),
+                             @env.resolved_env["CMAKE_PREFIX_PATH"]
+                assert_equal File.join(@prefix_base, "four"),
+                             @env.resolved_env["CMAKE_MODULE_PATH"]
+                @env.reset
+
+                @env.add_prefix(File.join(@prefix_base, "five"))
+                refute @env["CMAKE_PREFIX_PATH"]
+                refute @env["CMAKE_MODULE_PATH"]
+            end
+        end
         describe "a not-inherited environment variable" do
             before do
                 Autobuild::ORIGINAL_ENV['AUTOBUILD_TEST'] = "val1:val0"

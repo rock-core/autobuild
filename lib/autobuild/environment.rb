@@ -647,6 +647,59 @@ module Autobuild
             add_prefix(newprefix, includes)
         end
 
+        def default_cmake_search_globs(prefix, *file_globs)
+            lib_globs = %w[lib]
+
+            case arch_size
+            when 32
+                lib_globs << "lib32"
+                lib_globs << "libx32"
+            when 64
+                lib_globs << "lib64"
+            end
+
+            unless arch_names.empty?
+                arch_names.each do |arch_name|
+                    lib_globs << File.join("lib", arch_name)
+                end
+            end
+
+            lib_share_glob = "{#{lib_globs.join(',')},share}"
+            file_glob = "{#{file_globs.join(',')}}"
+
+            # Reference: https://cmake.org/cmake/help/latest/command/find_package.html
+            #
+            # <prefix>/                                                       (W)
+            # <prefix>/(cmake|CMake)/                                         (W)
+            # <prefix>/<name>*/                                               (W)
+            # <prefix>/<name>*/(cmake|CMake)/                                 (W)
+            # <prefix>/(lib/<arch>|lib*|share)/cmake/<name>*/                 (U)
+            # <prefix>/(lib/<arch>|lib*|share)/<name>*/                       (U)
+            # <prefix>/(lib/<arch>|lib*|share)/<name>*/(cmake|CMake)/         (U)
+            # <prefix>/<name>*/(lib/<arch>|lib*|share)/cmake/<name>*/         (W/U)
+            # <prefix>/<name>*/(lib/<arch>|lib*|share)/<name>*/               (W/U)
+            # <prefix>/<name>*/(lib/<arch>|lib*|share)/<name>*/(cmake|CMake)/ (W/U)
+            [
+                File.join(prefix, file_glob),
+                File.join(prefix, "{cmake,CMake}", file_glob),
+                File.join(prefix, "*", file_glob),
+                File.join(prefix, "*", "{cmake/CMake}", file_glob),
+                File.join(prefix, lib_share_glob, "cmake", "*", file_glob),
+                File.join(prefix, lib_share_glob, "*", file_glob),
+                File.join(prefix, lib_share_glob, "*", "{cmake,CMake}", file_glob),
+                File.join(prefix, "*", lib_share_glob, "cmake", "*", file_glob),
+                File.join(prefix, "*", lib_share_glob, "*", file_glob),
+                File.join(prefix, "*", lib_share_glob, "*", "{cmake,CMake}", file_glob)
+            ]
+        end
+
+        def has_cmake_files?(prefix, *file_globs)
+            default_cmake_search_globs(prefix, *file_globs).each do |glob_path|
+                return true unless Dir[glob_path].empty?
+            end
+            false
+        end
+
         PKGCONFIG_PATH_RX = %r{.*/((?:lib|lib64|share)/.*)}.freeze
 
         # Returns the system-wide search path that is embedded in pkg-config
@@ -681,6 +734,16 @@ module Autobuild
                     has_sofile = Dir.enum_for(:glob, glob_path)
                         .find { true }
                     add_path(LIBRARY_PATH, path) if has_sofile
+                end
+            end
+
+            cmake_pairs = []
+            cmake_pairs << ["CMAKE_PREFIX_PATH", ["*-config.cmake", "*Config.cmake"]]
+            cmake_pairs << ["CMAKE_MODULE_PATH", ["Find*.cmake"]]
+            cmake_pairs.each do |cmake_var, cmake_file_globs|
+                if !includes || includes.include?(cmake_var)
+                    has_cmake = has_cmake_files?(newprefix, *cmake_file_globs)
+                    add_path(cmake_var, newprefix) if has_cmake
                 end
             end
 
