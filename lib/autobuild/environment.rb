@@ -702,10 +702,18 @@ module Autobuild
 
         PKGCONFIG_PATH_RX = %r{.*/((?:lib|lib64|share)/.*)}.freeze
 
+        def pkgconfig_tool_path
+            @pkgconfig_tool_path ||= Autobuild.tool_in_path("pkg-config", env: self)
+        rescue ArgumentError
+            nil
+        end
+
         # Returns the system-wide search path that is embedded in pkg-config
         def default_pkgconfig_search_suffixes
+            return [] unless pkgconfig_tool_path
+
             @default_pkgconfig_search_suffixes ||=
-                `LANG=C #{Autobuild.tool("pkg-config")} --variable pc_path pkg-config`
+                `LANG=C #{pkgconfig_tool_path} --variable pc_path pkg-config`
                     .strip
                     .split(":")
                     .grep(PKGCONFIG_PATH_RX)
