@@ -50,19 +50,27 @@ module Autobuild
             command
         end
 
-        def python_path
+        def self.user_site(prefix)
+            return File.join(prefix, @user_site) if @user_site
+
             begin
-                env = Autobuild.env.resolved_env.merge({ 'PYTHONUSERBASE' => prefix })
+                env = Autobuild.env.resolved_env.merge({ 'PYTHONUSERBASE' => "/" })
                 _, output, _, ret = Open3.popen3(env, 'python -m site --user-site')
             rescue Exception => e
                 raise "Unable to set PYTHONPATH: #{e.message}"
             end
 
             if ret.value.success?
-                output.read.chomp
+                @user_site = Pathname.new(output.read.chomp)
+                                     .relative_path_from(Pathname.new("/"))
+                File.join(prefix, @user_site)
             else
                 raise 'Unable to set PYTHONPATH: user site directory disabled?'
             end
+        end
+
+        def python_path
+            self.class.user_site(prefix)
         end
 
         # Do the build in builddir
