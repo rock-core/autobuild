@@ -27,12 +27,14 @@ module Autobuild
 
         def prepare_for_forced_build
             super
-            FileUtils.rm_f configurestamp
             @forced = true
         end
 
         def generate_build_command
-            command = ['python', 'setup.py', 'build']
+            command = %w[python setup.py]
+            command << "egg_info"
+            command << "--egg-base=#{builddir}"
+            command << "build"
             command << "--build-base=#{builddir}"
             command += buildflags.flatten
             command
@@ -42,6 +44,8 @@ module Autobuild
             command = generate_build_command
             command << 'install'
             command << "--prefix=#{prefix}"
+            command << "--record=#{builddir}/install.log"
+            command << "--single-version-externally-managed"
             command += installflags.flatten
             command
         end
