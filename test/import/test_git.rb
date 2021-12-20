@@ -260,43 +260,51 @@ describe Autobuild::Git do
     end
 
     describe "#checkout" do
-        before do
-            @importer =
-                Autobuild.git(gitrepo, remote_branch: 'refs/heads/master')
+        describe "full clone" do
+            before do
+                @importer =
+                    Autobuild.git(gitrepo, remote_branch: 'refs/heads/master')
 
-            pkg.importer = importer
-            importer.import(pkg)
-        end
-        it "raises if a full ref is provided while cloning a single branch" do
-            importer = Autobuild::Git.new(
-                'repo',
-                remote_branch: 'refs/heads/test',
-                single_branch: true
-            )
+                pkg.importer = importer
+                importer.import(pkg)
+            end
+            it "does not raise on checkout if remote branch lacks commits" do
+                flexmock(Autobuild::Subprocess)
+                    .should_receive(:run)
+                    .with(
+                        any, :import, 'git', 'clone', '-o', 'autobuild',
+                        File.join(tempdir, 'gitrepo.git'),
+                        File.join(tempdir, 'git'), any
+                    )
 
-            assert_raises(ArgumentError) do
+                flexmock(Autobuild::Subprocess).should_receive(:run).pass_thru
+
+                importer.run_git(pkg, 'checkout', '-b', 'test')
+                File.open(File.join(tempdir, 'git', 'test'), 'a') do |io|
+                    io.puts "newline"
+                end
+
+                importer.run_git(pkg, 'commit', '-a', '-m', 'test commit')
+                importer.local_branch = 'test'
                 importer.checkout(pkg)
             end
         end
-        it "does not raise on checkout if remote branch lacks commits" do
-            flexmock(Autobuild::Subprocess)
-                .should_receive(:run)
-                .with(
-                    any, :import, 'git', 'clone', '-o', 'autobuild',
-                    File.join(tempdir, 'gitrepo.git'),
-                    File.join(tempdir, 'git'), any
+        describe "single branch clone" do
+            it "raises if a full ref is provided while cloning a single branch" do
+                importer = Autobuild::Git.new(
+                    'repo',
+                    remote_branch: 'refs/heads/test',
+                    single_branch: true
                 )
 
-            flexmock(Autobuild::Subprocess).should_receive(:run).pass_thru
-
-            importer.run_git(pkg, 'checkout', '-b', 'test')
-            File.open(File.join(tempdir, 'git', 'test'), 'a') do |io|
-                io.puts "newline"
+                assert_raises(ArgumentError) do
+                    importer.checkout(pkg)
+                end
             end
-
-            importer.run_git(pkg, 'commit', '-a', '-m', 'test commit')
-            importer.local_branch = 'test'
-            importer.checkout(pkg)
+            it "allows cloning single branch when branch name is unset" do
+                importer = Autobuild.git(gitrepo, single_branch: true)
+                importer.checkout(pkg)
+            end
         end
     end
 

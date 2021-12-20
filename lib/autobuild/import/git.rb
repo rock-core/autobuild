@@ -1281,11 +1281,14 @@ module Autobuild
             clone_options = Array.new
             clone_options << '--recurse-submodules' if with_submodules?
             if single_branch?
-                if remote_branch.start_with?("refs/")
-                    raise ArgumentError, "you cannot provide a full ref for"\
-                        " the remote branch while cloning a single branch"
+                if remote_branch
+                    if remote_branch.start_with?("refs/")
+                        raise ArgumentError, "you cannot provide a full ref for"\
+                            " the remote branch while cloning a single branch"
+                    end
+                    clone_options << "--branch=#{remote_branch}"
                 end
-                clone_options << "--branch=#{remote_branch}" << "--single-branch"
+                clone_options << "--single-branch"
             end
             each_alternate_path(package) do |path|
                 clone_options << '--reference' << path
@@ -1297,7 +1300,7 @@ module Autobuild
                         Autobuild.tool('git'), 'clone', '-o', remote_name, *clone_options,
                         repository, package.importdir, retry: true)
 
-            update_remotes_configuration(package)
+            update_remotes_configuration(package, only_local: false)
             update(package, only_local: !remote_branch.start_with?("refs/"),
                             reset: :force)
             if with_submodules?
