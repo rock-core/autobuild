@@ -320,6 +320,42 @@ describe Autobuild::Git do
                 importer = Autobuild.git(gitrepo, single_branch: true, tag: 'third_commit')
                 importer.checkout(pkg)
             end
+            describe "globally" do
+                before do
+                    Autobuild::Git.single_branch = true
+                end
+                after do
+                    Autobuild::Git.single_branch = nil
+                end
+                it "allows setting single_branch globally" do
+                    flexmock(Autobuild::Subprocess)
+                        .should_receive(:run)
+                        .with(
+                            any, :import, 'git', 'clone', '-o', 'autobuild', '--single-branch',
+                            File.join(tempdir, 'gitrepo.git'),
+                            File.join(tempdir, 'git'), any
+                        ).once.pass_thru
+
+                    flexmock(Autobuild::Subprocess).should_receive(:run).pass_thru
+
+                    importer = Autobuild.git(gitrepo)
+                    importer.checkout(pkg)
+                end
+                it "allows overriding single_branch locally" do
+                    flexmock(Autobuild::Subprocess)
+                        .should_receive(:run)
+                        .with(
+                            any, :import, 'git', 'clone', '-o', 'autobuild',
+                            File.join(tempdir, 'gitrepo.git'),
+                            File.join(tempdir, 'git'), any
+                        ).once.pass_thru
+
+                    flexmock(Autobuild::Subprocess).should_receive(:run).pass_thru
+
+                    importer = Autobuild.git(gitrepo, single_branch: false)
+                    importer.checkout(pkg)
+                end
+            end
         end
     end
 

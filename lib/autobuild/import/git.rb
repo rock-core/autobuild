@@ -13,6 +13,15 @@ module Autobuild
         @default_fingerprint_mode = "commit"
 
         class << self
+            # Sets the single_branch option globally for all Git importers
+            # This can can be overriden in the oporter options
+            attr_writer :single_branch
+
+            # Whether single_branch is enabled globally
+            def single_branch?
+                !!@single_branch
+            end
+
             # Sets the default alternates path used by all Git importers
             #
             # Setting it explicitly overrides any value we get from the
@@ -168,7 +177,8 @@ module Autobuild
                 source_id: nil,
                 with_submodules: false,
                 single_branch: false,
-                fingerprint_mode: Git.default_fingerprint_mode
+                fingerprint_mode: Git.default_fingerprint_mode,
+                single_branch: Git.single_branch?
             )
 
             if gitopts[:branch] && branch
