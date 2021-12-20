@@ -305,6 +305,21 @@ describe Autobuild::Git do
                 importer = Autobuild.git(gitrepo, single_branch: true)
                 importer.checkout(pkg)
             end
+            it "allows using tag and single_branch together" do
+                flexmock(Autobuild::Subprocess)
+                    .should_receive(:run)
+                    .with(
+                        any, :import, 'git', 'clone', '-o', 'autobuild',
+                        '--branch=third_commit', '--single-branch',
+                        File.join(tempdir, 'gitrepo.git'),
+                        File.join(tempdir, 'git'), any
+                    ).once.pass_thru
+
+                flexmock(Autobuild::Subprocess).should_receive(:run).pass_thru
+
+                importer = Autobuild.git(gitrepo, single_branch: true, tag: 'third_commit')
+                importer.checkout(pkg)
+            end
         end
     end
 

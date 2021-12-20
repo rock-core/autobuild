@@ -1281,7 +1281,9 @@ module Autobuild
             clone_options = Array.new
             clone_options << '--recurse-submodules' if with_submodules?
             if single_branch?
-                if remote_branch
+                if tag
+                    clone_options << "--branch=#{tag}"
+                elsif remote_branch
                     if remote_branch.start_with?("refs/")
                         raise ArgumentError, "you cannot provide a full ref for"\
                             " the remote branch while cloning a single branch"
