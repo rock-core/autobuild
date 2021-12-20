@@ -22,6 +22,14 @@ module Autobuild
                 !!@single_branch
             end
 
+            # Sets shallow clones globally (applies to submodules as well)
+            attr_writer :shallow
+
+            # Whether shallow clones is enabled globally
+            def shallow?
+                !!@shallow
+            end
+
             # Sets the default alternates path used by all Git importers
             #
             # Setting it explicitly overrides any value we get from the
@@ -176,9 +184,9 @@ module Autobuild
                 repository_id: nil,
                 source_id: nil,
                 with_submodules: false,
-                single_branch: false,
                 fingerprint_mode: Git.default_fingerprint_mode,
-                single_branch: Git.single_branch?
+                single_branch: Git.single_branch?,
+                shallow: Git.shallow?
             )
 
             if gitopts[:branch] && branch
@@ -190,6 +198,7 @@ module Autobuild
             super(common)
 
             @single_branch = gitopts[:single_branch]
+            @shallow = gitopts[:shallow]
             @with_submodules = gitopts.delete(:with_submodules)
             @alternates =
                 if @with_submodules
@@ -315,8 +324,16 @@ module Autobuild
             @single_branch
         end
 
+        # Whether clones should be shallow
+        def shallow?
+            @shallow
+        end
+
         # Set the {#single_branch?} predicate
         attr_writer :single_branch
+
+        # Set the {#shallow?} predicate
+        attr_writer :shallow
 
         # @api private
         #
@@ -1289,7 +1306,13 @@ module Autobuild
             FileUtils.mkdir_p(base_dir) unless File.directory?(base_dir)
 
             clone_options = Array.new
-            clone_options << '--recurse-submodules' if with_submodules?
+            if with_submodules?
+                clone_options << '--recurse-submodules'
+                clone_options << '--shallow-submodules' if shallow?
+            end
+
+            clone_options << '--depth' << '1' if shallow?
+
             if single_branch?
                 if tag
                     clone_options << "--branch=#{tag}"

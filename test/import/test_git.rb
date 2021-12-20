@@ -289,6 +289,49 @@ describe Autobuild::Git do
                 importer.checkout(pkg)
             end
         end
+
+        def assert_clone(*args)
+            flexmock(Autobuild::Subprocess)
+                .should_receive(:run)
+                .with(
+                    any, :import, 'git', 'clone', '-o', 'autobuild', *args,
+                    File.join(tempdir, 'gitrepo.git'),
+                    File.join(tempdir, 'git'), any
+                ).once.pass_thru
+
+            flexmock(Autobuild::Subprocess).should_receive(:run).pass_thru
+        end
+
+        describe "shallow clone" do
+            it "does a shallow clone with shallow submodules" do
+                importer = Autobuild.git(gitrepo, shallow: true, with_submodules: true)
+                assert importer.shallow?
+
+                assert_clone "--recurse-submodules", "--shallow-submodules", "--depth", "1"
+                importer.checkout(pkg)
+            end
+            describe "globally" do
+                before do
+                    Autobuild::Git.shallow = true
+                end
+                after do
+                    Autobuild::Git.shallow = nil
+                end
+                it "allows setting single_branch globally" do
+                    assert_clone "--depth", "1"
+                    importer = Autobuild.git(gitrepo)
+                    importer.checkout(pkg)
+                    assert importer.shallow?
+                end
+                it "allows overriding single_branch locally" do
+                    assert_clone
+                    importer = Autobuild.git(gitrepo, shallow: false)
+                    importer.checkout(pkg)
+                    refute importer.shallow?
+                end
+            end
+        end
+
         describe "single branch clone" do
             it "raises if a full ref is provided while cloning a single branch" do
                 importer = Autobuild::Git.new(
@@ -306,17 +349,7 @@ describe Autobuild::Git do
                 importer.checkout(pkg)
             end
             it "allows using tag and single_branch together" do
-                flexmock(Autobuild::Subprocess)
-                    .should_receive(:run)
-                    .with(
-                        any, :import, 'git', 'clone', '-o', 'autobuild',
-                        '--branch=third_commit', '--single-branch',
-                        File.join(tempdir, 'gitrepo.git'),
-                        File.join(tempdir, 'git'), any
-                    ).once.pass_thru
-
-                flexmock(Autobuild::Subprocess).should_receive(:run).pass_thru
-
+                assert_clone "--branch=third_commit", "--single-branch"
                 importer = Autobuild.git(gitrepo, single_branch: true, tag: 'third_commit')
                 importer.checkout(pkg)
             end
@@ -328,30 +361,12 @@ describe Autobuild::Git do
                     Autobuild::Git.single_branch = nil
                 end
                 it "allows setting single_branch globally" do
-                    flexmock(Autobuild::Subprocess)
-                        .should_receive(:run)
-                        .with(
-                            any, :import, 'git', 'clone', '-o', 'autobuild', '--single-branch',
-                            File.join(tempdir, 'gitrepo.git'),
-                            File.join(tempdir, 'git'), any
-                        ).once.pass_thru
-
-                    flexmock(Autobuild::Subprocess).should_receive(:run).pass_thru
-
+                    assert_clone "--single-branch"
                     importer = Autobuild.git(gitrepo)
                     importer.checkout(pkg)
                 end
                 it "allows overriding single_branch locally" do
-                    flexmock(Autobuild::Subprocess)
-                        .should_receive(:run)
-                        .with(
-                            any, :import, 'git', 'clone', '-o', 'autobuild',
-                            File.join(tempdir, 'gitrepo.git'),
-                            File.join(tempdir, 'git'), any
-                        ).once.pass_thru
-
-                    flexmock(Autobuild::Subprocess).should_receive(:run).pass_thru
-
+                    assert_clone
                     importer = Autobuild.git(gitrepo, single_branch: false)
                     importer.checkout(pkg)
                 end
