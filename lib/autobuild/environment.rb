@@ -719,6 +719,11 @@ module Autobuild
                     .grep(PKGCONFIG_PATH_RX)
                     .map { |l| l.gsub(PKGCONFIG_PATH_RX, '\1') }
                     .to_set
+                    .add("/lib/pkgconfig")
+            # /lib/pkgconfig is added for packages that always install their
+            # libraries in /lib/ instead of the system mandated directory
+            # (/lib/x86_64-linux-gnu/ for 64bit x86 ubuntu multiarch,
+            # /lib64/ for some other 64bit systems)
         end
 
         # Updates the environment when a new prefix has been added
