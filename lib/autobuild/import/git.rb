@@ -10,6 +10,8 @@ module Autobuild
         # Exception raised when a network access is needed while only_local is true
         class NetworkAccessNeeded < RuntimeError; end
 
+        @default_fingerprint_mode = "commit"
+
         class << self
             # Sets the default alternates path used by all Git importers
             #
@@ -44,6 +46,18 @@ module Autobuild
                     Array.new
                 end
             end
+
+            # What git repository fingerprinting uses as reference
+            #
+            # Can either be
+            # - "commit" (the default). Use the commit hash of HEAD
+            # - "tree". Use the tree hash. This will return the same fingerprint
+            #    for new commits that do not change the source code. However, it
+            #    will fail to detect changes to the working copy that are due
+            #    to git checkout filters.
+            #
+            # @return [String]
+            attr_accessor :default_fingerprint_mode
         end
 
         def self.default_config
@@ -142,17 +156,21 @@ module Autobuild
                 Autobuild.warn "    branch: 'master'"
             end
 
-            gitopts, common = Kernel.filter_options options,
-                                                    push_to: nil,
-                                                    branch: nil,
-                                                    local_branch: nil,
-                                                    remote_branch: nil,
-                                                    tag: nil,
-                                                    commit: nil,
-                                                    repository_id: nil,
-                                                    source_id: nil,
-                                                    with_submodules: false,
-                                                    single_branch: false
+            gitopts, common = Kernel.filter_options(
+                options,
+                push_to: nil,
+                branch: nil,
+                local_branch: nil,
+                remote_branch: nil,
+                tag: nil,
+                commit: nil,
+                repository_id: nil,
+                source_id: nil,
+                with_submodules: false,
+                single_branch: false,
+                fingerprint_mode: Git.default_fingerprint_mode
+            )
+
             if gitopts[:branch] && branch
                 raise ConfigException, "git branch specified with both the option hash "\
                     "and the explicit parameter"
@@ -172,12 +190,13 @@ module Autobuild
 
             @remote_name = 'autobuild'
             @push_to = nil
+            @fingerprint_mode = gitopts[:fingerprint_mode]
             relocate(repository, gitopts)
             @additional_remotes = Array.new
         end
 
         def vcs_fingerprint(package)
-            rev_parse(package, 'HEAD')
+            rev_parse(package, "HEAD", @fingerprint_mode)
         end
 
         # The name of the remote that should be set up by the importer
