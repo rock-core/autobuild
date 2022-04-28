@@ -269,7 +269,14 @@ module Autobuild
             run('doc', Autobuild.tool(:doxygen), doxyfile)
         end
 
-        def common_utility_handling(utility, target, *args, start_msg, done_msg)
+        def common_utility_handling( # rubocop:disable Metrics/ParameterLists
+            utility,
+            target,
+            *args,
+            start_msg,
+            done_msg,
+            post_process: nil
+        )
             utility.source_ref_dir = builddir
             utility.task do
                 progress_start start_msg, :done_message => done_msg do
@@ -283,6 +290,24 @@ module Autobuild
                             working_directory: builddir)
                     end
                     yield if block_given?
+                end
+
+                post_process&.call
+            end
+        end
+
+        def with_coverage(&block)
+            @with_coverage ||= block
+        end
+
+        def coverage_block
+            proc do
+                next unless test_utility.coverage_enabled?
+                next unless @with_coverage
+
+                progress_start "generating coverage report for %s",
+                               done_message: "generated coverage report for %s" do
+                    @with_coverage.call
                 end
             end
         end
@@ -299,7 +324,8 @@ module Autobuild
             common_utility_handling(
                 test_utility, target, "ARGS=-V",
                 "running tests for %s",
-                "successfully ran tests for %s", &block)
+                "successfully ran tests for %s",
+                post_process: coverage_block, &block)
         end
 
         CMAKE_EQVS = {

@@ -90,6 +90,50 @@ module Autobuild
             end
         end
 
+        describe "coverage" do
+            attr_reader :test_handler
+            attr_reader :test_task
+
+            before do
+                klass = Class.new do
+                    def test; end
+                    def coverage; end
+                end
+                @test_handler = klass.new
+                @package.test_utility.enabled = true
+                @package.test_utility.available = true
+                @package.test_utility.no_results = true
+                @test_task = @package.with_tests { test_handler.test }
+                flexmock(@package).should_receive(:run).at_most.once
+            end
+
+            it "calls coverage block after test task" do
+                @package.test_utility.coverage_enabled = true
+                @package.with_coverage { test_handler.coverage }
+                flexmock(test_handler).should_receive(:test).once.ordered
+                flexmock(test_handler).should_receive(:coverage).once.ordered
+
+                test_task.invoke
+            end
+
+            it "doesn't call coverage block if coverage is disabled" do
+                @package.test_utility.coverage_enabled = false
+                @package.with_coverage { test_handler.coverage }
+                flexmock(test_handler).should_receive(:test).once
+                flexmock(test_handler).should_receive(:coverage).never
+
+                test_task.invoke
+            end
+
+            it "doesn't override an existing coverage block" do
+                @package.test_utility.coverage_enabled = true
+                @package.with_coverage { test_handler.coverage }
+                @package.with_coverage { raise }
+                flexmock(test_handler).should_receive(:coverage).once
+                @package.coverage_block.call
+            end
+        end
+
         describe 'fingerprint' do
             before do
                 importer = flexmock
