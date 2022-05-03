@@ -1301,20 +1301,37 @@ module Autobuild
             @lfs_installed = status.success?
         end
 
+        def validate_shallow(package)
+            return false unless shallow?
+
+            if commit
+                Autoproj.warn "#{package.name}: "\
+                              "Cannot pin a commit while using shallow clone"
+                return false
+            end
+            true
+        end
+
         def checkout(package, _options = Hash.new)
+            shallow_clone = validate_shallow(package)
+
             base_dir = File.expand_path('..', package.importdir)
             FileUtils.mkdir_p(base_dir) unless File.directory?(base_dir)
 
             clone_options = Array.new
             if with_submodules?
                 clone_options << '--recurse-submodules'
-                clone_options << '--shallow-submodules' if shallow?
+                clone_options << '--shallow-submodules' if shallow_clone
             end
 
-            clone_options << '--depth' << '1' if shallow?
+            clone_options << '--depth' << '1' if shallow_clone
 
             if single_branch?
                 if tag
+                    if tag.start_with?("refs/")
+                        raise ArgumentError, "you cannot provide a full ref for"\
+                            " the tag while cloning a single branch"
+                    end
                     clone_options << "--branch=#{tag}"
                 elsif remote_branch
                     if remote_branch.start_with?("refs/")
