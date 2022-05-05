@@ -13,6 +13,23 @@ module Autobuild
         @default_fingerprint_mode = "commit"
 
         class << self
+            # Sets the single_branch option globally for all Git importers
+            # This can can be overriden in the oporter options
+            attr_writer :single_branch
+
+            # Whether single_branch is enabled globally
+            def single_branch?
+                !!@single_branch
+            end
+
+            # Sets shallow clones globally (applies to submodules as well)
+            attr_writer :shallow
+
+            # Whether shallow clones is enabled globally
+            def shallow?
+                !!@shallow
+            end
+
             # Sets the default alternates path used by all Git importers
             #
             # Setting it explicitly overrides any value we get from the
@@ -167,8 +184,9 @@ module Autobuild
                 repository_id: nil,
                 source_id: nil,
                 with_submodules: false,
-                single_branch: false,
-                fingerprint_mode: Git.default_fingerprint_mode
+                fingerprint_mode: Git.default_fingerprint_mode,
+                single_branch: Git.single_branch?,
+                shallow: Git.shallow?
             )
 
             if gitopts[:branch] && branch
@@ -180,6 +198,7 @@ module Autobuild
             super(common)
 
             @single_branch = gitopts[:single_branch]
+            @shallow = gitopts[:shallow]
             @with_submodules = gitopts.delete(:with_submodules)
             @alternates =
                 if @with_submodules
@@ -305,8 +324,16 @@ module Autobuild
             @single_branch
         end
 
+        # Whether clones should be shallow
+        def shallow?
+            @shallow
+        end
+
         # Set the {#single_branch?} predicate
         attr_writer :single_branch
+
+        # Set the {#shallow?} predicate
+        attr_writer :shallow
 
         # @api private
         #
@@ -1274,19 +1301,60 @@ module Autobuild
             @lfs_installed = status.success?
         end
 
+        def validate_shallow(package)
+            return false unless shallow?
+
+            if commit
+                Autoproj.warn "#{package.name}: "\
+                              "Cannot pin a commit while doing a shallow clone"
+                return false
+            end
+            if tag && !single_branch?
+                Autoproj.warn "#{package.name}: "\
+                              "Cannot pin a tag while doing a shallow clone"
+                return false
+            end
+            if remote_branch
+                Autoproj.warn "#{package.name}: "\
+                              "Cannot use remote_branch while doing a shallow clone"
+                return false
+            end
+            true
+        end
+
         def checkout(package, _options = Hash.new)
+            shallow_clone = validate_shallow(package)
+
             base_dir = File.expand_path('..', package.importdir)
             FileUtils.mkdir_p(base_dir) unless File.directory?(base_dir)
 
             clone_options = Array.new
-            clone_options << '--recurse-submodules' if with_submodules?
-            if single_branch?
-                if remote_branch.start_with?("refs/")
-                    raise ArgumentError, "you cannot provide a full ref for"\
-                        " the remote branch while cloning a single branch"
-                end
-                clone_options << "--branch=#{remote_branch}" << "--single-branch"
+            if with_submodules?
+                clone_options << '--recurse-submodules'
+                clone_options << '--shallow-submodules' if shallow_clone
             end
+
+            clone_options << '--depth' << '1' if shallow_clone
+
+            if single_branch?
+                if tag
+                    if tag.start_with?("refs/")
+                        raise ArgumentError, "you cannot provide a full ref for"\
+                            " the tag while cloning a single branch"
+                    end
+                    clone_options << "--branch=#{tag}"
+                elsif remote_branch
+                    if remote_branch.start_with?("refs/")
+                        raise ArgumentError, "you cannot provide a full ref for"\
+                            " the remote branch while cloning a single branch"
+                    end
+                    clone_options << "--branch=#{remote_branch}"
+                end
+                clone_options << "--single-branch"
+            elsif shallow_clone
+                clone_options << "--no-single-branch"
+            end
+
             each_alternate_path(package) do |path|
                 clone_options << '--reference' << path
             end
@@ -1297,7 +1365,7 @@ module Autobuild
                         Autobuild.tool('git'), 'clone', '-o', remote_name, *clone_options,
                         repository, package.importdir, retry: true)
 
-            update_remotes_configuration(package)
+            update_remotes_configuration(package, only_local: false)
             update(package, only_local: !remote_branch.start_with?("refs/"),
                             reset: :force)
             if with_submodules?
