@@ -1306,7 +1306,17 @@ module Autobuild
 
             if commit
                 Autoproj.warn "#{package.name}: "\
-                              "Cannot pin a commit while using shallow clone"
+                              "Cannot pin a commit while doing a shallow clone"
+                return false
+            end
+            if tag && !single_branch?
+                Autoproj.warn "#{package.name}: "\
+                              "Cannot pin a tag while doing a shallow clone"
+                return false
+            end
+            if remote_branch
+                Autoproj.warn "#{package.name}: "\
+                              "Cannot use remote_branch while doing a shallow clone"
                 return false
             end
             true
