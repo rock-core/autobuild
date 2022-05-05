@@ -1314,7 +1314,7 @@ module Autobuild
                               "Cannot pin a tag while doing a shallow clone"
                 return false
             end
-            if remote_branch
+            if @remote_branch
                 Autoproj.warn "#{package.name}: "\
                               "Cannot use remote_branch while doing a shallow clone"
                 return false
