@@ -307,7 +307,8 @@ describe Autobuild::Git do
                 importer = Autobuild.git(gitrepo, shallow: true, with_submodules: true)
                 assert importer.shallow?
 
-                assert_clone "--recurse-submodules", "--shallow-submodules", "--depth", "1"
+                assert_clone "--recurse-submodules", "--shallow-submodules",
+                             "--depth", "1", "--no-single-branch"
                 importer.checkout(pkg)
             end
             describe "globally" do
@@ -318,7 +319,7 @@ describe Autobuild::Git do
                     Autobuild::Git.shallow = nil
                 end
                 it "allows setting single_branch globally" do
-                    assert_clone "--depth", "1"
+                    assert_clone "--depth", "1", "--no-single-branch"
                     importer = Autobuild.git(gitrepo)
                     importer.checkout(pkg)
                     assert importer.shallow?

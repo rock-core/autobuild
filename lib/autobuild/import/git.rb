@@ -1341,7 +1341,10 @@ module Autobuild
                     clone_options << "--branch=#{remote_branch}"
                 end
                 clone_options << "--single-branch"
+            elsif shallow_clone
+                clone_options << "--no-single-branch"
             end
+
             each_alternate_path(package) do |path|
                 clone_options << '--reference' << path
             end
