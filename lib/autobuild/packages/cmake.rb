@@ -39,6 +39,11 @@ module Autobuild
 
             attr_reader :prefix_path, :module_path
 
+            # Arguments that will be passed to the 'make' test target
+            def test_args
+                @test_args ||= ["-V"]
+            end
+
             # Whether files that are not within CMake's install manifest but are
             # present in the prefix should be deleted. Note that the contents of
             # {#log_dir} are unaffected.
@@ -72,6 +77,9 @@ module Autobuild
                 "CMAKE_PREFIX_PATH" => prefix_path.join(";")]
             self.class.defines.merge(additional_defines).merge(defines)
         end
+
+        # Arguments to be passed to the 'make' test target
+        attr_reader :test_args
 
         # If true, always run cmake before make during the build
         attr_accessor :always_reconfigure
@@ -115,6 +123,7 @@ module Autobuild
         def initialize(options)
             @defines = Hash.new
             super
+            @test_args = self.class.test_args.dup
             @delete_obsolete_files_in_prefix = self.class.
                 delete_obsolete_files_in_prefix?
         end
@@ -272,10 +281,10 @@ module Autobuild
         def common_utility_handling( # rubocop:disable Metrics/ParameterLists
             utility,
             target,
-            *args,
             start_msg,
             done_msg,
-            post_process: nil
+            post_process: nil,
+            args: []
         )
             utility.source_ref_dir = builddir
             utility.task do
@@ -283,6 +292,9 @@ module Autobuild
                     if internal_doxygen_mode?
                         run_doxygen
                     else
+                        unless args.empty?
+                            args = ["ARGS=#{args.map { |a| %("#{a}") }.join(' ')}"]
+                        end
                         run(utility.name,
                             Autobuild.tool(:make),
                             "-j#{parallel_build_level}",
@@ -322,9 +334,10 @@ module Autobuild
 
         def with_tests(target = 'test', &block)
             common_utility_handling(
-                test_utility, target, "ARGS=-V",
+                test_utility, target,
                 "running tests for %s",
                 "successfully ran tests for %s",
+                args: test_args,
                 post_process: coverage_block, &block)
         end
 

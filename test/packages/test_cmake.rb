@@ -51,6 +51,60 @@ module Autobuild
             prepare_and_build_package(package)
         end
 
+        describe "test_args" do
+            it "use -V as the default arg" do
+                assert_equal ["-V"], package.test_args
+            end
+
+            it "allows setting global arguments" do
+                Autobuild::CMake.test_args << "--arg1"
+                foo = Autobuild.cmake :foo
+                assert_equal ["-V", "--arg1"], foo.test_args
+                Autobuild::CMake.test_args.replace(["-V"])
+            end
+
+            it "allows setting instance arguments" do
+                package.test_args << "--arg2"
+                assert_equal ["-V", "--arg2"], package.test_args
+            end
+
+            it "forwards arguments to make test target" do
+                package.test_args << "--arg" << "value with spaces"
+                package.test_utility.enabled = true
+                package.test_utility.available = true
+                package.test_utility.no_results = true
+
+                flexmock(package).should_receive(:run)
+                                 .with(
+                                     "test",
+                                     any,
+                                     any,
+                                     "test",
+                                     'ARGS="-V" "--arg" "value with spaces"',
+                                     working_directory: package.builddir
+                                 ).once
+
+                package.with_tests.invoke
+            end
+
+            it "does not pass test arguments to doc target" do
+                package.doc_utility.enabled = true
+                package.doc_utility.available = true
+                package.doc_utility.no_results = true
+
+                flexmock(package).should_receive(:run)
+                                 .with(
+                                     "doc",
+                                     any,
+                                     any,
+                                     "doc",
+                                     working_directory: package.builddir
+                                 ).once
+
+                package.with_doc.invoke
+            end
+        end
+
         describe "delete_obsolete_files_in_prefix?" do
             it "removes files in the target prefix that are not present in the manifest" do
                 FileUtils.touch File.join(package.srcdir, 'contents.txt')
