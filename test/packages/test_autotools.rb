@@ -231,8 +231,8 @@ module Autobuild
                                                        working_directory: @package.srcdir).once.globally.ordered
                     @package.should_receive(:run).with(any, "/my/autogen/script",
                                                        working_directory: @package.srcdir).once.globally.ordered
-                    @package.should_receive(:run).with(any, /configure/, any, any).
-                        once.globally.ordered
+                    @package.should_receive(:run).with(any, /configure/, any,
+                                                       working_directory: @package.builddir).once.globally.ordered
                     conffile = @package.prepare
                     Rake::Task[conffile].invoke
                 end
@@ -247,8 +247,8 @@ module Autobuild
                                                        working_directory: @package.srcdir).once.globally.ordered
                     @package.should_receive(:run).with(any, "/my/autogen/script",
                                                        working_directory: @package.srcdir).once.globally.ordered
-                    @package.should_receive(:run).with(any, /configure/, any, any).
-                        once.globally.ordered
+                    @package.should_receive(:run).with(any, /configure/, any,
+                                                       working_directory: @package.builddir).once.globally.ordered
                     conffile = @package.prepare
                     Rake::Task[conffile].invoke
                 end
@@ -269,8 +269,8 @@ module Autobuild
                                                        working_directory: @package.srcdir).once.globally.ordered
                     @package.should_receive(:run).with(any, /automake/,
                                                        working_directory: @package.srcdir).once.globally.ordered
-                    @package.should_receive(:run).with(any, /configure/, any, any).
-                        once.globally.ordered
+                    @package.should_receive(:run).with(any, /configure/, any,
+                                                       working_directory: @package.builddir).once.globally.ordered
                     conffile = @package.prepare
                     Rake::Task[conffile].invoke
                 end
@@ -315,8 +315,8 @@ module Autobuild
                                                        working_directory: @package.srcdir).once.globally.ordered
                     @package.should_receive(:run).with(any, /automake/,
                                                        working_directory: @package.srcdir).once.globally.ordered
-                    @package.should_receive(:run).with(any, /configure/, any, any).
-                        once.globally.ordered
+                    @package.should_receive(:run).with(any, /configure/, any,
+                                                       working_directory: @package.builddir).once.globally.ordered
                     conffile = @package.prepare
                     Rake::Task[conffile].invoke
                 end
@@ -335,8 +335,8 @@ module Autobuild
                                                        working_directory: @package.srcdir).once.globally.ordered
                     @package.should_receive(:run).with(any, /automake/,
                                                        working_directory: @package.srcdir).once.globally.ordered
-                    @package.should_receive(:run).with(any, /configure/, any, any).
-                        once.globally.ordered
+                    @package.should_receive(:run).with(any, /configure/, any,
+                                                       working_directory: @package.builddir).once.globally.ordered
                     conffile = @package.prepare
                     Rake::Task[conffile].invoke
                 end
@@ -355,8 +355,8 @@ module Autobuild
                                                        working_directory: @package.srcdir).once.globally.ordered
                     @package.should_receive(:run).with(any, /automake/,
                                                        working_directory: @package.srcdir).once.globally.ordered
-                    @package.should_receive(:run).with(any, /configure/, any, any).
-                        once.globally.ordered
+                    @package.should_receive(:run).with(any, /configure/, any,
+                                                       working_directory: @package.builddir).once.globally.ordered
                     conffile = @package.prepare
                     Rake::Task[conffile].invoke
                 end
@@ -375,8 +375,8 @@ module Autobuild
                                                        working_directory: @package.srcdir).once.globally.ordered
                     @package.should_receive(:run).with(any, /automake/,
                                                        working_directory: @package.srcdir).once.globally.ordered
-                    @package.should_receive(:run).with(any, /configure/, any, any).
-                        once.globally.ordered
+                    @package.should_receive(:run).with(any, /configure/, any,
+                                                       working_directory: @package.builddir).once.globally.ordered
                     conffile = @package.prepare
                     Rake::Task[conffile].invoke
                 end
@@ -395,8 +395,8 @@ module Autobuild
                                                        working_directory: @package.srcdir).once.globally.ordered
                     @package.should_receive(:run).with(any, /autoheader/,
                                                        working_directory: @package.srcdir).once.globally.ordered
-                    @package.should_receive(:run).with(any, /configure/, any, any).
-                        once.globally.ordered
+                    @package.should_receive(:run).with(any, /configure/, any,
+                                                       working_directory: @package.builddir).once.globally.ordered
                     conffile = @package.prepare
                     Rake::Task[conffile].invoke
                 end
