@@ -275,7 +275,7 @@ describe Autobuild::Git do
                         any, :import, 'git', 'clone', '-o', 'autobuild',
                         File.join(tempdir, 'gitrepo.git'),
                         File.join(tempdir, 'git'), any
-                    )
+                    ).with_any_kw_args
 
                 flexmock(Autobuild::Subprocess).should_receive(:run).pass_thru
 
@@ -297,7 +297,7 @@ describe Autobuild::Git do
                     any, :import, 'git', 'clone', '-o', 'autobuild', *args,
                     File.join(tempdir, 'gitrepo.git'),
                     File.join(tempdir, 'git'), any
-                ).once.pass_thru
+                ).with_any_kw_args.once.pass_thru
 
             flexmock(Autobuild::Subprocess).should_receive(:run).pass_thru
         end
@@ -992,6 +992,7 @@ describe Autobuild::Git do
                 .should_receive(:run)
                 .with(any, :import, 'git', '--git-dir', File.join(pkg.srcdir, ".git"),
                       'symbolic-ref', "refs/remotes/autobuild/HEAD", any)
+                .with_any_kw_args
                 .once
                 .and_return(['refs/remotes/autobuild/temp/branch', 'bla'])
             flexmock(Autobuild::Subprocess).should_receive(:run).pass_thru
@@ -1027,6 +1028,7 @@ describe Autobuild::Git do
                     any, :import, 'git', 'ls-remote', '--symref',
                     File.join(tempdir, 'gitrepo-nomaster.git'), any
                 )
+                .with_any_kw_args
                 .once
                 .and_return(['ref: refs/heads/temp/branch HEAD', 'bla'])
             flexmock(Autobuild::Subprocess).should_receive(:run).pass_thru
