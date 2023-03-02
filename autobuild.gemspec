@@ -34,7 +34,7 @@ Gem::Specification.new do |s|
     s.add_runtime_dependency 'tty-screen', '~> 0.8.0'
     s.add_runtime_dependency "utilrb", "~> 3.0", ">= 3.0"
     s.add_development_dependency "fakefs"
-    s.add_development_dependency "flexmock", '~> 2.0', ">= 2.0.0"
+    s.add_development_dependency "flexmock"
     s.add_development_dependency "minitest", "~> 5.0", ">= 5.0"
     s.add_development_dependency "simplecov"
     s.add_development_dependency "timecop"
