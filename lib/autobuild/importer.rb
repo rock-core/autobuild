@@ -540,10 +540,10 @@ module Autobuild
             File.readlines(patches_file).map do |line|
                 line = line.rstrip
                 if line =~ /^(.*)\s+(\d+)$/
-                    path = File.expand_path($1, package.srcdir)
+                    path = File.expand_path($1, package.importdir)
                     level = Integer($2)
                 else
-                    path = File.expand_path(line, package.srcdir)
+                    path = File.expand_path(line, package.importdir)
                     level = 0
                 end
                 [path, level, File.read(path)]
@@ -618,7 +618,7 @@ module Autobuild
             File.open(patchlist(package), 'w') do |f|
                 patch_state = cur_patches.map do |path, level|
                     path = Pathname.new(path).
-                        relative_path_from(Pathname.new(package.srcdir)).to_s
+                        relative_path_from(Pathname.new(package.importdir)).to_s
                     "#{path} #{level}"
                 end
                 f.write(patch_state.join("\n"))
