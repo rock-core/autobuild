@@ -24,6 +24,7 @@ Gem::Specification.new do |s|
         .reject { |f| f.match(%r{^(test|spec|features)/}) }
 
     s.add_runtime_dependency "concurrent-ruby", "~> 1.1"
+    s.add_runtime_dependency "net-smtp" if Gem::Version.new(RUBY_VERSION) >= Gem::Version.new("3.1.0")
     s.add_runtime_dependency "pastel", "~> 0.7.0"
     s.add_runtime_dependency "rake", "~> 13.0"
     s.add_runtime_dependency 'tty-cursor', '~> 0.7.0'
