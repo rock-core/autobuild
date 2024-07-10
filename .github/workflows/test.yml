@@ -19,8 +19,12 @@ jobs:
       uses: ruby/setup-ruby@v1
       with:
         ruby-version: ${{ matrix.ruby-version }}
+    - name: Remove vscode gems
+      run: bundle config set --local without vscode
     - name: Install dependencies
       run: bundle install
+    - name: Enable file transport in git
+      run: git config --global protocol.file.allow always
     - name: Run tests
       run: bundle exec rake test
       env:
