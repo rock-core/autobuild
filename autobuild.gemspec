@@ -36,4 +36,5 @@ Gem::Specification.new do |s|
     s.add_development_dependency "minitest", "~> 5.0", ">= 5.0"
     s.add_development_dependency "simplecov"
     s.add_development_dependency "timecop"
+    s.add_development_dependency "webrick" if Gem::Version.new(RUBY_VERSION) >= Gem::Version.new("3.0.0")
 end
