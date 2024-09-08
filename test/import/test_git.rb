@@ -4,12 +4,35 @@ describe Autobuild::Git do
     attr_reader :pkg, :importer, :gitrepo
 
     before do
+        xdg_config_home = make_tmpdir
+        git_config = File.join(xdg_config_home, "git", "config")
+        FileUtils.mkdir_p File.dirname(git_config)
+        @current_xdg_config_home = ENV["XDG_CONFIG_HOME"]
+        ENV["XDG_CONFIG_HOME"] = xdg_config_home
+
+        File.write(git_config, <<~GIT_CONFIG)
+            [user]
+                email = someone.testing@autobuild.org
+                name = Someone
+
+            [protocol "file"]
+                allow = always
+        GIT_CONFIG
+
+        unless system("git", "config", "--global", "protocol.file.allow", "always")
+            raise "could not set up temporary global git configuration"
+        end
+
         tempdir = untar('gitrepo.tar')
         @gitrepo = File.join(tempdir, 'gitrepo.git')
         @pkg = Autobuild::Package.new 'test'
         pkg.srcdir = File.join(tempdir, 'git')
         @importer = Autobuild.git(gitrepo)
         pkg.importer = importer
+    end
+
+    after do
+        ENV["XDG_CONFIG_HOME"] = @current_xdg_config_home
     end
 
     describe "#initialize" do
