@@ -1,8 +1,11 @@
 # Disable git-lfs at checkout time, we run install --local and pull later
-Autobuild::Git.default_config['filter.lfs.smudge'] = 'git-lfs smudge --skip -- %f'
-Autobuild::Git.default_config['filter.lfs.required'] = 'false'
-
 module Autobuild
+    GIT_NOOP_FILTER = File.join(__dir__, "git-noop-filter")
+    Git.default_config['filter.lfs.smudge'] = "cat"
+    Git.default_config['filter.lfs.clean'] = "cat"
+    Git.default_config["filter.lfs.process"] = GIT_NOOP_FILTER
+    Git.default_config['filter.lfs.required'] = 'false'
+
     def self.lfs_setup(importer, package)
         importer.run_git(package, 'lfs', 'install', '--force', '--local', '--skip-smudge')
 
