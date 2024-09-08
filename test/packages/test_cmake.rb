@@ -31,7 +31,7 @@ module Autobuild
             flexmock(package).should_receive(:configure).
                 once.pass_thru
             flexmock(Autobuild).should_receive(:make_subcommand).
-                with(package, 'build', Proc).once.pass_thru
+                with(package, 'build').with_block.once.pass_thru
             # prepare is for the gnumake detection, which is cached
             flexmock(package).should_receive(:run).
                 with('prepare', any, any).
@@ -43,7 +43,7 @@ module Autobuild
                 with('build', 'cmake', '.').
                 once.pass_thru
             flexmock(package).should_receive(:run).
-                with('build', 'make', any, Proc).
+                with('build', 'make', any).with_block.
                 once.pass_thru
             flexmock(package).should_receive(:run).
                 with('install', 'make', any, 'install').
