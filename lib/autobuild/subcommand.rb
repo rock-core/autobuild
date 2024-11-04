@@ -179,6 +179,37 @@ module Autobuild::Subprocess # rubocop:disable Style/ClassAndModuleChildren
         @transparent_mode = flag
     end
 
+    def self.workaround_broken_waitpid=(flag)
+        @workaround_broken_waitpid = flag
+    end
+
+    def self.workaround_broken_waitpid?
+        @workaround_broken_waitpid
+    end
+
+    def self.waitpid2(pid)
+        if workaround_broken_waitpid?
+            waitpid2_polling(pid)
+        else
+            Process.waitpid2(pid)
+        end
+    end
+
+    def self.waitpid2_polling(pid, period: 0.01)
+        loop do
+            begin
+                if (result = Process.waitpid2(pid, Process::WNOHANG))
+                    return result
+                end
+
+                sleep(period)
+            rescue Errno::ECHILD
+                Autoproj.warn "process #{pid} disappeared without letting us reap it"
+                break
+            end
+        end
+    end
+
     # Run a subcommand and return its standard output
     #
     # The command's standard and error outputs, as well as the full command line
@@ -430,9 +461,14 @@ module Autobuild::Subprocess # rubocop:disable Style/ClassAndModuleChildren
             end
             outread.close
 
-            _, childstatus = Process.wait2(pid)
+            _, childstatus = waitpid2(pid)
             logfile.puts "Exit: #{childstatus}"
             childstatus
+        end
+
+        if !status
+            raise Failed.new(nil, nil),
+                  "'#{command.join(' ')}' waitpid() failed"
         end
 
         if !status.exitstatus || status.exitstatus > 0
