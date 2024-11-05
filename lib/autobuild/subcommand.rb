@@ -196,12 +196,17 @@ module Autobuild::Subprocess # rubocop:disable Style/ClassAndModuleChildren
     end
 
     def self.waitpid2_polling(pid, period: 0.01)
+        display = false
+        start_display = Time.now + 1
         loop do
             begin
+                display = Time.now > start_display
                 if (result = Process.waitpid2(pid, Process::WNOHANG))
+                    puts "Received result of #{pid}" if display
                     return result
                 end
 
+                puts "No result for #{pid}, sleeping" if display
                 sleep(period)
             rescue Errno::ECHILD
                 Autoproj.warn "process #{pid} disappeared without letting us reap it"
