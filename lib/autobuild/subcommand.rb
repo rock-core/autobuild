@@ -202,14 +202,14 @@ module Autobuild::Subprocess # rubocop:disable Style/ClassAndModuleChildren
             begin
                 display = Time.now > start_display
                 if (result = Process.waitpid2(pid, Process::WNOHANG))
-                    puts "Received result of #{pid}" if display
+                    $stderr.puts "Received result of #{pid}" if display
                     return result
                 end
 
-                puts "No result for #{pid}, sleeping" if display
+                $stderr.puts "No result for #{pid}, sleeping" if display
                 sleep(period)
             rescue Errno::ECHILD
-                Autoproj.warn "process #{pid} disappeared without letting us reap it"
+                $stderr.puts "process #{pid} disappeared without letting us reap it"
                 break
             end
         end
