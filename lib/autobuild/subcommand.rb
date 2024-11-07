@@ -447,26 +447,35 @@ module Autobuild::Subprocess # rubocop:disable Style/ClassAndModuleChildren
                 outread = readbuffer
             end
 
-            outread.each_line do |line|
-                line.force_encoding(options[:encoding])
-                line = line.chomp
-                subcommand_output << line
+            data_thread = Thread.new do
+                outread.each_line do |line|
+                    line.force_encoding(options[:encoding])
+                    line = line.chomp
+                    subcommand_output << line
 
-                logfile.puts line
+                    logfile.puts line
 
-                if Autobuild.verbose || transparent_mode?
-                    STDOUT.puts "#{transparent_prefix}#{line}"
-                elsif block_given?
-                    # Do not yield
-                    # would mix the progress output with the actual command
-                    # output. Assume that if the user wants the command output,
-                    # the autobuild progress output is unnecessary
-                    yield(line)
+                    if Autobuild.verbose || transparent_mode?
+                        STDOUT.puts "#{transparent_prefix}#{line}"
+                    elsif block_given?
+                        # Do not yield
+                        # would mix the progress output with the actual command
+                        # output. Assume that if the user wants the command output,
+                        # the autobuild progress output is unnecessary
+                        yield(line)
+                    end
                 end
+                outread.close unless outread.closed?
+            rescue IOError
             end
-            outread.close
 
-            _, childstatus = waitpid2(pid)
+            _, childstatus = Process.waitpid2(pid)
+            tic = Time.now
+            unless data_thread.join(5)
+                STDERR.puts "subprocess #{pid} communication pipe did not close after process finished, forcefully closing it now"
+                Thread.new { outread.close }
+            end
+
             logfile.puts "Exit: #{childstatus}"
             childstatus
         end

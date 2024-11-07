@@ -39,6 +39,22 @@ It will be the second part of the two-part cat
         assert_raises(Interrupt) { Autobuild::Subprocess.run('test', 'test', 'does_not_exist') }
     end
 
+    def test_nominal_behavior
+        output = []
+        full_output = Autobuild::Subprocess.run('test', 'test', 'echo', 'something') do |lines|
+            output << lines
+        end
+        assert_equal ["something"], output
+        assert_equal ["something"], full_output
+    end
+
+    def test_it_handles_the_read_side_of_the_pipe_not_going_into_EOF_on_process_end
+        flexmock(Thread).new_instances.should_receive(:join).and_return { sleep 1; nil }
+
+        output = Autobuild::Subprocess.run('test', 'test', 'echo', 'something')
+        assert_equal ["something"], output
+    end
+
     def test_it_works_around_a_broken_waitpid
         Autobuild::Subprocess.workaround_broken_waitpid = true
         pid = fork { }
