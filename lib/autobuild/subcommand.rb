@@ -479,7 +479,7 @@ module Autobuild::Subprocess # rubocop:disable Style/ClassAndModuleChildren
                         yield(line)
                     end
                 end
-                outread.close if !outread.closed? && outread.autoclose?
+                outread.close unless outread.closed?
             rescue IOError
             end
 
