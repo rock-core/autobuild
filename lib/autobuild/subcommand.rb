@@ -151,6 +151,20 @@ module Autobuild
 end
 
 module Autobuild::Subprocess # rubocop:disable Style/ClassAndModuleChildren
+    at_exit do
+        exit! if forced_exit?
+    end
+
+    @forced_exit = false
+
+    def self.forced_exit=(flag)
+        @forced_exit = flag
+    end
+
+    def self.forced_exit?
+        @forced_exit
+    end
+
     class Failed < RuntimeError
         attr_reader :status
 
@@ -473,7 +487,15 @@ module Autobuild::Subprocess # rubocop:disable Style/ClassAndModuleChildren
             tic = Time.now
             unless data_thread.join(5)
                 STDERR.puts "subprocess #{pid} communication pipe did not close after process finished"
-                outread.autoclose = false
+                begin
+                    outread.autoclose = false
+                rescue IOError # Thread closed the IO first
+                end
+
+                unless forced_exit?
+                    STDERR.puts "will force process exit"
+                    self.forced_exit = true
+                end
             end
 
             logfile.puts "Exit: #{childstatus}"

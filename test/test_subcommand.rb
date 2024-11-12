@@ -25,6 +25,12 @@ It will be the second part of the two-part cat
         File.open(source2, 'w+') { |f| f.write(EXAMPLE_2) }
     end
 
+    def teardown
+        super
+
+        Autobuild::Subprocess.forced_exit = false
+    end
+
     def test_behaviour_on_unexpected_error
         flexmock(Autobuild::Subprocess).should_receive(:exec).and_raise(::Exception)
         assert_raises(Autobuild::SubcommandFailed) { Autobuild::Subprocess.run('test', 'test', 'does_not_exist') }
