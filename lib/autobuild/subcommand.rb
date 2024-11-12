@@ -465,15 +465,15 @@ module Autobuild::Subprocess # rubocop:disable Style/ClassAndModuleChildren
                         yield(line)
                     end
                 end
-                outread.close unless outread.closed?
+                outread.close if !outread.closed? && outread.autoclose?
             rescue IOError
             end
 
             _, childstatus = Process.waitpid2(pid)
             tic = Time.now
             unless data_thread.join(5)
-                STDERR.puts "subprocess #{pid} communication pipe did not close after process finished, forcefully closing it now"
-                Thread.new { outread.close }
+                STDERR.puts "subprocess #{pid} communication pipe did not close after process finished"
+                outread.autoclose = false
             end
 
             logfile.puts "Exit: #{childstatus}"
