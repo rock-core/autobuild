@@ -305,14 +305,14 @@ module Autobuild::Subprocess # rubocop:disable Style/ClassAndModuleChildren
             logfile.sync = true
 
             unless input_streams.empty?
-                pread, pwrite = IO.pipe # to feed subprocess stdin
+                pread, pwrite = UNIXSocket.pair # to feed subprocess stdin
             end
 
-            outread, outwrite = IO.pipe
+            outread, outwrite = UNIXSocket.pair
             outread.sync = true
             outwrite.sync = true
 
-            cread, cwrite = IO.pipe # to control that exec goes well
+            cread, cwrite = UNIXSocket.pair # to control that exec goes well
 
             if Autobuild.windows?
                 Dir.chdir(options[:working_directory]) do
