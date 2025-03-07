@@ -24,9 +24,7 @@ Gem::Specification.new do |s|
         .reject { |f| f.match(%r{^(test|spec|features)/}) }
 
     s.add_runtime_dependency "concurrent-ruby", "~> 1.1"
-    if Gem::Version.new(RUBY_VERSION) >= Gem::Version.new("3.1.0")
-        s.add_runtime_dependency "net-smtp"
-    end
+    s.add_runtime_dependency "net-smtp"
     s.add_runtime_dependency "pastel", "~> 0.7.0"
     s.add_runtime_dependency "rake", "~> 13.0"
     s.add_runtime_dependency 'tty-cursor', '~> 0.7.0'
@@ -34,11 +32,9 @@ Gem::Specification.new do |s|
     s.add_runtime_dependency 'tty-screen', '~> 0.8.0'
     s.add_runtime_dependency "utilrb", "~> 3.0", ">= 3.0"
     s.add_development_dependency "fakefs"
-    s.add_development_dependency "flexmock", '~> 2.0', ">= 2.0.0"
+    s.add_development_dependency "flexmock", ">= 2.4.0"
     s.add_development_dependency "minitest", "~> 5.0", ">= 5.0"
     s.add_development_dependency "simplecov"
     s.add_development_dependency "timecop"
-    if Gem::Version.new(RUBY_VERSION) >= Gem::Version.new("3.0.0")
-        s.add_development_dependency "webrick"
-    end
+    s.add_development_dependency "webrick"
 end

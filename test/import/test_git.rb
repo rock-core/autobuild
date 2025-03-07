@@ -4,12 +4,35 @@ describe Autobuild::Git do
     attr_reader :pkg, :importer, :gitrepo
 
     before do
+        xdg_config_home = make_tmpdir
+        git_config = File.join(xdg_config_home, "git", "config")
+        FileUtils.mkdir_p File.dirname(git_config)
+        @current_xdg_config_home = ENV["XDG_CONFIG_HOME"]
+        ENV["XDG_CONFIG_HOME"] = xdg_config_home
+
+        File.write(git_config, <<~GIT_CONFIG)
+            [user]
+                email = someone.testing@autobuild.org
+                name = Someone
+
+            [protocol "file"]
+                allow = always
+        GIT_CONFIG
+
+        unless system("git", "config", "--global", "protocol.file.allow", "always")
+            raise "could not set up temporary global git configuration"
+        end
+
         tempdir = untar('gitrepo.tar')
         @gitrepo = File.join(tempdir, 'gitrepo.git')
         @pkg = Autobuild::Package.new 'test'
         pkg.srcdir = File.join(tempdir, 'git')
         @importer = Autobuild.git(gitrepo)
         pkg.importer = importer
+    end
+
+    after do
+        ENV["XDG_CONFIG_HOME"] = @current_xdg_config_home
     end
 
     describe "#initialize" do
@@ -275,7 +298,7 @@ describe Autobuild::Git do
                         any, :import, 'git', 'clone', '-o', 'autobuild',
                         File.join(tempdir, 'gitrepo.git'),
                         File.join(tempdir, 'git'), any
-                    )
+                    ).with_any_kw_args
 
                 flexmock(Autobuild::Subprocess).should_receive(:run).pass_thru
 
@@ -297,7 +320,7 @@ describe Autobuild::Git do
                     any, :import, 'git', 'clone', '-o', 'autobuild', *args,
                     File.join(tempdir, 'gitrepo.git'),
                     File.join(tempdir, 'git'), any
-                ).once.pass_thru
+                ).with_any_kw_args.once.pass_thru
 
             flexmock(Autobuild::Subprocess).should_receive(:run).pass_thru
         end
@@ -992,6 +1015,7 @@ describe Autobuild::Git do
                 .should_receive(:run)
                 .with(any, :import, 'git', '--git-dir', File.join(pkg.srcdir, ".git"),
                       'symbolic-ref', "refs/remotes/autobuild/HEAD", any)
+                .with_any_kw_args
                 .once
                 .and_return(['refs/remotes/autobuild/temp/branch', 'bla'])
             flexmock(Autobuild::Subprocess).should_receive(:run).pass_thru
@@ -1027,6 +1051,7 @@ describe Autobuild::Git do
                     any, :import, 'git', 'ls-remote', '--symref',
                     File.join(tempdir, 'gitrepo-nomaster.git'), any
                 )
+                .with_any_kw_args
                 .once
                 .and_return(['ref: refs/heads/temp/branch HEAD', 'bla'])
             flexmock(Autobuild::Subprocess).should_receive(:run).pass_thru
