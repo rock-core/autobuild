@@ -58,6 +58,7 @@ module Autobuild
             Autobuild::Package.clear
             Rake::Task.clear
             Autobuild.reset_gnumake_detection
+            Autobuild.clear_logfiles
 
             @temp_dirs.each do |dir|
                 FileUtils.rm_rf dir
