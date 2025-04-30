@@ -1,7 +1,3 @@
-require 'autobuild/config'
-require 'autobuild/subcommand'
-require 'autobuild/importer'
-
 module Autobuild
     class DarcsImporter < Importer
         # Creates a new importer which gets the source from the Darcs

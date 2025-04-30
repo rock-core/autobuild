@@ -11,7 +11,6 @@ module Autobuild
     extend Logger::Root('Autobuild', Logger::INFO)
 end
 
-require 'net/smtp'
 require 'socket'
 require 'etc'
 require 'find'
@@ -21,8 +20,27 @@ require 'rake/tasklib'
 require 'fileutils'
 require 'optparse'
 require 'singleton'
+require 'open3'
+require 'English'
 require 'pastel'
+require 'fcntl'
+require 'rexml'
 require 'tty-prompt'
+require 'time'
+require 'set'
+require 'rbconfig'
+require 'digest/sha1'
+require 'open-uri'
+require 'net/http'
+require 'net/https'
+require 'net/smtp'
+require 'rubygems/version'
+
+require "concurrent/atomic/atomic_boolean"
+require "concurrent/array"
+
+require 'utilrb/hash/map_value'
+require 'utilrb/kernel/options'
 require 'autobuild/tools'
 
 require 'autobuild/version'
@@ -50,6 +68,7 @@ require 'autobuild/import/tar'
 require 'autobuild/package'
 require 'autobuild/configurable'
 require 'autobuild/packages/autotools'
+require 'autobuild/packages/gnumake'
 require 'autobuild/packages/cmake'
 require 'autobuild/packages/genom'
 require 'autobuild/packages/import'

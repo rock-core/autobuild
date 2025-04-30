@@ -1,7 +1,3 @@
-require 'autobuild/subcommand'
-require 'autobuild/importer'
-require 'rexml/document'
-
 module Autobuild
     class SVN < Importer
         # Creates an importer which gets the source for the Subversion URL +source+.

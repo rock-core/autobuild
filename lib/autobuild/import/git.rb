@@ -1,10 +1,3 @@
-require 'fileutils'
-require 'autobuild/subcommand'
-require 'autobuild/importer'
-require 'utilrb/kernel/options'
-require 'open3'
-require 'English'
-
 module Autobuild
     class Git < Importer
         # Exception raised when a network access is needed while only_local is true

@@ -1,6 +1,3 @@
-require "concurrent/atomic/atomic_boolean"
-require "concurrent/array"
-
 module Autobuild
     # Management of the progress display
     class ProgressDisplay

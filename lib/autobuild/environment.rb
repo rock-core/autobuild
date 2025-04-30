@@ -1,7 +1,3 @@
-require 'set'
-require 'rbconfig'
-require 'utilrb/hash/map_value'
-
 module Autobuild
     @windows = RbConfig::CONFIG["host_os"] =~ /(msdos|mswin|djgpp|mingw|[Ww]indows)/
     def self.windows?

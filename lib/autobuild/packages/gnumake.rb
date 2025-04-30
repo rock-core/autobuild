@@ -1,5 +1,3 @@
-require 'rubygems/version'
-
 module Autobuild
     def self.reset_gnumake_detection
         @make_is_gnumake = Hash.new

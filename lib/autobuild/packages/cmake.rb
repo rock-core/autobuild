@@ -1,6 +1,3 @@
-require 'autobuild/configurable'
-require 'autobuild/packages/gnumake'
-
 module Autobuild
     def self.cmake(options, &block)
         CMake.new(options, &block)

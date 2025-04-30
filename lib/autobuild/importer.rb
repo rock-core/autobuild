@@ -1,6 +1,3 @@
-require 'autobuild/config'
-require 'autobuild/exceptions'
-
 # This class is the base class for objects that are used to get the source from
 # various RCS into the package source directory. A list of patches to apply
 # after the import can be given in the +:patches+ option.

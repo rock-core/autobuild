@@ -1,5 +1,3 @@
-require 'time'
-
 module Autobuild
     # Parse and manipulate the information stored in a build log file (usually
     # in prefix/log/stats.log)

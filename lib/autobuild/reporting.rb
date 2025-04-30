@@ -1,6 +1,3 @@
-require 'autobuild/exceptions'
-require 'pastel'
-
 module Autobuild
     @colorizer = Pastel.new
     class << self

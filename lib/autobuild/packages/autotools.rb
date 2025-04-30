@@ -1,11 +1,3 @@
-require 'pathname'
-require 'autobuild/timestamps'
-require 'autobuild/environment'
-require 'autobuild/package'
-require 'autobuild/subcommand'
-require 'shellwords'
-require 'fileutils'
-
 module Autobuild
     def self.autotools(opts, &proc)
         Autotools.new(opts, &proc)

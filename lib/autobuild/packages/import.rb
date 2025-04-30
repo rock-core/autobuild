@@ -1,6 +1,3 @@
-require 'autobuild/timestamps'
-require 'autobuild/package'
-
 module Autobuild
     def self.import(spec, &proc)
         ImporterPackage.new(spec, &proc)
