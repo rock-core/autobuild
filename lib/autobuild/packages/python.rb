@@ -88,7 +88,7 @@ module Autobuild
 
         # Install the result in prefix
         def install
-            return unless install_mode?
+            return super unless install_mode?
 
             command = generate_install_command
             command << '--force' if @forced
