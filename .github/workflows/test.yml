@@ -24,6 +24,8 @@ jobs:
         ruby-version: ${{ matrix.ruby-version }}
     - name: Remove vscode gems
       run: bundle config set --local without vscode
+    - name: Install subversion
+      run: sudo apt update && sudo apt install subversion
     - name: Install dependencies
       run: bundle install
     - name: Enable file transport in git
