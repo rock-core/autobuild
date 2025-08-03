@@ -1,3 +1,7 @@
+require "pastel"
+require "concurrent/atomic/atomic_boolean"
+require "concurrent/array"
+
 module Autobuild
     @colorizer = Pastel.new
     class << self
