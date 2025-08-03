@@ -337,11 +337,13 @@ module Autobuild::Subprocess # rubocop:disable Style/ClassAndModuleChildren
 
             transparent_prefix =
                 transparent_output_prefix(target_name, phase, target_type)
+            logfile.puts "Processing command output"
             subcommand_output = process_output(
                 out_r, logfile, transparent_prefix, options[:encoding], &output_filter
             )
             out_r.close
 
+            logfile.puts "Waiting for #{pid} to finish"
             _, childstatus = Process.wait2(pid)
             logfile.puts "Exit: #{childstatus}"
             [childstatus, subcommand_output]

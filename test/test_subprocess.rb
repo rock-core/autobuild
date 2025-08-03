@@ -158,7 +158,7 @@ module Autobuild
 
                 expected_lines = @example1.chomp.split("\n")
                 assert_match Regexp.new(Regexp.quote("cat #{@source1}")), actual
-                assert_equal expected_lines, actual_lines[-(expected_lines.size + 1)..-2]
+                assert_equal expected_lines, actual_lines[-(expected_lines.size + 2)..-3]
             end
 
             it "handles package names with slashes" do
@@ -168,7 +168,7 @@ module Autobuild
 
                 expected_lines = @example1.chomp.split("\n")
                 assert_match Regexp.new(Regexp.quote("cat #{@source1}")), actual
-                assert_equal expected_lines, actual_lines[-(expected_lines.size + 1)..-2]
+                assert_equal expected_lines, actual_lines[-(expected_lines.size + 2)..-3]
             end
 
             it "appends to an old logfile if Autobuild.keep_oldlogs is set" do
