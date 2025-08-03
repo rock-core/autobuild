@@ -159,10 +159,6 @@ module Autobuild::Subprocess # rubocop:disable Style/ClassAndModuleChildren
         end
     end
 
-    CONTROL_COMMAND_NOT_FOUND = 1
-    CONTROL_UNEXPECTED = 2
-    CONTROL_INTERRUPT = 3
-
     @transparent_mode = false
 
     def self.transparent_mode?
@@ -278,51 +274,33 @@ module Autobuild::Subprocess # rubocop:disable Style/ClassAndModuleChildren
             out_r.sync = true
             out_w.sync = true
 
-            control_r, control_w = IO.pipe # to control that exec goes well
-            control_w.fcntl(Fcntl::F_SETFD, Fcntl::FD_CLOEXEC)
-
-            pid = fork do
-                logfile.puts "in directory #{options[:working_directory] || Dir.pwd}"
-
-                control_r.close
-                out_r.close
-                stdin_w&.close
-
-                control_w.sync = true
-                $stderr.reopen(out_w.dup)
-                $stdout.reopen(out_w.dup)
-                $stdin.reopen(stdin_r) if stdin_r
-
-                if Autobuild.nice
-                    Process.setpriority(Process::PRIO_PROCESS, 0, Autobuild.nice)
-                end
-
-                exec(env, *command,
-                     chdir: options[:working_directory] || Dir.pwd,
-                     close_others: false)
+            logfile.puts "Spawning"
+            stdin_redir = { :in => stdin_r } if stdin_r
+            begin
+                pid = spawn(
+                    env, *command,
+                    {
+                        :chdir => options[:working_directory] || Dir.pwd,
+                        :close_others => false,
+                        %I[err out] => out_w
+                    }.merge(stdin_redir || {})
+                )
+                logfile.puts "Spawned, PID=#{pid}"
             rescue Errno::ENOENT
-                control_w.write([CONTROL_COMMAND_NOT_FOUND].pack('I'))
-                exit(100)
-            rescue Interrupt
-                control_w.write([CONTROL_INTERRUPT].pack('I'))
-                exit(100)
-            rescue ::Exception => e
-                STDERR.puts e
-                STDERR.puts e.backtrace.join("\n  ")
-                control_w.write([CONTROL_UNEXPECTED].pack('I'))
-                exit(100)
+                raise Failed.new(nil, false), "command '#{command.first}' not found"
+            end
+
+            if Autobuild.nice
+                Process.setpriority(Process::PRIO_PROCESS, pid, Autobuild.nice)
             end
 
             # Feed the input
             unless input_streams.empty?
+                logfile.puts "Feeding STDIN"
                 stdin_r.close
                 readbuffer = feed_input(input_streams, out_r, stdin_w)
                 stdin_w.close
             end
-
-            # Get control status
-            control_w.close
-            process_exec_status(control_r, command)
 
             # If the caller asked for process output, provide it to him
             # line-by-line.
@@ -505,21 +483,6 @@ module Autobuild::Subprocess # rubocop:disable Style/ClassAndModuleChildren
             end
         end
         subcommand_output
-    end
-
-    def self.process_exec_status(control_r, command)
-        return unless (value = control_r.read(4))
-
-        # An error occured
-        value = value.unpack1('I')
-        case value
-        when CONTROL_COMMAND_NOT_FOUND
-            raise Failed.new(nil, false), "command '#{command.first}' not found"
-        when CONTROL_INTERRUPT
-            raise Interrupt, "command '#{command.first}': interrupted by user"
-        else
-            raise Failed.new(nil, false), "something unexpected happened"
-        end
     end
 
     def self.transparent_output_prefix(target_name, phase, target_type)
