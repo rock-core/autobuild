@@ -465,11 +465,29 @@ module Autobuild::Subprocess # rubocop:disable Style/ClassAndModuleChildren
         logfile.sync = true
     end
 
+    def self.outpipe_each_line(out_r)
+        buffer = +""
+        while (data = out_r.readpartial(1024))
+            buffer << data
+            scanner = StringScanner.new(buffer)
+            while (line = scanner.scan_until(/\n/))
+                yield line
+            end
+            buffer = scanner.rest.dup
+        end
+    rescue EOFError
+        scanner = StringScanner.new(buffer)
+        while (line = scanner.scan_until(/\n/))
+            yield line
+        end
+        yield scanner.rest unless scanner.rest.empty?
+    end
+
     def self.process_output(
         out_r, logfile, transparent_prefix, encoding, &filter
     )
         subcommand_output = []
-        out_r.each_line do |line|
+        outpipe_each_line(out_r) do |line|
             line.force_encoding(encoding)
             line = line.chomp
             subcommand_output << line
