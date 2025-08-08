@@ -1,5 +1,3 @@
-require 'autobuild/pkgconfig'
-
 module Autobuild
     class InstalledPkgConfig < Package
         attr_reader :pkgconfig, :prefix

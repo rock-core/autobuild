@@ -1,7 +1,3 @@
-require 'autobuild/packages/autotools'
-require 'open3'
-require 'autobuild/pkgconfig'
-
 module Autobuild
     def self.genom(opts, &proc)
         GenomModule.new(opts, &proc)

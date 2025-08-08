@@ -1,10 +1,3 @@
-require 'autobuild/importer'
-require 'digest/sha1'
-require 'open-uri'
-require 'fileutils'
-require 'net/http'
-require 'net/https'
-
 module Autobuild
     class ArchiveImporter < Importer
         # rubocop:disable Naming/ConstantName

@@ -1,8 +1,3 @@
-require 'fileutils'
-require 'autobuild/subcommand'
-require 'autobuild/importer'
-require 'utilrb/kernel/options'
-
 module Autobuild
     class Hg < Importer
         # Creates an importer which tracks the given repository

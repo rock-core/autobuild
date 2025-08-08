@@ -6,3 +6,4 @@ vendor/
 coverage/
 
 .yardoc/
+Gemfile.lock

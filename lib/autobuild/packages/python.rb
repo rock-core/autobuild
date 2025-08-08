@@ -1,6 +1,3 @@
-require 'autobuild/configurable'
-require 'open3'
-
 # Main Autobuild module
 module Autobuild
     def self.python(opts, &proc)
