@@ -256,6 +256,7 @@ module Autobuild
             if flag
                 @inherited_variables |= names
                 names.each do |env_name|
+                    @environment[env_name] ||= []
                     init_from_env(env_name)
                 end
             else
