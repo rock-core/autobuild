@@ -12,6 +12,11 @@ module Autobuild
                 @env = Environment.new
                 @env.inherit 'AUTOBUILD_TEST'
             end
+
+            it "is available right after the inherit call" do
+                assert_equal "val1:val0", @env["AUTOBUILD_TEST"]
+            end
+
             describe "push_path" do
                 it "does not re-read the inherited environment" do
                 end
