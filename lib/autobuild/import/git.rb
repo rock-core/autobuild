@@ -179,8 +179,11 @@ module Autobuild
                 with_submodules: false,
                 fingerprint_mode: Git.default_fingerprint_mode,
                 single_branch: Git.single_branch?,
-                shallow: Git.shallow?
+                shallow: nil
             )
+            if gitopts[:shallow].nil? && Git.shallow?
+                gitopts[:shallow] = Git.shallow? unless gitopts[:tag] || gitopts[:commit]
+            end
 
             if gitopts[:branch] && branch
                 raise ConfigException, "git branch specified with both the option hash "\
