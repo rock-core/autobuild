@@ -1,3 +1,3 @@
 module Autobuild
-    VERSION = "1.25.1".freeze unless defined? Autobuild::VERSION
+    VERSION = "1.25.2".freeze unless defined? Autobuild::VERSION
 end
