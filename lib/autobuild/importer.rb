@@ -146,6 +146,8 @@ module Autobuild
         def initialize(options)
             @options = options.dup
             @options[:retry_count] = Integer(@options[:retry_count] || 0)
+            @options[:retry_base_delay] = Float(@options[:retry_base_delay] || 0)
+            @options[:retry_max_delay] = Float(@options[:retry_max_delay] || 60)
             @repository_id = options[:repository_id] || "#{self.class.name}:#{object_id}"
             @interactive = options[:interactive]
             @source_id = options[:source_id] || @repository_id
@@ -192,6 +194,23 @@ module Autobuild
             @options[:retry_count] || 0
         end
 
+        # The delay in seconds before the first retry. It doubles with every
+        # further attempt, up to #retry_max_delay. The default is 0, which
+        # retries immediately.
+        #
+        # Set either with #retry_base_delay= or by setting the
+        # :retry_base_delay option when constructing this importer
+        def retry_base_delay
+            @options[:retry_base_delay] || 0
+        end
+
+        # The upper bound in seconds for the delay between two retries
+        #
+        # See also #retry_base_delay
+        def retry_max_delay
+            @options[:retry_max_delay] || 60
+        end
+
         # Returns a unique hash representing the state of the imported package
         # as a whole unit, including its dependencies and patches
         def fingerprint(package)
@@ -232,6 +251,21 @@ module Autobuild
             @options[:retry_count] = Integer(count)
         end
 
+        # Sets the delay in seconds before the first retry. 0 (the default)
+        # retries immediately.
+        #
+        # See also #retry_base_delay
+        def retry_base_delay=(delay)
+            @options[:retry_base_delay] = Float(delay)
+        end
+
+        # Sets the upper bound in seconds for the delay between two retries
+        #
+        # See also #retry_max_delay
+        def retry_max_delay=(delay)
+            @options[:retry_max_delay] = Float(delay)
+        end
+
         def patches
             patches =
                 if @options[:patches].respond_to?(:to_ary)
@@ -260,11 +294,57 @@ module Autobuild
             end
         end
 
+        # Errors that may well succeed on a later attempt. Anything not matched
+        # here is treated as permanent: a missing repository or a rejected
+        # credential does not get better by asking again.
+        TRANSIENT_ERROR_RX = /
+            could\ not\ resolve\ host | couldn't\ resolve\ host |
+            connection\ (reset|refused|timed\ out) | timed\ out |
+            early\ EOF | RPC\ failed | remote\ end\ hung\ up |
+            unable\ to\ access | transfer\ closed | gnutls | SSL | TLS |
+            HTTP\ 5\d\d | error\ 5\d\d | unexpected\ disconnect
+        /xi.freeze
+
+        # Whether the error looks worth retrying
+        #
+        # Errors carrying no output are retried, so that importers which do not
+        # report through SubcommandFailed keep their previous behaviour.
+        def transient_error?(error)
+            return true unless error.respond_to?(:output)
+
+            output = Array(error.output).join("\n")
+            return true if output.empty?
+
+            TRANSIENT_ERROR_RX.match?(output)
+        end
+
+        # How long to wait before attempt number +retry_count+
+        def retry_delay(retry_count)
+            return 0 if retry_base_delay <= 0
+
+            [retry_base_delay * (2**(retry_count - 1)), retry_max_delay].min
+        end
+
+        # The first non-empty line of the error output, to tell on the console
+        # why a checkout is being retried
+        def error_summary(error)
+            return error.class.name unless error.respond_to?(:output)
+
+            line = Array(error.output).map(&:strip).find { |l| !l.empty? }
+            line || error.class.name
+        end
+
         def update_retry_count(original_error, retry_count)
             return if !original_error.respond_to?(:retry?) || !original_error.retry?
+            return unless transient_error?(original_error)
 
             retry_count += 1
-            retry_count if retry_count <= self.retry_count
+            return unless retry_count <= self.retry_count
+
+            if (delay = retry_delay(retry_count)) > 0
+                sleep delay
+            end
+            retry_count
         end
 
         # A list of hooks that are called after a successful checkout or update
@@ -416,7 +496,7 @@ module Autobuild
                     retry_count = update_retry_count(e, retry_count)
                     raise unless retry_count
 
-                    package.message "checkout of %s failed, "\
+                    package.message "checkout of %s failed (#{error_summary(e)}), "\
                         "deleting the source directory #{package.importdir} "\
                         "and retrying (#{retry_count}/#{self.retry_count})"
                     FileUtils.rm_rf package.importdir
