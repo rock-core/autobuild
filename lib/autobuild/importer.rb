@@ -294,28 +294,30 @@ module Autobuild
             end
         end
 
-        # Errors that may well succeed on a later attempt. Anything not matched
-        # here is treated as permanent: a missing repository or a rejected
-        # credential does not get better by asking again.
-        TRANSIENT_ERROR_RX = /
-            could\ not\ resolve\ host | couldn't\ resolve\ host |
-            connection\ (reset|refused|timed\ out) | timed\ out |
-            early\ EOF | RPC\ failed | remote\ end\ hung\ up |
-            unable\ to\ access | transfer\ closed | gnutls | SSL | TLS |
-            HTTP\ 5\d\d | error\ 5\d\d | unexpected\ disconnect
+        # Errors that will fail again however often they are retried, such as a
+        # missing repository or a credential the remote rejected.
+        #
+        # Matching is deliberately conservative: an error that is not listed
+        # here keeps being retried, which is what every error did before.
+        PERMANENT_ERROR_RX = /
+            could\ not\ read\ (Username|Password) | terminal\ prompts\ disabled |
+            Authentication\ failed | Access\ denied | authorization\ failed |
+            Permission\ denied | access\ rights | HTTP\ 4\d\d | error\ 4\d\d |
+            repository\ .*\ not\ found | repository\ not\ found |
+            not\ found:\ did\ you\ run\ git\ update-server-info |
+            does\ not\ appear\ to\ be\ a\ git\ repository |
+            couldn't\ find\ remote\ ref | unknown\ revision |
+            no\ space\ left\ on\ device | disk\ quota\ exceeded
         /xi.freeze
 
-        # Whether the error looks worth retrying
+        # Whether retrying the error cannot possibly help
         #
-        # Errors carrying no output are retried, so that importers which do not
-        # report through SubcommandFailed keep their previous behaviour.
-        def transient_error?(error)
-            return true unless error.respond_to?(:output)
+        # Only errors recognised as permanent stop the retries, so an
+        # unrecognised error behaves as it did before.
+        def permanent_error?(error)
+            return false unless error.respond_to?(:output)
 
-            output = Array(error.output).join("\n")
-            return true if output.empty?
-
-            TRANSIENT_ERROR_RX.match?(output)
+            PERMANENT_ERROR_RX.match?(Array(error.output).join("\n"))
         end
 
         # How long to wait before attempt number +retry_count+
@@ -336,7 +338,7 @@ module Autobuild
 
         def update_retry_count(original_error, retry_count)
             return if !original_error.respond_to?(:retry?) || !original_error.retry?
-            return unless transient_error?(original_error)
+            return if permanent_error?(original_error)
 
             retry_count += 1
             return unless retry_count <= self.retry_count
