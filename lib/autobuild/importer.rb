@@ -302,7 +302,8 @@ module Autobuild
         PERMANENT_ERROR_RX = /
             could\ not\ read\ (Username|Password) | terminal\ prompts\ disabled |
             Authentication\ failed | Access\ denied | authorization\ failed |
-            Permission\ denied | access\ rights | HTTP\ 4\d\d | error\ 4\d\d |
+            Permission\ denied | access\ rights |
+            (HTTP|error:?)\ (401|403|404|410) |
             repository\ .*\ not\ found | repository\ not\ found |
             not\ found:\ did\ you\ run\ git\ update-server-info |
             does\ not\ appear\ to\ be\ a\ git\ repository |

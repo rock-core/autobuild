@@ -101,6 +101,22 @@ module Autobuild
                     refute @importer.permanent_error?(failure("fatal: something new"))
                 end
 
+                it "reports an HTTP status the remote will repeat as permanent" do
+                    %w[401 403 404 410].each do |code|
+                        assert @importer.permanent_error?(
+                            failure("The requested URL returned error: #{code}")
+                        ), "expected #{code} to be permanent"
+                    end
+                end
+
+                it "retries the HTTP statuses that may clear on their own" do
+                    %w[408 429 500 503].each do |code|
+                        refute @importer.permanent_error?(
+                            failure("The requested URL returned error: #{code}")
+                        ), "expected #{code} to be retried"
+                    end
+                end
+
                 it "treats an error without output as not permanent" do
                     refute @importer.permanent_error?(Class.new(RuntimeError).new)
                 end
