@@ -20,7 +20,7 @@ module Autobuild
 
         def make_cmake_lists(contents)
             File.open(File.join(package.srcdir, 'CMakeLists.txt'), 'w') do |io|
-                io.puts "cmake_minimum_required(VERSION 3.0)"
+                io.puts "cmake_minimum_required(VERSION 3.10)"
                 io.puts contents
             end
         end
