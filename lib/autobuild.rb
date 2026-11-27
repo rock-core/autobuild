@@ -64,6 +64,7 @@ require 'autobuild/import/hg'
 require 'autobuild/import/svn'
 require 'autobuild/import/archive'
 require 'autobuild/import/tar'
+require 'autobuild/import/subpackage'
 
 require 'autobuild/package'
 require 'autobuild/configurable'
